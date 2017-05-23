@@ -3,7 +3,11 @@ set -e
 
 SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
-source ${SCRIPT_PATH}/set-aws-profile
+# We don't need to set aws profile on target EC2 instance,
+# as it will use its instance profile by default
+if [ -f ${SCRIPT_PATH}/set-aws-profile ]; then
+    source ${SCRIPT_PATH}/set-aws-profile
+fi
 
 GRADLE_MODULE_ROOT=${SCRIPT_PATH}/..
 REVISIONS_DIR=${GRADLE_MODULE_ROOT}/build/revisions

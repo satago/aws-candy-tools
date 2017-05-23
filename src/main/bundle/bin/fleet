@@ -3,8 +3,6 @@ set -e
 
 SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
-source ${SCRIPT_PATH}/set-aws-profile
-
 FLEET_DIR=${SCRIPT_PATH}/../fleet
 
 CMD=$1
@@ -28,7 +26,7 @@ case "$CMD" in
 
         stacks)
             STACKS=()
-            for name in $($0 groups $GROUP); do
+            for name in $($0 groups ${GROUP}); do
                 FILE=${FLEET_DIR}/${name}
                 if [[ -s ${FILE} ]]; then
                     for stack in $(cat ${FILE}); do
@@ -45,7 +43,7 @@ case "$CMD" in
                 fi
             done
             for stack in "${STACKS[@]}"; do
-                echo $stack
+                echo ${stack}
             done
         ;;
     
@@ -60,7 +58,6 @@ case "$CMD" in
                 ${SCRIPT_PATH}/deploy push ${stack}
             done
         ;;
-
 
         run)
             for stack in $($0 stacks ${GROUP}); do
