@@ -377,5 +377,17 @@ class CandyPlugin implements Plugin<Project> {
                 }
             }
         }
+
+        project.task("candyRunTask") {
+            Task task ->
+                task.group GRADLE_TASKS_GROUP
+                task.description "Runs a task by its default name specified as `candyTaskName` project property. Default name must not include `taskPrefix`, i.e. `-PcandyTaskName=binInit`"
+
+                def candyTaskNameProperty = "candyTaskName"
+                if (project.hasProperty(candyTaskNameProperty)) {
+                    def candyTaskName = (String) project.property(candyTaskNameProperty)
+                    task.dependsOn project.getTasksByName(extension.getTaskName(candyTaskName), false)
+                }
+        }
     }
 }

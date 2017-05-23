@@ -22,7 +22,7 @@ if [[ ! -e ${FILE} ]]; then
         echo "bin/ directory isn't initialized; couldn't find Gradle wrapper to run init task"
         exit 1
     fi
-    ${GRADLEW} candyBinInit
+    ${GRADLEW} candyRunTask -PcandyTaskName=binInit
 fi
 
 shift 1

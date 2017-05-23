@@ -46,12 +46,12 @@ class CandyPluginTest {
         def result = GradleRunner.create()
                 .withProjectDir(testProjectDir.getRoot())
                 .withPluginClasspath()
-                .withArguments('--stacktrace', '--info', 'candyCreateRevisions')
+                .withArguments('--stacktrace', '--info', 'createRevisions')
                 .withDebug(true)
                 .forwardOutput()
                 .build()
 
-        assertEquals(TaskOutcome.SUCCESS, result.task(':candyCreateRevisions').outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(':createRevisions').outcome)
         assertEquals(
                 ['revision-A/appspec.yml',
                  'revision-A/compose.bash',
@@ -93,7 +93,7 @@ class CandyPluginTest {
         def result = GradleRunner.create()
                 .withProjectDir(testProjectDir.getRoot())
                 .withPluginClasspath()
-                .withArguments('--stacktrace', '--info', 'candyTarRevisions', 'candyUntarRevisions')
+                .withArguments('--stacktrace', '--info', 'tarRevisions', 'untarRevisions')
                 .withDebug(true)
                 .forwardOutput()
                 .build()
@@ -101,8 +101,8 @@ class CandyPluginTest {
         def tarName = "revision.tgz"
         def pathToContent = "${tarName.replace('.tgz', '')}/${testProjectDir.getRoot().name}".toString()
 
-        assertEquals(TaskOutcome.SUCCESS, result.task(':candyTarRevisions').outcome)
-        assertEquals(TaskOutcome.SUCCESS, result.task(':candyUntarRevisions').outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(':tarRevisions').outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(':untarRevisions').outcome)
         assertEquals(
                 [pathToContent + '/bin/decrypt',
                  pathToContent + '/bin/decrypt-file.py',
@@ -201,4 +201,24 @@ class CandyPluginTest {
                     "${link}")
         }
     }
+
+    @Test
+    void applyPluginWithCustomTaskPrefix() {
+        def projectRoot = new File('src/test/resources/project-C')
+        FileUtils.copyDirectory(
+                projectRoot,
+                testProjectDir.getRoot())
+
+        def result = GradleRunner.create()
+                .withProjectDir(testProjectDir.getRoot())
+                .withPluginClasspath()
+                .withArguments('--stacktrace', '--info', 'candyRunTask', "-PcandyTaskName=binInit")
+                .withDebug(true)
+                .forwardOutput()
+                .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(':candyRunTask').outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(':fooBinInit').outcome)
+    }
+
 }

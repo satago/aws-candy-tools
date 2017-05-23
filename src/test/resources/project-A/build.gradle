@@ -13,7 +13,6 @@ plugins {
 }
 
 candy {
-    taskPrefix "candy"
     services {
         SERVICE_A {
             ecrStackName 'ecr-service-A'

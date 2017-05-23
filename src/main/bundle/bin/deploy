@@ -7,7 +7,7 @@ source ${SCRIPT_PATH}/set-aws-profile
 
 GRADLE_MODULE_ROOT=${SCRIPT_PATH}/..
 REVISIONS_DIR=${GRADLE_MODULE_ROOT}/build/revisions
-CREATE_REVISION_TASK_NAME_PREFIX=candyCreateRevision
+CREATE_REVISION_TASK_NAME_PREFIX=createRevision
 
 CMD=$1
 
@@ -66,7 +66,7 @@ case "$CMD" in
                 exit 1
             fi
 
-            ${GRADLE_WRAPPER} "${CREATE_REVISION_TASK_NAME_PREFIX}-${DEPLOYABLE_NAME}"
+            ${GRADLE_WRAPPER} candyRunTask "-PcandyTaskName=${CREATE_REVISION_TASK_NAME_PREFIX}-${DEPLOYABLE_NAME}"
 
             REVISION_DIR=${REVISIONS_DIR}/${DEPLOYABLE_NAME}
 
