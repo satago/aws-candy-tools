@@ -1,0 +1,32 @@
+# For help completing this file, see the "AppSpec File Reference" in the  
+#   "AWS CodeDeploy User Guide" at
+#   http://docs.aws.amazon.com/codedeploy/latest/userguide/app-spec-ref.html
+version: 0.0
+os: linux
+#files:
+#permissions:
+hooks:
+  ApplicationStop:
+    - location: elb/deregister_from_elb.sh
+      timeout: 3600
+    - location: stop.bash
+      timeout: 3600
+  BeforeInstall:
+    - location: symlink.bash
+    - location: pre-hooks.bash
+      timeout: 3600
+  AfterInstall:
+    - location: decrypt-properties.bash
+      timeout: 3600
+    - location: pull.bash
+      timeout: 3600
+  ApplicationStart:
+    - location: up.bash
+      timeout: 3600
+    - location: elb/register_with_elb.sh
+      timeout: 3600
+  ValidateService:
+    - location: validate.bash
+      timeout: 3600
+    - location: elb/wait_for_elb.sh
+      timeout: 3600

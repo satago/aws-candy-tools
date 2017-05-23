@@ -1,0 +1,129 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Elasticsearch cluster",
+  "Parameters": {
+    "InstanceType": {
+      "Description": "InstanceType for Elasticsearch nodes",
+      "Type": "String"
+    },
+    "InstanceCount": {
+      "Description": "Number of instances",
+      "Type": "Number"
+    },
+    "InstanceVolumeSizeGB": {
+      "Description": "Volume size on each instance node",
+      "Type": "Number",
+      "Default": "10"
+    },
+    "ZoneAwarenessEnabled": {
+      "Description": "Set to true to create a multi-zone cluster, number of instances must be an even number",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "AutomatedSnapshotStartHour": {
+      "Description": "Start time (UTC) for a daily automated snapshot",
+      "Type": "Number"
+    }
+  },
+  "Resources": {
+    "MyElasticsearch": {
+      "Type": "AWS::Elasticsearch::Domain",
+      "Properties": {
+        "AdvancedOptions": {
+          "rest.action.multi.allow_explicit_index": "true"
+        },
+        "EBSOptions": {
+          "EBSEnabled": true,
+          "VolumeType": "gp2",
+          "VolumeSize": { "Ref": "InstanceVolumeSizeGB" }
+        },
+        "ElasticsearchClusterConfig": {
+          "InstanceType": { "Ref": "InstanceType" },
+          "InstanceCount": { "Ref": "InstanceCount" },
+          "DedicatedMasterEnabled": false,
+          "ZoneAwarenessEnabled": { "Ref": "ZoneAwarenessEnabled" }
+        },
+        "ElasticsearchVersion": "5.1",
+        "SnapshotOptions": {
+          "AutomatedSnapshotStartHour": { "Ref": "AutomatedSnapshotStartHour" }
+        }
+      }
+    },
+    "MyElasticsearchAdminPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Resource": {
+                "Fn::Join": ["/", [{ "Fn::GetAtt": ["MyElasticsearch", "DomainArn"] }, "*"]]
+              },
+              "Action": ["es:*"],
+              "Effect": "Allow"
+            }
+          ]
+        }
+      }
+    },
+    "MyElasticsearchPowerPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Resource": {
+                "Fn::Join": ["/", [{ "Fn::GetAtt": ["MyElasticsearch", "DomainArn"] }, "*"]]
+              },
+              "Action": ["es:*"],
+              "Effect": "Allow"
+            },
+            {
+              "Resource": {
+                "Fn::Join": ["/", [{ "Fn::GetAtt": ["MyElasticsearch", "DomainArn"] }, "*"]]
+              },
+              "Action": ["es: DeleteElasticsearchDomain", "es: CreateElasticsearchDomain"],
+              "Effect": "Deny"
+            }
+          ]
+        }
+      }
+    },
+    "MyElasticsearchReadOnlyPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Resource": {
+                "Fn::Join": ["/", [{ "Fn::GetAtt": ["MyElasticsearch", "DomainArn"] }, "*"]]
+              },
+              "Action": ["es:ESHttpGet"],
+              "Effect": "Allow"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ElasticsearchURL": {
+      "Description": "URL of Elasticsearch domain",
+      "Value": {
+        "Fn::Join": ["", [
+          "http://",
+          { "Fn::GetAtt": ["MyElasticsearch", "DomainEndpoint"] }
+        ]]
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ElasticsearchURL" ] ]
+        }
+      }
+    }
+  }
+}

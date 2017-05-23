@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+
+cat "$@" | python ${SCRIPT_PATH}/encrypt-file.py

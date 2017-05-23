@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+#
+# Configure AWS named profile used by AWS CLI.
+#
+#   http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-multiple-profiles
+#
+# 1) Add these lines to `~/.aws/credentials`:
+#
+#        [replace-me]
+#        aws_access_key_id = MY_KEY...
+#        aws_secret_access_key = MY_SECRET...
+#
+#    Replace `replace-me` with your desired name, and use your real AWS keys instead of `MY_KEY...` and `MY_SECRET...`.
+#
+# 2) Add these lines to `~/.aws/config`:
+#
+#        [profile replace-me]
+#        region = eu-west-1
+#
+#    Make sure to pick the right AWS region for the profile, this is where the stacks will be created.
+
+export AWS_DEFAULT_PROFILE=replace-me

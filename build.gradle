@@ -1,0 +1,114 @@
+plugins {
+    id "com.jfrog.bintray" version "1.7.3"
+}
+
+apply plugin: 'groovy'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+apply plugin: 'java-gradle-plugin'
+
+group = 'net.satago.gradle'
+version = '0.1.0'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile gradleApi()
+    compile localGroovy()
+    testCompile 'junit:junit:4.12'
+    testCompile gradleTestKit()
+    testCompile 'commons-io:commons-io:2.4'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+}
+
+jar.dependsOn sourcesJar
+jar.dependsOn javadocJar
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+def pomFragments = {
+    developers {
+        developer {
+            id "dmitrygusev"
+            name "Dmitry Gusev"
+            email "dmitry@anjlab.com"
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            groupId project.group
+            artifactId project.name
+            version project.version
+
+            pom.withXml {
+                def root = asNode()
+
+                root.appendNode('description', project.description)
+
+                def license = root.appendNode('licenses').appendNode('license')
+                license.appendNode("name", "The Apache Software License, Version 2.0")
+                license.appendNode("url", "http://www.apache.org/licenses/LICENSE-2.0.txt")
+                license.appendNode("distribution", "repo")
+
+                root.children().last() + pomFragments
+            }
+        }
+    }
+}
+
+bintray {
+    user = "$bintray_user"
+    key = "$bintray_api_key"
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = 'aws-candy-tools'
+        userOrg = 'satago' // an optional organization name when the repo belongs to one of the user's orgs
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/satago/aws-candy-tools.git'
+    }
+    dryRun = false // whether to run this as dry-run, without deploying
+}
+
+task tarBundle(type: Tar) {
+    archiveName "bundle.tgz"
+    destinationDir file('build/tar')
+    from('./src/main/bundle') {
+        exclude 'build/tar/'
+    }
+    compression Compression.GZIP
+}
+
+jar {
+    with copySpec() {
+        from tarBundle.outputs
+        into 'META-INF/aws-candy-tools'
+    }
+}
+
+pluginUnderTestMetadata.dependsOn jar
+
+pluginUnderTestMetadata {
+    //  Run tests with final JAR file instead of extracted classes/resources
+    pluginClasspath = files(jar.archivePath) + pluginUnderTestMetadata.pluginClasspath - files(sourceSets.main.output.classesDir, sourceSets.main.output.resourcesDir)
+}

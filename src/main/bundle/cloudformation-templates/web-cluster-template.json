@@ -1,0 +1,742 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AutoScaling Group of Docker & CodeDeploy powered instances behind an ELB",
+  "Parameters": {
+    "InstanceType" : {
+      "Description" : "Type of EC2 instance in the cluster",
+      "Type": "String",
+      "Default": "t2.nano"
+    },
+
+    "DesiredCapacity": {
+      "Description": "Desired capacity in AutoScaling Group",
+      "Type": "String",
+      "Default": 2
+    },
+
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair"
+    },
+
+    "SSHSecurityGroupId": {
+      "Description": "(Optional) ID of ingress security group to allow SSH access to EC2 instances",
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for 0.0.0.0/0",
+      "Default": ""
+    },
+    "ExposeCustomPortRange": {
+      "Description": "Expose custom port range to entire VPC (from 33000 to 33100)",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "ManagedPolicyArns": {
+      "Description": "List of IAM policy names that will be granted to the instance role",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+
+    "CreateELB": {
+      "Description": "Create ELB and associate with this AutoScaling Group",
+      "Type": "String",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true (default) or false"
+    },
+    "InternalELB": {
+      "Description": "Create internal ELB",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true of false (default)"
+    },
+    "MultiAZ": {
+      "Description": "Create EC2 instances in different availability zones",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true (true) of false"
+    },
+    "AZIndex": {
+      "Description": "Zero-based index of availability zone for non-MultiAZ cluster",
+      "Type": "Number",
+      "Default": "0"
+    },
+    "InternalELBSubnets": {
+      "Description": "List of VPC subnets for internal ELB",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "SSLCertificateId": {
+      "Description": "ARN of SSL Certificate for ELB",
+      "Type": "String",
+      "Default": ""
+    },
+    "HealthCheckTarget": {
+      "Description": "ELB HealthCheck target",
+      "Type": "String",
+      "Default": "HTTP:8080/"
+    },
+    "UseCookieStickinessPolicy": {
+      "Description": "Enable ELB sticky sessions based on cookies",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "EnableELBAccessLogging": {
+      "Description": "Write ELB access logs to S3LoggingBucket",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    }
+  },
+  "Conditions": {
+    "CreateELB": {
+      "Fn::Equals": [{ "Ref": "CreateELB" }, "true"]
+    },
+    "CreateLoggingBucketPolicy": {
+      "Fn::And": [
+        { "Fn::Equals": [{ "Ref": "EnableELBAccessLogging" }, "true"] },
+        { "Condition": "CreateELB" }
+      ]
+    },
+    "InternalELB": {
+      "Fn::Equals": [{ "Ref": "InternalELB" }, "true"]
+    },
+    "MultiAZ": {
+      "Fn::Equals": [{ "Ref": "MultiAZ" }, "true"]
+    },
+    "UseCookieStickinessPolicy": {
+      "Fn::Equals": [{ "Ref": "UseCookieStickinessPolicy" }, "true"]
+    },
+    "SSHSecurityGroupIdEmpty": {
+      "Fn::Equals": [{ "Ref": "SSHSecurityGroupId" }, ""]
+    },
+    "UseManagedPolicyArns": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "ManagedPolicyArns" }] }, ""]
+      }]
+    },
+    "EnableCustomPortRange": {
+      "Fn::Equals": [{ "Ref": "ExposeCustomPortRange" }, "true"]
+    }
+  },
+  "Mappings": {
+    "RegionMap": {
+      "eu-central-1": { "AMI": "ami-af0fc0c0", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-e5083683", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-f1949e95", "ELBAccountId": "652711504416" }
+    }
+  },
+  "Resources": {
+    "MyASG": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": {
+          "Fn::If": [
+            "MultiAZ",
+            { "Fn::GetAZs": "" },
+            [{ "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }]
+          ]
+        },
+        "LaunchConfigurationName": { "Ref": "MyInstanceLaunchConfig" },
+        "HealthCheckGracePeriod": "300",
+        "HealthCheckType": "EC2",
+        "MinSize": "1",
+        "DesiredCapacity": { "Ref": "DesiredCapacity" },
+        "MaxSize": "4",
+        "LoadBalancerNames": [{
+          "Fn::If": [
+            "CreateELB",
+            { "Ref": "MyELB" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        }]
+      },
+      "CreationPolicy": {
+        "AutoScalingCreationPolicy" : {
+          "MinSuccessfulInstancesPercent" : 100
+        },
+        "ResourceSignal": {
+          "Count": { "Ref": "DesiredCapacity" },
+          "Timeout": "PT15M"
+        }
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MinInstancesInService": "1",
+          "MaxBatchSize": "1",
+          "PauseTime": "PT15M",
+          "WaitOnResourceSignals": "true"
+        }
+      }
+    },
+    "MyELB": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Condition": "CreateELB",
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": "true",
+          "Timeout": "300"
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "60"
+        },
+        "CrossZone": "true",
+        "Scheme": {
+          "Fn::If": ["InternalELB", "internal", { "Ref": "AWS::NoValue" }]
+        },
+        "AvailabilityZones": {
+          "Fn::If": [
+            "InternalELB",
+            { "Ref": "AWS::NoValue" },
+            { "Fn::If": [
+              "MultiAZ",
+              { "Fn::GetAZs": "" },
+              [{ "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }]
+            ]}
+        ]},
+        "Subnets": {
+          "Fn::If": ["InternalELB", { "Ref": "InternalELBSubnets" }, { "Ref": "AWS::NoValue" }]
+        },
+        "SecurityGroups": [{ "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] }],
+        "LBCookieStickinessPolicy": [{
+          "PolicyName": "CookieBasedPolicy",
+          "CookieExpirationPeriod": "10"
+        }],
+        "Listeners": [{
+          "LoadBalancerPort": "80",
+          "InstancePort": "8080",
+          "Protocol": "HTTP",
+          "PolicyNames": [{
+            "Fn::If": [
+              "UseCookieStickinessPolicy",
+              "CookieBasedPolicy",
+              { "Ref": "AWS::NoValue" }
+            ]
+          }]
+        }, {
+          "LoadBalancerPort": "443",
+          "InstancePort": "8080",
+          "Protocol": "HTTPS",
+          "PolicyNames": [{
+              "Fn::If": [
+                "UseCookieStickinessPolicy",
+                "CookieBasedPolicy",
+                { "Ref": "AWS::NoValue" }
+              ]
+            },
+            "MySSLNegotiationPolicy"
+          ],
+          "SSLCertificateId": { "Ref": "SSLCertificateId" }
+        }],
+        "HealthCheck": {
+          "Target": { "Ref": "HealthCheckTarget" },
+          "HealthyThreshold": "2",
+          "UnhealthyThreshold": "5",
+          "Interval": "10",
+          "Timeout": "5"
+        },
+        "AccessLoggingPolicy": {
+          "S3BucketName": {
+            "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
+          },
+          "S3BucketPrefix": "ELBLogs",
+          "Enabled": { "Ref": "EnableELBAccessLogging" },
+          "EmitInterval" : "5"
+        },
+        "Policies": [
+          {
+            "PolicyName": "MySSLNegotiationPolicy",
+            "PolicyType": "SSLNegotiationPolicyType",
+            "Attributes": [
+              {
+                "Name": "Reference-Security-Policy",
+                "Value": "ELBSecurityPolicy-2016-08"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "MyELBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow HTTP & HTTPS to ELB",
+        "SecurityGroupIngress": [{
+          "IpProtocol": "tcp",
+          "FromPort": "80",
+          "ToPort": "80",
+          "CidrIp": {
+            "Fn::If": ["InternalELB", "172.16.0.0/12", "0.0.0.0/0"]
+          }
+        }, {
+          "IpProtocol": "tcp",
+          "FromPort": "443",
+          "ToPort": "443",
+          "CidrIp": {
+            "Fn::If": ["InternalELB", "172.16.0.0/12", "0.0.0.0/0"]
+          }
+        }]
+      }
+    },
+    "MyS3LoggingBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Condition": "CreateLoggingBucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [ {
+            "Sid": "ELBAccessLogs20130930",
+            "Effect": "Allow",
+            "Resource": {
+              "Fn::Join": ["",
+                [
+                  "arn:aws:s3:::",
+                  { "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]] },
+                  "/",
+                  "ELBLogs",
+                  "/AWSLogs/",
+                  { "Ref": "AWS::AccountId" },
+                  "/*"
+                ]
+              ]
+            },
+            "Principal": { "AWS": {
+              "Fn::FindInMap": ["RegionMap", { "Ref": "AWS::Region" }, "ELBAccountId"]
+            }},
+            "Action": [
+              "s3:PutObject"
+            ]
+          } ]
+        }
+      }
+    },
+    "MyInstanceLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets" : {
+            "default": [ "cfn-config", "awslogs-agent", "aws-cli", "docker", "codedeploy-agent" ]
+          },
+          "cfn-config": {
+            "files": {
+              "/opt/satago/cfn-error": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "/opt/aws/bin/cfn-signal -e 1 -r \"$1\" ",
+                    "  --resource MyASG --stack ", { "Ref" : "AWS::StackName" },
+                    "  --region ", { "Ref" : "AWS::Region" }, "\n"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "[main]\n",
+                    "stack=", { "Ref": "AWS::StackName" }, "\n",
+                    "region=", { "Ref": "AWS::Region" }, "\n",
+                    "interval=1\n"
+                  ]]
+                },
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "[cfn-auto-reloader-hook]\n",
+                    "triggers=post.update\n",
+                    "path=Resources.MyInstanceLaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                    "action=/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackId" },
+                    " -r MyInstanceLaunchConfig ", " --region ", { "Ref": "AWS::Region" }, "\n",
+                    "runas=root\n"
+                  ]]
+                }
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          },
+          "awslogs-agent": {
+            "files": {
+              "/opt/satago/install-awslogs-agent": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "# Install CloudWatch Agent to monitor CodeDeploy\n",
+                    "cd /home/ec2-user/\n",
+                    "wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py\n",
+                    "wget https://aws-codedeploy-", { "Ref" : "AWS::Region" }, ".s3.amazonaws.com/cloudwatch/codedeploy_logs.conf\n",
+                    "chmod +x ./awslogs-agent-setup.py\n",
+                    "python awslogs-agent-setup.py",
+                    " --non-interactive",
+                    " --region ", { "Ref" : "AWS::Region" },
+                    " --configfile s3://aws-codedeploy-", { "Ref" : "AWS::Region" }, "/cloudwatch/awslogs.conf",
+                    " || (/opt/satago/cfn-error 'Failed to install AWS CloudWatch Agent.' && exit 1)\n",
+                    "mkdir -p /var/awslogs/etc/config\n",
+                    "cp codedeploy_logs.conf /var/awslogs/etc/config/\n",
+                    "service awslogs restart"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "install-awslogs-agent": {
+                "command": "/opt/satago/install-awslogs-agent"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "awslogs": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          },
+          "aws-cli": {
+            "packages": {
+              "yum": {
+                "aws-cli": []
+              }
+            },
+            "commands": {
+              "aws-configure": {
+                "command": {
+                  "Fn::Join": ["", [
+                    "echo -e '\n\n", { "Ref": "AWS::Region" }, "\n' | aws configure"
+                  ]]
+                }
+              }
+            }
+          },
+          "docker": {
+            "packages": {
+              "yum": {
+                "docker": []
+              }
+            },
+            "commands": {
+              "docker-compose": {
+                "command": {
+                  "Fn::Join": ["", [
+                    "curl -L https://github.com/docker/compose/releases/",
+                    "download/1.11.2/docker-compose-`uname -s`-`uname -m`",
+                    " > /usr/local/bin/docker-compose",
+                    " && chmod +x /usr/local/bin/docker-compose"
+                  ]]
+                }
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "docker": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          },
+          "codedeploy-agent": {
+            "files": {
+              "/opt/satago/install-codedeploy-agent": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "# Install the AWS CodeDeploy Agent.\n",
+                    "# CodeDeploy Agent must be installed last, as it will trigger revision deployment\n",
+                    "# and all prerequisites must already be configured at this point.\n",
+                    "cd /home/ec2-user/\n",
+                    "aws s3 cp 's3://aws-codedeploy-", { "Ref": "AWS::Region" } ,"/latest/codedeploy-agent.noarch.rpm' .",
+                    " || (/opt/satago/cfn-error 'Failed to download AWS CodeDeploy Agent.' && exit 1)\n",
+                    "yum -y install codedeploy-agent.noarch.rpm",
+                    " || (/opt/satago/cfn-error 'Failed to install AWS CodeDeploy Agent.' && exit 1)\n"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "install-codedeploy-agent": {
+                "command": "/opt/satago/install-codedeploy-agent"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "codedeploy-agent": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId": { "Fn::FindInMap": ["RegionMap", { "Ref": "AWS::Region" }, "AMI"] },
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "SecurityGroups": [{ "Ref": "MyInstanceSecurityGroup" }],
+        "IamInstanceProfile": { "Ref": "MyInstanceProfile" },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": ["", [
+              "#!/bin/bash -ex\n",
+
+              "yum update -y\n",
+
+              "/opt/aws/bin/cfn-init --verbose --configsets default",
+              " --stack ", { "Ref": "AWS::StackId" },
+              " --resource MyInstanceLaunchConfig",
+              " --region ", { "Ref": "AWS::Region" },
+              " || (/opt/satago/cfn-error 'Failed to run cfn-init.' && exit 1)\n",
+
+              "# All is well, so signal success to the AutoScalingGroup's CreationPolicy.\n",
+              "/opt/aws/bin/cfn-signal -e 0 -r \"Instance setup completed successfully.\"",
+              " --stack ", { "Ref" : "AWS::StackName" },
+              " --resource MyASG ",
+              " --region ", { "Ref" : "AWS::Region" }, "\n"
+            ]]
+          }
+        }
+      }
+    },
+    "MyInstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "SSH, HTTP for Tomcat, Ephemeral port range for Docker",
+        "SecurityGroupIngress": [{
+          "IpProtocol": "tcp",
+          "FromPort": "8080",
+          "ToPort": "8080",
+          "SourceSecurityGroupId": { "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] }
+        }, {
+          "IpProtocol": "tcp",
+          "FromPort": "22",
+          "ToPort": "22",
+          "CidrIp": {
+            "Fn::If": [
+              "SSHSecurityGroupIdEmpty",
+              "0.0.0.0/0",
+              { "Ref": "AWS::NoValue" }
+            ]
+          },
+          "SourceSecurityGroupId": {
+            "Fn::If": [
+              "SSHSecurityGroupIdEmpty",
+              { "Ref": "AWS::NoValue" },
+              { "Ref": "SSHSecurityGroupId" }
+            ]
+          }
+        }, {
+          "Fn::If": [
+            "EnableCustomPortRange",
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "33000",
+              "ToPort": "33100",
+              "CidrIp": "172.16.0.0/12"
+            },
+            { "Ref": "AWS::NoValue" }
+          ]
+        }]
+      }
+    },
+    "MyDeploymentGroup": {
+      "Type": "AWS::CodeDeploy::DeploymentGroup",
+      "Properties": {
+        "ApplicationName": { "Ref": "MyApplication" },
+        "DeploymentConfigName": "CodeDeployDefault.OneAtATime",
+        "AutoScalingGroups": [{ "Ref": "MyASG" }],
+        "ServiceRoleArn": { "Fn::GetAtt" : ["CodeDeployServiceRole", "Arn"] }
+      }
+    },
+    "MyApplication": {
+      "Type": "AWS::CodeDeploy::Application",
+      "Properties": { }
+    },
+    "CodeDeployServiceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Sid": "1",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                { "Fn::Join": [".", ["codedeploy", { "Ref": "AWS::Region"}, "amazonaws.com"]] }
+              ]
+            },
+            "Action": "sts:AssumeRole"
+          }]
+        },
+        "Path": "/"
+      }
+    },
+    "CodeDeployServiceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "CodeDeployPolicy",
+        "PolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Resource": [
+              "*"
+            ],
+            "Action": [
+              "ec2:Describe*"
+            ]
+          }, {
+            "Effect": "Allow",
+            "Resource": [
+              "*"
+            ],
+            "Action": [
+              "autoscaling:CompleteLifecycleAction",
+              "autoscaling:DeleteLifecycleHook",
+              "autoscaling:DescribeLifecycleHooks",
+              "autoscaling:DescribeAutoScalingGroups",
+              "autoscaling:PutLifecycleHook",
+              "autoscaling:RecordLifecycleActionHeartbeat"
+            ]
+          }]
+        },
+        "Roles": [{
+          "Ref": "CodeDeployServiceRole"
+        }]
+      }
+    },
+    "MyInstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": {
+            "Fn::If": [
+              "UseManagedPolicyArns",
+              { "Ref": "ManagedPolicyArns" },
+              { "Ref": "AWS::NoValue" }
+            ]
+        },
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                "ec2.amazonaws.com"
+              ]
+            },
+            "Action": [
+              "sts:AssumeRole"
+            ]
+          }]
+        },
+        "Path": "/"
+      }
+    },
+    "MyInstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "MyInstanceRole",
+        "PolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Action": [
+              "autoscaling:Describe*",
+              "cloudformation:Describe*",
+              "cloudformation:GetTemplate",
+              "s3:Get*",
+              "s3:List*",
+
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:GetRepositoryPolicy",
+              "ecr:DescribeRepositories",
+              "ecr:ListImages",
+              "ecr:DescribeImages",
+              "ecr:BatchGetImage",
+
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents",
+              "logs:DescribeLogGroups",
+              "logs:DescribeLogStreams",
+
+              "cloudwatch:PutMetricData",
+
+              "kms:Decrypt",
+
+              "elasticloadbalancing:Describe*",
+              "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+              "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+              "autoscaling:Describe*",
+              "autoscaling:EnterStandby",
+              "autoscaling:ExitStandby",
+              "autoscaling:UpdateAutoScalingGroup",
+              "autoscaling:SuspendProcesses",
+              "autoscaling:ResumeProcesses"
+            ],
+            "Resource": "*"
+          }]
+        },
+        "Roles": [{
+          "Ref": "MyInstanceRole"
+        }]
+      }
+    },
+    "MyInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [{
+          "Ref": "MyInstanceRole"
+        }]
+      }
+    }
+  },
+  "Outputs": {
+    "ApplicationURL": {
+      "Description": "Application URL",
+      "Value": {
+        "Fn::Join": ["", [
+          "http://",
+          { "Fn::GetAtt": ["MyELB", "DNSName"] }
+        ]]
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ApplicationURL" ] ]
+        }
+      },
+      "Condition": "CreateELB"
+    }
+  }
+}

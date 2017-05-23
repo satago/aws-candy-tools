@@ -1,0 +1,63 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "ECR Docker registry that is available for read/write to all account principals",
+  "Parameters": {
+    "RepositoryName": {
+      "Type": "String",
+      "Description": "Repository name"
+    }
+  },
+  "Resources": {
+    "MyRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {
+          "Ref": "RepositoryName"
+        },
+        "RepositoryPolicyText": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowPullPush",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {
+                    "Ref": "AWS::AccountId"
+                  }
+                ]
+              },
+              "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:DescribeRepositories",
+                "ecr:ListImages",
+                "ecr:DescribeImages",
+                "ecr:BatchGetImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:PutImage"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ImageURI": {
+      "Value": {
+        "Fn::Join": ["", [
+          { "Ref": "AWS::AccountId" },
+          ".dkr.ecr.",
+          { "Ref": "AWS::Region" },
+          ".amazonaws.com/",
+          { "Ref": "MyRepository" }
+        ]]
+      }
+    }
+  }
+}

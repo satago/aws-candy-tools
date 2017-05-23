@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+URL="${@}"
+
+COOKIES_FILE=$(mktemp)
+
+trap 'rm -f -- "${COOKIES_FILE}"' INT TERM HUP EXIT
+
+printf "$(date +%H:%M:%S) Sending HTTP requests to ${URL}"
+
+PREV_STATUS=
+PRINT_NEW_LINE=false
+while true
+do
+    STATUS=`curl --silent --insecure ${URL} --write-out %{http_code} \
+                    --cookie ${COOKIES_FILE} --cookie-jar ${COOKIES_FILE} --output /dev/null`
+    STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
+
+    if [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} != ${STATUS} ]]; then
+        if [[ ${PRINT_NEW_LINE} ]]; then
+            echo
+        fi
+        printf "${STATUS_LINE}"
+        PRINT_NEW_LINE=false
+    else
+        printf "\r${STATUS_LINE}"
+        PRINT_NEW_LINE=true
+    fi
+
+    PREV_STATUS=${STATUS}
+
+    sleep 1
+done

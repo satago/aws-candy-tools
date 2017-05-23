@@ -1,0 +1,7 @@
+version: '2.1'
+
+services:
+
+  service-a:
+    image: service-a:latest
+    build: data/service-a

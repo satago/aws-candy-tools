@@ -1,0 +1,51 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.bmuschko:gradle-docker-plugin:3.0.7'
+    }
+}
+
+plugins {
+    id 'net.satago.gradle.aws-candy-tools'
+}
+
+candy {
+    taskPrefix "candy"
+    services {
+        SERVICE_A {
+            ecrStackName 'ecr-service-A'
+            composeBuild {
+                serviceName 'service-a'
+            }
+        }
+        SERVICE_B {
+            ecrStackName 'ecr-service-B'
+            dockerJava {
+                project rootProject
+                taskName 'buildImageServiceB'
+            }
+        }
+    }
+    revisions {
+        'revision-A' {
+            composeFiles 'docker-compose.service-A.yml'
+            services 'SERVICE_A', 'SERVICE_B'
+            resources copySpec() {
+                from "apps/common-files/"
+                into "data"
+            }
+        }
+    }
+}
+
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
+task buildImageServiceB(type: DockerBuildImage) {
+    inputDir = file("apps/revision-A/service-b")
+    tag = "service-b:latest"
+}

@@ -1,0 +1,4 @@
+//  Just an empty gradle project with the plugin applied
+plugins {
+    id 'net.satago.gradle.aws-candy-tools'
+}

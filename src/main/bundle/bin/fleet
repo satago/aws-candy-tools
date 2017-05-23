@@ -1,0 +1,80 @@
+#!/bin/bash
+set -e
+
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+
+source ${SCRIPT_PATH}/set-aws-profile
+
+FLEET_DIR=${SCRIPT_PATH}/../fleet
+
+CMD=$1
+GROUP=$2
+
+case "$CMD" in
+        groups)
+            if [[ -z ${GROUP} ]]; then
+                $0 groups -all
+            elif [[ "${GROUP}" == "all" ]]; then
+                $0 groups -all
+            elif [[ ${GROUP} =~ (.*)-all ]]; then
+                GROUP=${BASH_REMATCH[1]}
+                for name in $(find ${FLEET_DIR} -type f -name "${GROUP}*"); do
+                    $0 groups $(basename ${name})
+                done
+            elif [[ -f ${FLEET_DIR}/${GROUP} ]]; then
+               echo ${GROUP}
+            fi
+        ;;
+
+        stacks)
+            STACKS=()
+            for name in $($0 groups $GROUP); do
+                FILE=${FLEET_DIR}/${name}
+                if [[ -s ${FILE} ]]; then
+                    for stack in $(cat ${FILE}); do
+                        if [[ ! " ${STACKS[@]} " =~ " ${stack} " ]]; then
+                            STACKS+=(${stack})
+                        fi
+                    done
+                else
+                   # File is empty, its name is the same as name of a stack
+                   stack=$(basename ${FILE})
+                   if [[ ! " ${STACKS[@]} " =~ " ${stack} " ]]; then
+                       STACKS+=(${stack})
+                   fi
+                fi
+            done
+            for stack in "${STACKS[@]}"; do
+                echo $stack
+            done
+        ;;
+    
+        deploy)
+            if [[ "${GROUP}" =~ (.*)all ]]; then
+                echo Multigroup deployments not supported as order of stacks cannot be strictly defined
+                echo Define separate group for deployment if needed
+                exit 1
+            fi
+
+            for stack in $($0 stacks ${GROUP}); do
+                ${SCRIPT_PATH}/deploy push ${stack}
+            done
+        ;;
+
+
+        run)
+            for stack in $($0 stacks ${GROUP}); do
+                ${SCRIPT_PATH}/stack run ${stack} "${@:3}"
+            done
+        ;;
+
+        *)
+            echo $"Usage: $0 <command> <args>
+
+  $0 deploy <group-name>
+  $0 groups [[<filter>]-all]
+  $0 run [[<filter>]-all] <command>
+  $0 stacks [[<filter>]-all]"
+            exit 1
+        ;;
+esac

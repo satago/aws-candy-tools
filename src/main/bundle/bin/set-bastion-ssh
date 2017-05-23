@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+#
+# Configure SSH access to the bastion host,
+# this is for debugging purposes so that you can login to the cluster instances from your environment.
+#
+#    BASTION_HOST                 -- DNS name for your bastion host, it should have SSH access to other EC2 instances
+#    SSH_INSTANCE_USER            -- Name of a user that will be used to login to the other EC2 instances
+#    SSH_INSTANCE_IDENTITY_FILE   -- Path to identity key on the bastion host that will be used to login to the other EC2 instances
+#
+
+export BASTION_HOST=bastion.example.com
+export SSH_INSTANCE_USER=ec2-user
+export SSH_INSTANCE_IDENTITY_FILE='~/.ssh/my-rsa-key'

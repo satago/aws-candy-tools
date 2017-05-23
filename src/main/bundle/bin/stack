@@ -1,0 +1,260 @@
+#!/bin/bash
+set -e
+
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+
+source ${SCRIPT_PATH}/set-aws-profile
+
+STACKS_DIR=${SCRIPT_PATH}/../cloudformation-stacks
+
+CMD=$1
+STACK=$2
+
+function template_path {
+    # Search in user templates first
+    local TEMPLATE_PATH=${SCRIPT_PATH}/../cloudformation-templates/$1-template.json
+    if [[ ! -f ${TEMPLATE_PATH} ]]; then
+        # If not found, try a built-in template
+        TEMPLATE_PATH=${SCRIPT_PATH}/../build/tmp/aws-candy-tools/bundle/cloudformation-templates/$1-template.json
+    fi
+    echo ${TEMPLATE_PATH}
+}
+
+function template_name {
+    # Take name of the template from parameters file,
+    # each stack has exactly one parameters file
+    echo $(ls ${STACKS_DIR}/${STACK}/*-parameters.json) \
+        | sed 's/.*\/\(.*\)-parameters.json/\1/'
+}
+
+function aws_account_id {
+    # http://stackoverflow.com/a/33791322
+    echo $(aws ec2 describe-security-groups \
+                --group-names 'Default' \
+                --query 'SecurityGroups[0].OwnerId' \
+                --output text)
+}
+
+function physical_resource_id_by_logical_id {
+    echo $(aws cloudformation list-stack-resources \
+            --stack-name $1 \
+            --query "StackResourceSummaries[?LogicalResourceId==\`$2\`].PhysicalResourceId" \
+            --output text)
+}
+
+case "$CMD" in
+        list)
+            ls -1 ${STACKS_DIR}
+            ;;
+
+        list-arns)
+            ACCOUNT_ID=$(aws_account_id)
+            INSTANCE_ROLE_ID=$(physical_resource_id_by_logical_id ${STACK} MyInstanceRole)
+            echo "arn:aws:iam::${ACCOUNT_ID}:role/${INSTANCE_ROLE_ID}"
+            ;;
+
+        list-exports)
+            aws cloudformation list-exports \
+                --query 'Exports[*][Name, Value]' \
+                --output table
+            ;;
+
+        create-access-logs-bucket)
+            ACCOUNT_ID=$(aws_account_id)
+
+            BUCKET="${ACCOUNT_ID}-${STACK}"
+            aws s3 mb s3://${BUCKET}
+            ;;
+
+        id)
+            aws cloudformation describe-stacks --stack-name ${STACK} \
+                --query 'Stacks[0].StackId' --output text
+            ;;
+
+        create)
+            TEMPLATE=$(template_name)
+            aws cloudformation create-stack \
+                --stack-name ${STACK} \
+                --template-body file://$(template_path ${TEMPLATE}) \
+                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
+                --disable-rollback \
+                --capabilities CAPABILITY_IAM
+            ;;
+
+        update)
+            TEMPLATE=$(template_name)
+            aws cloudformation update-stack \
+                --stack-name ${STACK} \
+                --template-body file://$(template_path ${TEMPLATE}) \
+                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
+                --capabilities CAPABILITY_IAM
+            ;;
+
+        create-change-set)
+            TEMPLATE=$(template_name)
+            CHANGESET_NAME=change$(date -u +%Y%m%dT%H%M%S%Z)
+            aws cloudformation create-change-set \
+                --capabilities CAPABILITY_IAM \
+                --stack-name ${STACK} \
+                --template-body file://$(template_path ${TEMPLATE}) \
+                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
+                --change-set-name change$(date -u +%Y%m%dT%H%M%S%Z) \
+            && echo ${CHANGESET_NAME} \
+            && echo $0 describe-change-set ${STACK} ${CHANGESET_NAME}
+            ;;
+
+        describe-change-set)
+            CHANGESET_NAME=$3
+            aws cloudformation describe-change-set --stack-name ${STACK} --change-set-name ${CHANGESET_NAME} \
+            && echo $0 execute-change-set ${STACK} ${CHANGESET_NAME}
+            ;;
+
+        execute-change-set)
+            CHANGESET_NAME=$3
+            aws cloudformation execute-change-set --stack-name ${STACK} --change-set-name ${CHANGESET_NAME} \
+            && echo $0 wait ${STACK}
+            ;;
+
+        wait)
+            printf "$(date +%H:%M:%S) Waiting for stack update"
+
+            PREV_STATUS=
+            PRINT_NEW_LINE=false
+            while true
+            do
+                STATUS=`$0 status ${STACK}`
+                STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
+
+                if [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} != ${STATUS} ]]; then
+                    if [[ ${PRINT_NEW_LINE} ]]; then
+                        echo
+                    fi
+                    printf "${STATUS_LINE}"
+                    PRINT_NEW_LINE=false
+                else
+                    printf "\r${STATUS_LINE}"
+                    PRINT_NEW_LINE=true
+                fi
+
+                # Wait for one of the terminal statuses
+                # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-describing-stacks.html
+                if [[ ${STATUS} == 'CREATE_COMPLETE' ]] ||
+                   [[ ${STATUS} == 'CREATE_FAILED' ]] ||
+                   [[ ${STATUS} == 'DELETE_COMPLETE' ]] ||
+                   [[ ${STATUS} == 'DELETE_FAILED' ]] ||
+                   [[ ${STATUS} == 'ROLLBACK_COMPLETE' ]] ||
+                   [[ ${STATUS} == 'ROLLBACK_FAILED' ]] ||
+                   [[ ${STATUS} == 'UPDATE_COMPLETE' ]] ||
+                   [[ ${STATUS} == 'UPDATE_ROLLBACK_COMPLETE' ]] ||
+                   [[ ${STATUS} == 'UPDATE_ROLLBACK_FAILED' ]] ||
+                   [[ ${STATUS} == 'CREATE_FAILED' ]]; then
+                        exit 0
+                fi
+
+                PREV_STATUS=${STATUS}
+
+                sleep 1
+            done
+            ;;
+
+        status)
+            aws cloudformation describe-stacks --stack-name ${STACK} \
+                --query 'Stacks[0].StackStatus' --output text
+            ;;
+
+        estimate-template-cost)
+            TEMPLATE=$(template_name)
+            aws cloudformation estimate-template-cost \
+                --template-body file://$(template_path ${TEMPLATE}) \
+                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json
+            ;;
+
+        resources)
+            aws cloudformation describe-stack-resources --stack-name ${STACK} \
+                --query 'StackResources[*].[Timestamp,ResourceStatus,PhysicalResourceId,LogicalResourceId]' \
+                --output table
+            ;;
+
+        events)
+            [[ -z $3 ]] && MAX_ITEMS=10 || MAX_ITEMS=$3
+
+            aws cloudformation describe-stack-events --stack-name ${STACK} \
+                --query 'StackEvents[*].[Timestamp,ResourceStatus,LogicalResourceId,ResourceStatusReason]' \
+                --output table \
+                --max-items ${MAX_ITEMS}
+            ;;
+
+        ec2-instances)
+            STACK_ID=$($0 id ${STACK})
+            ATTRS=$3
+            OUTPUT="--output text"
+
+            if [[ -z ${ATTRS} ]]; then
+                ATTRS=".[InstanceId,PublicIpAddress,PublicDnsName,PrivateIpAddress,PrivateDnsName]"
+            elif [[ ${ATTRS} == '*' ]]; then
+                ATTRS=""
+                OUTPUT=""
+            else
+                ATTRS=".[${ATTRS}]"
+            fi
+
+            aws ec2 describe-instances \
+                --query "Reservations[*].Instances[?Tags[?Value==\`${STACK_ID}\`]]${ATTRS}" \
+                ${OUTPUT}
+            ;;
+
+        ssh)
+            # Take IP of the first available EC2 instance in the stack
+            PRIVATE_IP=$($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None' | head -n 1)
+
+            source ${SCRIPT_PATH}/set-bastion-ssh
+
+            # Configure port, username and other settings via `~/.ssh/config`
+            ssh -t ${BASTION_HOST} \
+                ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_USER}@${PRIVATE_IP}
+            ;;
+
+        run)
+            PRIVATE_IPS=($($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None'))
+
+            source ${SCRIPT_PATH}/set-bastion-ssh
+
+            shift 2
+            REMOTE_COMMAND="$*"
+
+            for PRIVATE_IP in "${PRIVATE_IPS[@]}"; do
+                echo -e "*\n* About to run '$@' on ${PRIVATE_IP} (${STACK})...\n*"
+                set +e
+                # Configure port, username and other settings via `~/.ssh/config`
+                ssh -t ${BASTION_HOST} \
+                    ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_USER}@${PRIVATE_IP} \
+                        "'${REMOTE_COMMAND}'"
+                echo -e "*\n* Exit code was: $?\n*"
+                set -e
+            done
+            ;;
+
+        *)
+            echo $"Usage $0 <command> <args>
+
+  $0 create <stack-name>
+  $0 create-access-logs-bucket <stack-name>
+  $0 create-change-set <stack-name>
+  $0 describe-change-set <stack-name> <change-set-name>
+  $0 ec2-instances <stack-name> [InstanceId,PublicIpAddress,...|'*']
+  $0 estimate-template-cost <stack-name>
+  $0 events <stack-name> [max-events]
+  $0 execute-change-set <stack-name> <change-set-name>
+  $0 id <stack-name>
+  $0 list-arns <stack-name>
+  $0 list-exports
+  $0 list
+  $0 resources <stack-name>
+  $0 run <stack-name> <shell-command>
+  $0 ssh <stack-name>
+  $0 status <stack-name>
+  $0 update <stack-name>
+  $0 wait <stack-name>"
+            exit 1
+            ;;
+esac
