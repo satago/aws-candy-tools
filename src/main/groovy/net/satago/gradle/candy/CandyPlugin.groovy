@@ -109,13 +109,12 @@ class CandyPlugin implements Plugin<Project> {
                 }
         }
 
+        //  `createRevisionsTask` should be executed by this moment followed by `bin/deploy docker-tag-and-push ...`
+        //  The latter is required to update docker image IDs in `compose.env` with ECR image URLs
         def tarRevisionsTask = project.task(extension.getTaskName("tarRevisions"), type: Tar) {
             tar ->
                 tar.group GRADLE_TASKS_GROUP
-                tar.description "Packages all CodeDeploy revisions into a self-contained redistributable archive"
-
-                tar.dependsOn untarBundleTask
-                tar.dependsOn createRevisionsTask
+                tar.description "Packages previously created CodeDeploy revisions into a self-contained redistributable archive"
 
                 tar.baseName "revision"
                 tar.into project.name

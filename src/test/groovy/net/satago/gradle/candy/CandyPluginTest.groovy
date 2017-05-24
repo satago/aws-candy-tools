@@ -93,7 +93,7 @@ class CandyPluginTest {
         def result = GradleRunner.create()
                 .withProjectDir(testProjectDir.getRoot())
                 .withPluginClasspath()
-                .withArguments('--stacktrace', '--info', 'tarRevisions', 'untarRevisions')
+                .withArguments('--stacktrace', '--info', 'createRevisions', 'tarRevisions', 'untarRevisions')
                 .withDebug(true)
                 .forwardOutput()
                 .build()
