@@ -123,14 +123,10 @@ class CandyPlugin implements Plugin<Project> {
                 tar.from(extractedBundleDir) {
                     include 'bin/'
                     exclude "bin/${BIN_EXEC}"
-                    exclude "bin/${BIN_SET_AWS_PROFILE}"
-                    exclude "bin/${BIN_SET_BASTION_SSH}"
                 }
                 tar.from(project.projectDir) {
                     include 'bin/'
                     exclude "bin/${BIN_EXEC}"
-                    exclude "bin/${BIN_SET_AWS_PROFILE}"
-                    exclude "bin/${BIN_SET_BASTION_SSH}"
                     //  Ignore symlinks
                     eachFile { FileCopyDetails fileCopyDetails ->
                         if (Files.isSymbolicLink(new File(fileCopyDetails.path).toPath())) {

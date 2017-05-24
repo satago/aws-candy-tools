@@ -113,6 +113,8 @@ class CandyPluginTest {
                  pathToContent + '/bin/fleet',
                  pathToContent + '/bin/httping',
                  pathToContent + '/bin/replace.py',
+                 pathToContent + '/bin/set-aws-profile',
+                 pathToContent + '/bin/set-bastion-ssh',
                  pathToContent + '/bin/stack',
                  pathToContent + '/build/revisions/revision-A/appspec.yml',
                  pathToContent + '/build/revisions/revision-A/compose.bash',
