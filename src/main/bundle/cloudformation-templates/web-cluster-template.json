@@ -35,6 +35,16 @@
       "ConstraintDescription": "true or false (default)"
     },
 
+    "DockerVersion": {
+      "Description": "Version of Docker, i.e. '17.03.1ce'",
+      "Type": "String"
+    },
+
+    "DockerComposeVersion": {
+      "Description": "Version of Docker Compose, i.e. '1.13.0'",
+      "Type": "String"
+    },
+
     "ManagedPolicyArns": {
       "Description": "List of IAM policy names that will be granted to the instance role",
       "Type": "CommaDelimitedList",
@@ -325,7 +335,14 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets" : {
-            "default": [ "cfn-config", "awslogs-agent", "aws-cli", "docker", "codedeploy-agent" ]
+            "default": [ "yum-versionlock", "cfn-config", "awslogs-agent", "aws-cli", "docker", "codedeploy-agent" ]
+          },
+          "yum-versionlock": {
+            "packages": {
+              "yum": {
+                "yum-plugin-versionlock": []
+              }
+            }
           },
           "cfn-config": {
             "files": {
@@ -440,15 +457,18 @@
           "docker": {
             "packages": {
               "yum": {
-                "docker": []
+                "docker": [ { "Ref": "DockerVersion" } ]
               }
             },
             "commands": {
+              "lock-docker-version": {
+                "command": "yum versionlock docker"
+              },
               "docker-compose": {
                 "command": {
                   "Fn::Join": ["", [
-                    "curl -L https://github.com/docker/compose/releases/",
-                    "download/1.11.2/docker-compose-`uname -s`-`uname -m`",
+                    "curl -L https://github.com/docker/compose/releases",
+                    "/download/", { "Ref": "DockerComposeVersion" }, "/docker-compose-`uname -s`-`uname -m`",
                     " > /usr/local/bin/docker-compose",
                     " && chmod +x /usr/local/bin/docker-compose"
                   ]]
