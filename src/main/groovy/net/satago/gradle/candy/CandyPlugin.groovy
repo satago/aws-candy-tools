@@ -8,6 +8,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.bundling.Compression
@@ -72,6 +73,14 @@ class CandyPlugin implements Plugin<Project> {
 
         def tempDir = "${project.buildDir}/tmp/aws-candy-tools"
         def extractedBundleDir = "${tempDir}/bundle"
+
+        project.task(extension.getTaskName("clean"), type: Delete) {
+            Delete clean ->
+                clean.group GRADLE_TASKS_GROUP
+                clean.description "Cleans plugin's working directory"
+
+                clean.delete tempDir
+        }
 
         def copyBundleTask = project.task(extension.getTaskName("copyBundle"), type: Copy) {
             Copy copy ->
