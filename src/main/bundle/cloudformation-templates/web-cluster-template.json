@@ -435,6 +435,7 @@
                     "wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py\n",
                     "wget https://aws-codedeploy-", { "Ref" : "AWS::Region" }, ".s3.amazonaws.com/cloudwatch/codedeploy_logs.conf\n",
                     "chmod +x ./awslogs-agent-setup.py\n",
+                    "sync\n",
                     "python awslogs-agent-setup.py",
                     " --non-interactive",
                     " --region ", { "Ref" : "AWS::Region" },
@@ -503,7 +504,7 @@
                     "curl -L https://github.com/docker/compose/releases",
                     "/download/", { "Ref": "DockerComposeVersion" }, "/docker-compose-`uname -s`-`uname -m`",
                     " > /usr/local/bin/docker-compose",
-                    " && chmod +x /usr/local/bin/docker-compose"
+                    " && chmod +x /usr/local/bin/docker-compose && sync"
                   ]]
                 }
               }
