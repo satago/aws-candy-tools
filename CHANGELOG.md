@@ -1,3 +1,7 @@
+Version 0.2.1
+=============
+- Flush filesystem cache (`sync`) after `chmod` for docker-compose
+
 Version 0.2.0
 =============
 
