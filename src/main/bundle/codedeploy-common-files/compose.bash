@@ -22,7 +22,7 @@ set +a
 
 function docker_compose_files_arg {
     local REPLACEMENT=$(echo "$1" | sed 's/\//\\\//g')
-    echo ${DOCKER_COMPOSE_FILES} | sed "s/[^ ]* */$REPLACEMENT&/g"
+    echo ${DOCKER_COMPOSE_FILES} | sed "s/[^ ]* */${REPLACEMENT}&/g"
 }
 
 function compose {
@@ -34,7 +34,7 @@ function compose {
         "$@"
 }
 
-if [[ "$0" == "$BASH_SOURCE" ]]; then
+if [[ "$0" == "${BASH_SOURCE}" ]]; then
     # If the script was not sourced, but executed directly,
     # then pass all arguments straight to the `docker-compose`
     compose "$@"
