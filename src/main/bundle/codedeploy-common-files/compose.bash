@@ -26,6 +26,9 @@ function docker_compose_files_arg {
 }
 
 function compose {
+    # Trying to fix intermittent "Text file busy" error
+    sync
+
     docker-compose \
         $(docker_compose_files_arg "-f ${SCRIPT_PATH}/") \
         "$@"
