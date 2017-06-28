@@ -1,6 +1,6 @@
-Version 0.2.1
+Version 0.2.6
 =============
-- Flush filesystem cache (`sync`) after `chmod` for docker-compose
+- Fix `docker-compose: Text file busy` error seen after `AWS::CloudFormation::Init` metadata update: `cfn-init` was failing due to error in `/opt/satago/install-codedeploy-agent` trying to install already existing package.
 
 Version 0.2.0
 =============
