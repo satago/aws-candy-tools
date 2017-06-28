@@ -1,6 +1,7 @@
 Version 0.2.6
 =============
 - Fix `docker-compose: Text file busy` error seen after `AWS::CloudFormation::Init` metadata update: `cfn-init` was failing due to error in `/opt/satago/install-codedeploy-agent` trying to install already existing package.
+- Clean task can now coexist with Gradle's standard clean tasks by attaching to them.
 
 Version 0.2.0
 =============

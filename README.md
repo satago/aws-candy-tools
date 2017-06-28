@@ -55,7 +55,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.satago.gradle:aws-candy-tools:0.2.1'
+        classpath 'net.satago.gradle:aws-candy-tools:0.2.6'
     }
 }
 
