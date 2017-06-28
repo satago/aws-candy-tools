@@ -29,6 +29,10 @@ function compose {
     # Trying to fix intermittent "Text file busy" error
     sync
 
+    if [[ "${DEBUG_MODE}" == "true" ]]; then
+        lsof >> /tmp/lsof-${DEPLOYMENT_ID}-${LIFECYCLE_EVENT}.txt
+    fi
+
     docker-compose \
         $(docker_compose_files_arg "-f ${SCRIPT_PATH}/") \
         "$@"
