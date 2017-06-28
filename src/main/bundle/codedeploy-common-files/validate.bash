@@ -6,11 +6,11 @@ source ${SCRIPT_PATH}/compose.bash
 
 CONTAINER_IDS=$(compose ps -q)
 
-CONTAINER_COUNT=$(echo $CONTAINER_IDS | wc -w)
+CONTAINER_COUNT=$(echo ${CONTAINER_IDS} | wc -w)
 
-COUNT_STATUS=$(docker inspect --format='{{.State.Status}}' $CONTAINER_IDS \
+COUNT_STATUS=$(docker inspect --format='{{.State.Status}}' ${CONTAINER_IDS} \
                  | sort \
                  | uniq -c \
                  | xargs)       # trim spaces
 
-test "$COUNT_STATUS" = "$CONTAINER_COUNT running"
+test "${COUNT_STATUS}" = "${CONTAINER_COUNT} running"

@@ -74,13 +74,7 @@ class CandyPlugin implements Plugin<Project> {
         def tempDir = "${project.buildDir}/tmp/aws-candy-tools"
         def extractedBundleDir = "${tempDir}/bundle"
 
-        project.task(extension.getTaskName("clean"), type: Delete) {
-            Delete clean ->
-                clean.group GRADLE_TASKS_GROUP
-                clean.description "Cleans plugin's working directory"
-
-                clean.delete tempDir
-        }
+        createCleanTask(extension, project, tempDir)
 
         def copyBundleTask = project.task(extension.getTaskName("copyBundle"), type: Copy) {
             Copy copy ->
@@ -392,6 +386,32 @@ class CandyPlugin implements Plugin<Project> {
                     def candyTaskName = (String) project.property(candyTaskNameProperty)
                     task.dependsOn project.getTasksByName(extension.getTaskName(candyTaskName), false)
                 }
+        }
+    }
+
+    private static void createCleanTask(CandyExtension extension, Project project, tempDir) {
+        String cleanTaskName = extension.getTaskName("clean")
+
+        def existingCleanTasks = project.getTasksByName("clean", true)
+
+        //  Declaring custom 'clean' task when using the standard Gradle lifecycle plugins is not allowed.
+        if (cleanTaskName == "clean" && !existingCleanTasks.isEmpty()) {
+            //  Override clean task name
+            cleanTaskName = "candyClean"
+        }
+
+        def cleanTask = project.task(cleanTaskName, type: Delete) {
+            Delete clean ->
+                clean.group GRADLE_TASKS_GROUP
+                clean.description "Cleans plugin's working directory"
+
+                clean.delete tempDir
+        }
+
+        //  Attach plugin's clean task to existing clean tasks
+        existingCleanTasks.forEach {
+            Task task ->
+                task.finalizedBy cleanTask
         }
     }
 }

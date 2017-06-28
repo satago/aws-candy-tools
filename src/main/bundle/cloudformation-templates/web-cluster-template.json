@@ -470,8 +470,7 @@
                     "curl -L https://github.com/docker/compose/releases",
                     "/download/", { "Ref": "DockerComposeVersion" }, "/docker-compose-`uname -s`-`uname -m`",
                     " > /usr/local/bin/docker-compose",
-                    " && chmod +x /usr/local/bin/docker-compose",
-                    " && sync"
+                    " && chmod +x /usr/local/bin/docker-compose"
                   ]]
                 }
               }
@@ -497,6 +496,8 @@
                     "cd /home/ec2-user/\n",
                     "aws s3 cp 's3://aws-codedeploy-", { "Ref": "AWS::Region" } ,"/latest/codedeploy-agent.noarch.rpm' .",
                     " || (/opt/satago/cfn-error 'Failed to download AWS CodeDeploy Agent.' && exit 1)\n",
+                    "# Check if the package already installed\n",
+                    "yum list installed $(rpm -qp ./codedeploy-agent.noarch.rpm) && exit 0\n",
                     "yum -y install codedeploy-agent.noarch.rpm",
                     " || (/opt/satago/cfn-error 'Failed to install AWS CodeDeploy Agent.' && exit 1)\n"
                   ]]
