@@ -335,7 +335,15 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "configSets" : {
-            "default": [ "yum-versionlock", "cfn-config", "awslogs-agent", "aws-cli", "docker", "codedeploy-agent" ]
+            "default": [
+              "yum-versionlock",
+              "cfn-config",
+              "awslogs-agent",
+              "aws-cli",
+              "before-docker",
+              "docker",
+              "codedeploy-agent"
+            ]
           },
           "yum-versionlock": {
             "packages": {
@@ -451,6 +459,13 @@
                     "echo -e '\n\n", { "Ref": "AWS::Region" }, "\n' | aws configure"
                   ]]
                 }
+              }
+            }
+          },
+          "before-docker": {
+            "commands": {
+              "unlock-docker-version": {
+                "command": "yum versionlock delete docker"
               }
             }
           },
