@@ -1,6 +1,14 @@
 #!/bin/bash
 
 . $(dirname $0)/common_functions.sh
+. $(dirname $0)/../compose.env
+
+if [[ "${SKIP_ELB_WAIT}" == 'true' ]]; then
+    msg "Skipping ELB wait"
+
+    finish_msg
+    exit 0
+fi
 
 msg "Running AWS CLI with region: $(get_instance_region)"
 
