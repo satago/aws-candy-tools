@@ -395,19 +395,27 @@ reset_waiter_timeout() {
 
     if [ "$state_name" == "InService" ]; then
 
-        # Wait for a health check to succeed
-        local health_check_values=$($AWS_CLI elb describe-load-balancers \
-            --load-balancer-name $elb \
-            --query 'LoadBalancerDescriptions[0].HealthCheck.[HealthyThreshold,Interval,Timeout]' \
-            --output text)
+        if [[ ! -z "${WAITER_TIMEOUT}" ]]; then
 
-        local hc_healthy_threshold=$(echo $health_check_values | awk '{print $1}')
-        local hc_interval=$(echo $health_check_values | awk '{print $2}')
-        local hc_timeout=$(echo $health_check_values | awk '{print $3}')
+            local timeout=${WAITER_TIMEOUT}
 
-        # We'll need to wait for `hc_healthy_threshold` number of consecutive successful health checks,
-        # where every check has a `hc_timeout` with `hc_interval` seconds between checks
-        local timeout=$((hc_healthy_threshold * (hc_interval + hc_timeout)))
+        else
+
+            # Wait for a health check to succeed
+            local health_check_values=$($AWS_CLI elb describe-load-balancers \
+                --load-balancer-name $elb \
+                --query 'LoadBalancerDescriptions[0].HealthCheck.[HealthyThreshold,Interval,Timeout]' \
+                --output text)
+
+            local hc_healthy_threshold=$(echo $health_check_values | awk '{print $1}')
+            local hc_interval=$(echo $health_check_values | awk '{print $2}')
+            local hc_timeout=$(echo $health_check_values | awk '{print $3}')
+
+            # We'll need to wait for `hc_healthy_threshold` number of consecutive successful health checks,
+            # where every check has a `hc_timeout` with `hc_interval` seconds between checks
+            local timeout=$((hc_healthy_threshold * (hc_interval + hc_timeout)))
+
+        fi
 
     elif [ "$state_name" == "OutOfService" ]; then
 
