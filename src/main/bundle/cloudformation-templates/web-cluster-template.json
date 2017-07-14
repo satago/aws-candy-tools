@@ -465,7 +465,7 @@
           "before-docker": {
             "commands": {
               "unlock-docker-version": {
-                "command": "yum versionlock delete docker"
+                "command": "yum versionlock delete docker || echo No Docker version to unlock"
               }
             }
           },

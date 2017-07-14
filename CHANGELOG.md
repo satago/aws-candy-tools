@@ -1,3 +1,7 @@
+Version 0.2.9
+=============
+- Fix `yum versionlock delete docker` when no Docker is installed/versionlocked.
+
 Version 0.2.8
 =============
 - Support `SKIP_ELB_WAIT` in `compose.env` to skip ELB wait during deployment validation. It can help, i.e., if you do long-running database migrations as a part of application deployment.
