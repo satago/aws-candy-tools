@@ -5,6 +5,8 @@ SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 # Path to docker-compose
 PATH=$PATH:/usr/local/bin/
 
+source ${SCRIPT_PATH}/_common-functions.bash
+
 # We're not using Compose's `.env` file, because it applies the same rules as per `env_file`:
 
 # Namely:

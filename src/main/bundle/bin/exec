@@ -9,8 +9,8 @@ FILE=${SCRIPT_PATH}/$1
 if [[ ! -e ${FILE} ]]; then
     # https://unix.stackexchange.com/a/13474
     function upsearch () {
-      slashes=${PWD//[^\/]/}
-      directory="$PWD"
+      slashes=${SCRIPT_PATH//[^\/]/}
+      directory="${SCRIPT_PATH}"
       for (( n=${#slashes}; n>0; --n ))
       do
         test -e "$directory/$1" && echo "$directory/$1" && return
@@ -19,10 +19,10 @@ if [[ ! -e ${FILE} ]]; then
     }
     GRADLEW=$(upsearch gradlew)
     if [[ ! -e ${GRADLEW} ]]; then
-        echo "bin/ directory isn't initialized; couldn't find Gradle wrapper to run init task"
+        echo "${SCRIPT_PATH} directory isn't initialized; couldn't find Gradle wrapper to run init task"
         exit 1
     fi
-    ${GRADLEW} candyRunTask -PcandyTaskName=binInit
+    ${GRADLEW} -p $(dirname ${GRADLEW}) candyRunTask -PcandyTaskName=binInit
 fi
 
 shift 1

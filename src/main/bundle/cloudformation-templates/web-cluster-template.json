@@ -45,6 +45,12 @@
       "Type": "String"
     },
 
+    "AWSCLIVersion": {
+      "Description": "Version of AWS CLI tools",
+      "Type": "String",
+      "Default": "1.11.121"
+    },
+
     "ManagedPolicyArns": {
       "Description": "List of IAM policy names that will be granted to the instance role",
       "Type": "CommaDelimitedList",
@@ -448,8 +454,8 @@
           },
           "aws-cli": {
             "packages": {
-              "yum": {
-                "aws-cli": []
+              "python": {
+                "awscli": [ { "Ref": "AWSCLIVersion" } ]
               }
             },
             "commands": {
