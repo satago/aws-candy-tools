@@ -239,6 +239,7 @@ class CandyPlugin implements Plugin<Project> {
                     sync.from("${extractedBundleDir}/codedeploy-common-files/") { it ->
                         it.exclude 'compose.env'
                     }
+                    sync.from project.file("${extractedBundleDir}/bin/_common-functions.bash")
                     sync.from project.file("${extractedBundleDir}/bin/decrypt")
                     sync.from project.file("${extractedBundleDir}/bin/decrypt-file.py")
                     sync.from project.file("${extractedBundleDir}/bin/replace.py")

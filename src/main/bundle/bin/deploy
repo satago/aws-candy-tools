@@ -4,6 +4,7 @@ set -e
 SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
 source ${SCRIPT_PATH}/set-aws-profile
+source ${SCRIPT_PATH}/_common-functions.bash
 
 GRADLE_MODULE_ROOT=${SCRIPT_PATH}/..
 REVISIONS_DIR=${GRADLE_MODULE_ROOT}/build/revisions
@@ -99,7 +100,7 @@ case "$CMD" in
 
                 docker tag ${!IMAGE_ID} ${TARGET_IMAGE}:${!IMAGE_TAG}
 
-                $(aws ecr get-login)
+                $(aws ecr $(docker_login_options) get-login)
 
                 docker push ${TARGET_IMAGE}:${!IMAGE_TAG}
 

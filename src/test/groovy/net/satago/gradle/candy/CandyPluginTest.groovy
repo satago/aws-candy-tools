@@ -53,7 +53,8 @@ class CandyPluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(':createRevisions').outcome)
         assertEquals(
-                ['revision-A/appspec.yml',
+                ['revision-A/_common-functions.bash',
+                 'revision-A/appspec.yml',
                  'revision-A/compose.bash',
                  'revision-A/compose.env',
                  'revision-A/data/config.properties',
@@ -104,7 +105,8 @@ class CandyPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(':tarRevisions').outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(':untarRevisions').outcome)
         assertEquals(
-                [pathToContent + '/bin/decrypt',
+                [pathToContent + '/bin/_common-functions.bash',
+                 pathToContent + '/bin/decrypt',
                  pathToContent + '/bin/decrypt-file.py',
                  pathToContent + '/bin/deploy',
                  pathToContent + '/bin/encrypt',
@@ -116,6 +118,7 @@ class CandyPluginTest {
                  pathToContent + '/bin/set-aws-profile',
                  pathToContent + '/bin/set-bastion-ssh',
                  pathToContent + '/bin/stack',
+                 pathToContent + '/build/revisions/revision-A/_common-functions.bash',
                  pathToContent + '/build/revisions/revision-A/appspec.yml',
                  pathToContent + '/build/revisions/revision-A/compose.bash',
                  pathToContent + '/build/revisions/revision-A/compose.env',
@@ -177,7 +180,8 @@ class CandyPluginTest {
         def binDir = new File(testProjectDir.getRoot(), "bin")
 
         assertEquals(
-                ['decrypt',
+                ['_common-functions.bash',
+                 'decrypt',
                  'decrypt-file.py',
                  'deploy',
                  'encrypt',
