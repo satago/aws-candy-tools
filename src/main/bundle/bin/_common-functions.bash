@@ -36,15 +36,15 @@ function check_version {
                 return 1
             fi
 
-            # installed_patch > required_patch
+            # installed_patch >= required_patch
             return 0
         fi
 
-        # installed_minor > required_minor
+        # installed_minor >= required_minor
         return 0
     fi
 
-    # installed_major > required_major
+    # installed_major >= required_major
     return 0
 }
 

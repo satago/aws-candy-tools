@@ -1,5 +1,5 @@
 Version 0.2.10
-=============
+==============
 - Support Docker 17.06 on client-side: requires AWS CLI version 1.11.91 or higher with `--no-include-email` option for Docker 17.06.
 - `web-cluster-template`: new parameter `AWSCLIVersion` with default value `1.11.121`.
 
