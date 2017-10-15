@@ -14,10 +14,7 @@ import java.nio.file.Files
 import java.util.function.Predicate
 import java.util.stream.Collectors
 
-import static net.satago.gradle.candy.CandyPlugin.BIN_EXEC
-import static net.satago.gradle.candy.CandyPlugin.BIN_SET_AWS_PROFILE
-import static net.satago.gradle.candy.CandyPlugin.BIN_SET_BASTION_SSH
-import static net.satago.gradle.candy.CandyPlugin.toRelativePath
+import static net.satago.gradle.candy.CandyPlugin.*
 import static org.apache.commons.io.filefilter.TrueFileFilter.INSTANCE
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
@@ -64,9 +61,9 @@ class CandyPluginTest {
                  'revision-A/decrypt-file.py',
                  'revision-A/decrypt-properties.bash',
                  'revision-A/docker-compose.service-A.yml',
+                 'revision-A/elb/README.md',
                  'revision-A/elb/common_functions.sh',
                  'revision-A/elb/deregister_from_elb.sh',
-                 'revision-A/elb/README.md',
                  'revision-A/elb/register_with_elb.sh',
                  'revision-A/elb/wait_for_elb.sh',
                  'revision-A/pre-hooks.bash',
@@ -105,7 +102,8 @@ class CandyPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(':tarRevisions').outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(':untarRevisions').outcome)
         assertEquals(
-                [pathToContent + '/bin/_common-functions.bash',
+                [tarName,
+                 pathToContent + '/bin/_common-functions.bash',
                  pathToContent + '/bin/decrypt',
                  pathToContent + '/bin/decrypt-file.py',
                  pathToContent + '/bin/deploy',
@@ -129,9 +127,9 @@ class CandyPluginTest {
                  pathToContent + '/build/revisions/revision-A/decrypt-file.py',
                  pathToContent + '/build/revisions/revision-A/decrypt-properties.bash',
                  pathToContent + '/build/revisions/revision-A/docker-compose.service-A.yml',
+                 pathToContent + '/build/revisions/revision-A/elb/README.md',
                  pathToContent + '/build/revisions/revision-A/elb/common_functions.sh',
                  pathToContent + '/build/revisions/revision-A/elb/deregister_from_elb.sh',
-                 pathToContent + '/build/revisions/revision-A/elb/README.md',
                  pathToContent + '/build/revisions/revision-A/elb/register_with_elb.sh',
                  pathToContent + '/build/revisions/revision-A/elb/wait_for_elb.sh',
                  pathToContent + '/build/revisions/revision-A/pre-hooks.bash',
@@ -140,8 +138,7 @@ class CandyPluginTest {
                  pathToContent + '/build/revisions/revision-A/stop.bash',
                  pathToContent + '/build/revisions/revision-A/symlink.bash',
                  pathToContent + '/build/revisions/revision-A/up.bash',
-                 pathToContent + '/build/revisions/revision-A/validate.bash',
-                 tarName
+                 pathToContent + '/build/revisions/revision-A/validate.bash'
                 ],
                 listFiles(new File(testProjectDir.getRoot(), 'build/tar'), { true }))
     }
@@ -151,6 +148,7 @@ class CandyPluginTest {
                 .stream()
                 .map(toRelativePath(root))
                 .filter(filter)
+                .sorted()
                 .collect(Collectors.toList())
     }
 

@@ -1,8 +1,14 @@
+Version 0.2.11
+==============
+- `web-cluster-template`: upgrade AMI versions to 2017.09.
+- `web-cluster-template`: new parameter `CustomImageId` to override region default AMIs.
+- `web-cluster-template`: specify `SuspendProcesses` for ASG as per [best practices for ASG rolling updates](https://aws.amazon.com/ru/premiumsupport/knowledge-center/auto-scaling-group-rolling-updates/).
+- Fix `_common-functions.bash: line 25: [[: 09: value too great for base (error token is "09")`
+
 Version 0.2.10
 ==============
 - Support Docker 17.06 on client-side: requires AWS CLI version 1.11.91 or higher with `--no-include-email` option for Docker 17.06.
 - `web-cluster-template`: new parameter `AWSCLIVersion` with default value `1.11.121`.
-
 
 Version 0.2.9
 =============

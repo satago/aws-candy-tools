@@ -12,27 +12,27 @@ function check_version {
     local required_minor=$(echo ${required} | cut -f2 -d.)
     local required_patch=$(echo ${required} | cut -f3 -d.)
 
-    if [[ "${installed_major}" -lt "${required_major}" ]]; then
+    if [[ "${installed_major}" < "${required_major}" ]]; then
 
         return 1
 
-    elif [[ "${installed_major}" -eq "${required_major}" ]]; then
+    elif [[ "${installed_major}" = "${required_major}" ]]; then
 
         if [[ -z "${required_minor}" ]]; then
             return 0
         fi
 
-        if [[ "${installed_minor}" -lt "${required_minor}" ]]; then
+        if [[ "${installed_minor}" < "${required_minor}" ]]; then
             return 1
         fi
 
-        if [[ "${installed_minor}" -eq "${required_minor}" ]]; then
+        if [[ "${installed_minor}" = "${required_minor}" ]]; then
 
             if [[ -z "${required_patch}" ]]; then
                 return 0
             fi
 
-            if [[ "${installed_patch}" -lt "${required_patch}" ]]; then
+            if [[ "${installed_patch}" < "${required_patch}" ]]; then
                 return 1
             fi
 

@@ -8,6 +8,14 @@
       "Default": "t2.nano"
     },
 
+    "CustomImageId": {
+      "Description": "(Optional) Custom image ID for EC2 instance",
+      "Type": "String",
+      "AllowedPattern": "(|ami-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of AMI (ami-xxxxxxxx) or empty for default AMI for current region",
+      "Default": ""
+    },
+
     "DesiredCapacity": {
       "Description": "Desired capacity in AutoScaling Group",
       "Type": "String",
@@ -140,13 +148,16 @@
     },
     "EnableCustomPortRange": {
       "Fn::Equals": [{ "Ref": "ExposeCustomPortRange" }, "true"]
+    },
+    "CustomImageIdEmpty": {
+      "Fn::Equals": [{ "Ref": "CustomImageId" }, ""]
     }
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-af0fc0c0", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-e5083683", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-f1949e95", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-c7ee5ca8", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-acd005d5", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-1a7f6d7e", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -188,7 +199,8 @@
           "MinInstancesInService": "1",
           "MaxBatchSize": "1",
           "PauseTime": "PT15M",
-          "WaitOnResourceSignals": "true"
+          "WaitOnResourceSignals": "true",
+          "SuspendProcesses": [ "HealthCheck", "ReplaceUnhealthy", "AZRebalance", "AlarmNotification", "ScheduledActions" ]
         }
       }
     },
@@ -545,7 +557,13 @@
         }
       },
       "Properties": {
-        "ImageId": { "Fn::FindInMap": ["RegionMap", { "Ref": "AWS::Region" }, "AMI"] },
+        "ImageId": {
+          "Fn::If": [
+              "CustomImageIdEmpty",
+              { "Fn::FindInMap": ["RegionMap", { "Ref": "AWS::Region" }, "AMI"] },
+              { "Ref": "CustomImageId" }
+          ]
+        },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
         "SecurityGroups": [{ "Ref": "MyInstanceSecurityGroup" }],
