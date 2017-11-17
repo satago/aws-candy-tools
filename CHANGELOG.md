@@ -1,3 +1,8 @@
+Version 0.2.12
+==============
+- Fix #6: "Gradle wrapper not found" when using `bin/deploy`
+- `web-cluster-template``: fix description of DockerVersion parameter
+
 Version 0.2.11
 ==============
 - `web-cluster-template`: upgrade AMI versions to 2017.09.
