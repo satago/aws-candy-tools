@@ -52,8 +52,8 @@ case "$CMD" in
 
             # https://unix.stackexchange.com/a/13474
             function upsearch () {
-              slashes=${PWD//[^\/]/}
-              directory="$PWD"
+              slashes=${SCRIPT_PATH//[^\/]/}
+              directory="${SCRIPT_PATH}"
               for (( n=${#slashes}; n>0; --n ))
               do
                 test -e "$directory/$1" && echo "$directory/$1" && return
