@@ -1,3 +1,7 @@
+Version 0.2.13
+==============
+- `bin/deploy`: Set Gradle project root to the location of gradle wrapper script
+
 Version 0.2.12
 ==============
 - Fix #6: "Gradle wrapper not found" when using `bin/deploy`

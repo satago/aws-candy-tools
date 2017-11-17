@@ -61,13 +61,13 @@ case "$CMD" in
               done
             }
 
-            GRADLE_WRAPPER=$(upsearch gradlew)
-            if [[ ! -e ${GRADLE_WRAPPER} ]]; then
+            GRADLEW=$(upsearch gradlew)
+            if [[ ! -e ${GRADLEW} ]]; then
                 echo "Gradle wrapper not found"
                 exit 1
             fi
 
-            ${GRADLE_WRAPPER} candyRunTask "-PcandyTaskName=${CREATE_REVISION_TASK_NAME_PREFIX}-${DEPLOYABLE_NAME}"
+            ${GRADLEW} -p $(dirname ${GRADLEW}) candyRunTask "-PcandyTaskName=${CREATE_REVISION_TASK_NAME_PREFIX}-${DEPLOYABLE_NAME}"
 
             REVISION_DIR=${REVISIONS_DIR}/${DEPLOYABLE_NAME}
 
