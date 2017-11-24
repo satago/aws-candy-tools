@@ -1,3 +1,8 @@
+Version 0.2.14
+==============
+- `web-cluster-template`: new parameter `ELBReferenceSecurityPolicy` to specify one of the [predefined ELB security policies](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html). Default value is `ELBSecurityPolicy-2016-08`.
+- Auto-detect expired bundles when using `bin/exec`: the script now runs the `binInit` task not only when bundle is not extracted, but also if its version does not match plugin version.
+
 Version 0.2.13
 ==============
 - `bin/deploy`: Set Gradle project root to the location of gradle wrapper script
