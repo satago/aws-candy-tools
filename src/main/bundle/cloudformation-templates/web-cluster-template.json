@@ -94,6 +94,11 @@
       "Description": "List of VPC subnets for internal ELB",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
+    "ELBReferenceSecurityPolicy": {
+      "Description": "Name of Reference-Security-Policy to apply to the ELB, http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html",
+      "Type": "String",
+      "Default": "ELBSecurityPolicy-2016-08"
+    },
     "SSLCertificateId": {
       "Description": "ARN of SSL Certificate for ELB",
       "Type": "String",
@@ -285,7 +290,7 @@
             "Attributes": [
               {
                 "Name": "Reference-Security-Policy",
-                "Value": "ELBSecurityPolicy-2016-08"
+                "Value": { "Ref": "ELBReferenceSecurityPolicy" }
               }
             ]
           }
