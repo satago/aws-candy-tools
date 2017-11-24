@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Rule
@@ -17,6 +18,7 @@ import java.util.stream.Collectors
 import static net.satago.gradle.candy.CandyPlugin.*
 import static org.apache.commons.io.filefilter.TrueFileFilter.INSTANCE
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertTrue
 
 class CandyPluginTest {
@@ -165,15 +167,7 @@ class CandyPluginTest {
     }
 
     private void runAndAssertBinInitSucceeded() {
-        def result = GradleRunner.create()
-                .withProjectDir(testProjectDir.getRoot())
-                .withPluginClasspath()
-                .withArguments('--stacktrace', '--info', 'binInit')
-                .withDebug(true)
-                .forwardOutput()
-                .build()
-
-        assertEquals(TaskOutcome.SUCCESS, result.task(':binInit').outcome)
+        runBinInit()
 
         def binDir = new File(testProjectDir.getRoot(), "bin")
 
@@ -204,6 +198,72 @@ class CandyPluginTest {
                     "../build/tmp/aws-candy-tools/bundle/bin/${it.name}",
                     "${link}")
         }
+    }
+
+    @Test
+    void testBundleExpiration() {
+        def projectRoot = new File('src/test/resources/project-B')
+        FileUtils.copyDirectory(
+                projectRoot,
+                testProjectDir.getRoot())
+
+        def extractedBundleDir = new File(testProjectDir.getRoot(),'build/tmp/aws-candy-tools/bundle')
+        def versionFile = new File(extractedBundleDir, "version")
+        def expiredFile = new File(extractedBundleDir, "expired")
+
+        assertFalse(extractedBundleDir.exists())
+        assertFalse(versionFile.exists())
+        assertFalse(expiredFile.exists())
+
+        runBinInit()
+
+        assertTrue("bundle should be extracted after binInit", extractedBundleDir.exists())
+        assertTrue("bundle/version must exist after binInit", versionFile.exists())
+        assertFalse("bundle be up-to-date", expiredFile.exists())
+
+        def pluginVersion = versionFile.text
+
+        def randomVersion = UUID.randomUUID().toString()
+        versionFile.text = randomVersion
+
+        runNonPluginTask()
+
+        assertTrue("bundle should be expired", expiredFile.exists())
+        String versionMismatchReason = "bundle version (${randomVersion}) != plugin version (${pluginVersion})"
+        assertEquals(versionMismatchReason, expiredFile.text)
+
+        versionFile.delete()
+        expiredFile.delete()
+
+        runNonPluginTask()
+
+        assertTrue("bundle should be expired", expiredFile.exists())
+        String versionFileMissingReason = "bundle version not found"
+        assertEquals(versionFileMissingReason, expiredFile.text)
+    }
+
+    private void runBinInit() {
+        def result = GradleRunner.create()
+                .withProjectDir(testProjectDir.getRoot())
+                .withPluginClasspath()
+                .withArguments('--stacktrace', '--info', 'binInit')
+                .withDebug(true)
+                .forwardOutput()
+                .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(':binInit').outcome)
+    }
+
+    private void runNonPluginTask() {
+        def buildResult = GradleRunner.create()
+                .withProjectDir(testProjectDir.getRoot())
+                .withPluginClasspath()
+                .withArguments('--stacktrace', '--info', 'tasks')
+                .withDebug(true)
+                .forwardOutput()
+                .build()
+
+        assertEquals(TaskOutcome.SUCCESS, buildResult.task(':tasks').outcome)
     }
 
     @Test

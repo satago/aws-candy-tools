@@ -4,25 +4,34 @@ set -e
 
 SCRIPT_PATH=$( cd $(dirname $0) ; pwd )
 
+CANDY_BUNDLE_EXPIRED="${SCRIPT_PATH}/../build/tmp/aws-candy-tools/bundle/expired"
+
 FILE=${SCRIPT_PATH}/$1
 
-if [[ ! -e ${FILE} ]]; then
-    # https://unix.stackexchange.com/a/13474
-    function upsearch () {
-      slashes=${SCRIPT_PATH//[^\/]/}
-      directory="${SCRIPT_PATH}"
-      for (( n=${#slashes}; n>0; --n ))
-      do
-        test -e "$directory/$1" && echo "$directory/$1" && return
-        directory="$directory/.."
-      done
-    }
+# https://unix.stackexchange.com/a/13474
+function upsearch () {
+  slashes=${SCRIPT_PATH//[^\/]/}
+  directory="${SCRIPT_PATH}"
+  for (( n=${#slashes}; n>0; --n ))
+  do
+    test -e "$directory/$1" && echo "$directory/$1" && return
+    directory="$directory/.."
+  done
+}
+
+function binInit () {
     GRADLEW=$(upsearch gradlew)
     if [[ ! -e ${GRADLEW} ]]; then
         echo "${SCRIPT_PATH} directory isn't initialized; couldn't find Gradle wrapper to run init task"
         exit 1
     fi
     ${GRADLEW} -p $(dirname ${GRADLEW}) candyRunTask -PcandyTaskName=binInit
+}
+
+if [[ -e ${CANDY_BUNDLE_EXPIRED} ]]; then
+  binInit
+elif [[ ! -e ${FILE} ]]; then
+  binInit
 fi
 
 shift 1
