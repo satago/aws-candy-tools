@@ -1,3 +1,7 @@
+Version 0.2.15
+==============
+- `web-cluster-template`: new default AMI versions with fixes for [Meltdown/Spectre vulnerabilities](https://aws.amazon.com/security/security-bulletins/AWS-2018-013/).
+
 Version 0.2.14
 ==============
 - `web-cluster-template`: new parameter `ELBReferenceSecurityPolicy` to specify one of the [predefined ELB security policies](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html). Default value is `ELBSecurityPolicy-2016-08`.
