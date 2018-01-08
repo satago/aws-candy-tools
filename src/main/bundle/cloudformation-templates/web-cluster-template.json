@@ -160,9 +160,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-c7ee5ca8", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-acd005d5", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-1a7f6d7e", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-bf2ba8d0", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-1a962263", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-e7d6c983", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
