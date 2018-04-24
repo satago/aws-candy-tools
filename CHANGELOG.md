@@ -1,3 +1,7 @@
+Version 0.2.17
+==============
+- `web-cluster-template`: AWS CLI version 1.15.8
+
 Version 0.2.16
 ==============
 - `web-cluster-template`: new default AMI versions & packages

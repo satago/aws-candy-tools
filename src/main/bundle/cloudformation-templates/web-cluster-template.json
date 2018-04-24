@@ -56,7 +56,7 @@
     "AWSCLIVersion": {
       "Description": "Version of AWS CLI tools",
       "Type": "String",
-      "Default": "1.14.9"
+      "Default": "1.15.8"
     },
 
     "ManagedPolicyArns": {
@@ -471,8 +471,8 @@
           },
           "aws-cli": {
             "packages": {
-              "python": {
-                "awscli": [ { "Ref": "AWSCLIVersion" } ]
+              "yum": {
+                "aws-cli": [ { "Ref": "AWSCLIVersion" } ]
               }
             },
             "commands": {
