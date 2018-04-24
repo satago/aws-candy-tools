@@ -363,6 +363,7 @@
               "cfn-config",
               "awslogs-agent",
               "aws-cli",
+              "aws-configure",
               "before-docker",
               "docker",
               "codedeploy-agent"
@@ -470,11 +471,17 @@
             }
           },
           "aws-cli": {
-            "packages": {
-              "yum": {
-                "aws-cli": [ { "Ref": "AWSCLIVersion" } ]
+            "commands": {
+              "aws-cli": {
+                "command": {
+                  "Fn::Join": ["", [
+                    "pip install --upgrade awscli==", { "Ref": "AWSCLIVersion" }
+                  ]]
+                }
               }
-            },
+            }
+          },
+          "aws-configure": {
             "commands": {
               "aws-configure": {
                 "command": {

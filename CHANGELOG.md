@@ -1,3 +1,7 @@
+Version 0.2.18
+==============
+- `web-cluster-template`: install AWS CLI using `pip install --upgrade ...`
+
 Version 0.2.17
 ==============
 - `web-cluster-template`: AWS CLI version 1.15.8
