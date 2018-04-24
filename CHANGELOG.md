@@ -1,3 +1,11 @@
+Version 0.2.16
+==============
+- `web-cluster-template`: new default AMI versions & packages
+  * AMI versions => 2018.3
+  * docker => 17.12.1ce
+  * docker-compose => 1.21.0
+  * AWS CLI => 1.14.9
+
 Version 0.2.15
 ==============
 - `web-cluster-template`: new default AMI versions with fixes for [Meltdown/Spectre vulnerabilities](https://aws.amazon.com/security/security-bulletins/AWS-2018-013/).
