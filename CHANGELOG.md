@@ -1,3 +1,16 @@
+Version 0.2.20
+==============
+- `web-cluster-template`: new parameter `ELBAlarmActions`
+    
+    Non-blank value creates a CloudWatch alarm to watch over the
+    `HealthyHostCount` metric of ELB associated with current web cluster.
+
+Version 0.2.19
+==============
+- `web-cluster-template`: new default AMI versions & packages
+  * AMI versions => 2018.3 (released on 2018-06-28)
+  * docker => 18.03.1ce
+
 Version 0.2.18
 ==============
 - `web-cluster-template`: install AWS CLI using `pip install --upgrade ...`

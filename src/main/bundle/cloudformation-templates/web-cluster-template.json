@@ -122,6 +122,12 @@
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
+    },
+    "ELBAlarmActions": {
+      "Description": "List of actions that will receive updates on ELB healthy host count metric.",
+      "Type": "CommaDelimitedList",
+      "Default": "",
+      "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
     }
   },
   "Conditions": {
@@ -156,6 +162,11 @@
     },
     "CustomImageIdEmpty": {
       "Fn::Equals": [{ "Ref": "CustomImageId" }, ""]
+    },
+    "CreateELBAlarm": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "ELBAlarmActions" }] }, ""]
+      }]
     }
   },
   "Mappings": {
@@ -792,6 +803,29 @@
         "Roles": [{
           "Ref": "MyInstanceRole"
         }]
+      }
+    },
+    "MyELBAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "CreateELBAlarm",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "ELBAlarmActions" },
+        "InsufficientDataActions": { "Ref": "ELBAlarmActions" },
+        "OKActions": { "Ref": "ELBAlarmActions" },
+        "Namespace": "AWS/ELB",
+        "Dimensions": [{
+          "Name": "LoadBalancerName",
+          "Value": { "Ref": "MyELB" }
+        }],
+        "MetricName": "HealthyHostCount",
+        "Unit": "Count",
+        "EvaluationPeriods": 1,
+        "Period": 60,
+        "Statistic": "Minimum",
+        "Threshold": 1,
+        "ComparisonOperator": "LessThanThreshold",
+        "TreatMissingData": "breaching"
       }
     }
   },
