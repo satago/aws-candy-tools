@@ -1,7 +1,16 @@
+Version 0.2.21
+==============
+- `web-cluster-template`: new parameters `DiskMetrics`, `MemoryMetrics`,
+   and `SwapMetrics` to collect and publish corresponding metrics
+   using CloudWatch agent.
+
+   Full list of supported metrics can be found here:
+   https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html
+
 Version 0.2.20
 ==============
 - `web-cluster-template`: new parameter `ELBAlarmActions`
-    
+
     Non-blank value creates a CloudWatch alarm to watch over the
     `HealthyHostCount` metric of ELB associated with current web cluster.
 
