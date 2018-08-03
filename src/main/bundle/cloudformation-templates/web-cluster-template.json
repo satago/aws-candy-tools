@@ -167,6 +167,13 @@
         { "Condition": "CollectMemoryMetrics" }
       ]
     },
+    "AnyMetricsCollected": {
+      "Fn::Or": [
+        { "Condition": "CollectDiskMetrics" },
+        { "Condition": "CollectMemoryMetrics" },
+        { "Condition": "CollectSwapMetrics" }
+      ]
+    },
     "CreateELB": {
       "Fn::Equals": [{ "Ref": "CreateELB" }, "true"]
     },
@@ -562,16 +569,19 @@
                     "#!/bin/bash -ex\n",
                     "# Install CloudWatch Agent to collect disk/memory metrics\n",
                     "cd /home/ec2-user/\n",
-                    "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip\\\n",
+                    "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip \\\n",
                     "    -O AmazonCloudWatchAgent.zip\n",
                     "rm -rf ./AmazonCloudWatchAgent\n",
                     "unzip AmazonCloudWatchAgent.zip -d AmazonCloudWatchAgent\n",
                     "cd AmazonCloudWatchAgent\n",
                     "yum list installed $(rpm -qp ./amazon-cloudwatch-agent.rpm) || ./install.sh\n",
+                    { "Fn::If": ["AnyMetricsCollected", "false", "true"]}, " \\\n",
+                    "    && /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop \\\n",
+                    "    && exit 0\n",
                     "/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \\\n",
-                    "    -a fetch-config\\\n",
+                    "    -a fetch-config \\\n",
                     "    -m ec2 \\\n",
-                    "    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json\\\n",
+                    "    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \\\n",
                     "    -s\n"
                   ]]
                 },
