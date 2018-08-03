@@ -128,9 +128,52 @@
       "Type": "CommaDelimitedList",
       "Default": "",
       "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
+    },
+    "DiskMetrics": {
+      "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "MemoryMetrics": {
+      "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "SwapMetrics": {
+      "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
+      "Type": "CommaDelimitedList",
+      "Default": ""
     }
   },
   "Conditions": {
+    "CollectDiskMetrics": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "DiskMetrics" }] }, ""]
+      }]
+    },
+    "CollectMemoryMetrics": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "MemoryMetrics" }] }, ""]
+      }]
+    },
+    "CollectSwapMetrics": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "SwapMetrics" }] }, ""]
+      }]
+    },
+    "AnyMetricsBeforeSwap": {
+      "Fn::Or": [
+        { "Condition": "CollectDiskMetrics" },
+        { "Condition": "CollectMemoryMetrics" }
+      ]
+    },
+    "AnyMetricsCollected": {
+      "Fn::Or": [
+        { "Condition": "CollectDiskMetrics" },
+        { "Condition": "CollectMemoryMetrics" },
+        { "Condition": "CollectSwapMetrics" }
+      ]
+    },
     "CreateELB": {
       "Fn::Equals": [{ "Ref": "CreateELB" }, "true"]
     },
@@ -372,6 +415,7 @@
             "default": [
               "yum-versionlock",
               "cfn-config",
+              "cloudwatch-agent",
               "awslogs-agent",
               "aws-cli",
               "aws-configure",
@@ -441,13 +485,124 @@
               }
             }
           },
+          "cloudwatch-agent": {
+            "files": {
+              "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json": {
+                "content": {
+                  "Fn::Join": ["\n", [
+                    "{",
+                    "  \"metrics\": {",
+                    "    \"append_dimensions\": {",
+                    "      \"AutoScalingGroupName\": \"${aws:AutoScalingGroupName}\",",
+                    "      \"InstanceId\": \"${aws:InstanceId}\"",
+                    "    },",
+                    "    \"aggregation_dimensions\": [[\"AutoScalingGroupName\"]],",
+                    "    \"metrics_collected\": {",
+                    {
+                      "Fn::If": [
+                        "CollectDiskMetrics",
+                        { "Fn::Join": ["\n", [
+                          "      \"disk\": {",
+                          "        \"measurement\": [", {
+                                     "Fn::Join": ["", [
+                                       "\"",
+                                       { "Fn::Join": ["\",\"", { "Ref": "DiskMetrics" } ] },
+                                       "\""
+                                      ]]},
+                          "        ],",
+                          "        \"metrics_collection_interval\": 60,",
+                          "        \"resources\": [",
+                          "          \"*\"",
+                          "        ]",
+                          "      }"
+                        ]]},
+                        ""
+                      ]
+                    },
+                    {
+                      "Fn::If": [
+                        "CollectMemoryMetrics",
+                        { "Fn::Join": ["\n", [
+                          { "Fn::If": ["CollectDiskMetrics", ",", ""] },
+                          "      \"mem\": {",
+                          "        \"measurement\": [", {
+                                     "Fn::Join": ["", [
+                                       "\"",
+                                       { "Fn::Join": ["\",\"", { "Ref": "MemoryMetrics" } ] },
+                                       "\""
+                                     ]]},
+                          "        ],",
+                          "        \"metrics_collection_interval\": 60",
+                          "      }"
+                        ]]},
+                        ""
+                      ]
+                    },
+                    {
+                      "Fn::If": [
+                        "CollectSwapMetrics",
+                        { "Fn::Join": ["\n", [
+                          { "Fn::If": ["AnyMetricsBeforeSwap", ",", ""] },
+                          "      \"swap\": {",
+                          "        \"measurement\": [", {
+                                     "Fn::Join": ["", [
+                                       "\"",
+                                       { "Fn::Join": ["\",\"", { "Ref": "SwapMetrics" } ] },
+                                       "\""
+                                     ]]},
+                          "        ],",
+                          "        \"metrics_collection_interval\": 60",
+                          "      }"
+                        ]]},
+                        ""
+                      ]
+                    },
+                    "    }",
+                    "  }",
+                    "}"
+                  ]]
+                }
+              },
+              "/opt/satago/install-cloudwatch-agent": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "# Install CloudWatch Agent to collect disk/memory metrics\n",
+                    "cd /home/ec2-user/\n",
+                    "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip \\\n",
+                    "    -O AmazonCloudWatchAgent.zip\n",
+                    "rm -rf ./AmazonCloudWatchAgent\n",
+                    "unzip AmazonCloudWatchAgent.zip -d AmazonCloudWatchAgent\n",
+                    "cd AmazonCloudWatchAgent\n",
+                    "yum list installed $(rpm -qp ./amazon-cloudwatch-agent.rpm) || ./install.sh\n",
+                    { "Fn::If": ["AnyMetricsCollected", "false", "true"]}, " \\\n",
+                    "    && /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop \\\n",
+                    "    && exit 0\n",
+                    "/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \\\n",
+                    "    -a fetch-config \\\n",
+                    "    -m ec2 \\\n",
+                    "    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \\\n",
+                    "    -s\n"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "amazon-cloudwatch-agent": {
+                "command": "/opt/satago/install-cloudwatch-agent"
+              }
+            }
+          },
           "awslogs-agent": {
             "files": {
               "/opt/satago/install-awslogs-agent": {
                 "content": {
                   "Fn::Join": ["", [
                     "#!/bin/bash -ex\n",
-                    "# Install CloudWatch Agent to monitor CodeDeploy\n",
+                    "# Install CloudWatch Logs Agent to monitor CodeDeploy\n",
                     "cd /home/ec2-user/\n",
                     "wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py\n",
                     "wget https://aws-codedeploy-", { "Ref" : "AWS::Region" }, ".s3.amazonaws.com/cloudwatch/codedeploy_logs.conf\n",
@@ -723,11 +878,19 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "ManagedPolicyArns": {
-            "Fn::If": [
-              "UseManagedPolicyArns",
-              { "Ref": "ManagedPolicyArns" },
-              { "Ref": "AWS::NoValue" }
-            ]
+          "Fn::Split": [",",
+            { "Fn::Join": [",", [
+              "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+              "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+              "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess",
+              "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+              { "Fn::If": [
+                "UseManagedPolicyArns",
+                { "Fn::Join": [",", { "Ref": "ManagedPolicyArns" } ] },
+                { "Ref": "AWS::NoValue" }
+              ]}
+            ]]}
+          ]
         },
         "AssumeRolePolicyDocument": {
           "Statement": [{
@@ -759,15 +922,6 @@
               "s3:Get*",
               "s3:List*",
 
-              "ecr:GetAuthorizationToken",
-              "ecr:BatchCheckLayerAvailability",
-              "ecr:GetDownloadUrlForLayer",
-              "ecr:GetRepositoryPolicy",
-              "ecr:DescribeRepositories",
-              "ecr:ListImages",
-              "ecr:DescribeImages",
-              "ecr:BatchGetImage",
-
               "logs:CreateLogGroup",
               "logs:CreateLogStream",
               "logs:PutLogEvents",
@@ -786,7 +940,10 @@
               "autoscaling:ExitStandby",
               "autoscaling:UpdateAutoScalingGroup",
               "autoscaling:SuspendProcesses",
-              "autoscaling:ResumeProcesses"
+              "autoscaling:ResumeProcesses",
+
+              "ec2messages:*",
+              "ssm:UpdateInstanceInformation"
             ],
             "Resource": "*"
           }]
