@@ -1,3 +1,20 @@
+Version 0.2.22
+==============
+- `web-cluster-template`: changes to parameters for alarms & metrics
+  * parameter `ELBAlarmActions` renamed to `AlarmActions`
+  * new parameters:
+    * `ELBHealthyHostCountAlarmEnabled` (default false)
+    * `ELBLatencyAlarmEnabled` (default false)
+    * `ELBLatencyAlarmPeriod` (60 seconds),
+      `ELBLatencyAlarmStatistic` (Average),
+      `ELBLatencyAlarmThreshold` (10 seconds)
+    * `DiskMetricsCollectionInterval` (default 1 hour),
+      `MemoryMetricsCollectionInterval` (default 5 minutes),
+      `SwapMetricsCollectionInterval` (default 5 minutes)
+    * `DiskUsedPercentAlarmEnabled` (default false),
+      `DiskUsedPercentAlarmThreshold` (default 85%)
+  * ignore `devtmpfs`, `tmpfs`, and `xfs` filesystems from disk monitoring
+
 Version 0.2.21
 ==============
 - `web-cluster-template`: new parameters `DiskMetrics`, `MemoryMetrics`,

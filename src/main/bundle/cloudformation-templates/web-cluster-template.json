@@ -123,29 +123,99 @@
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-    "ELBAlarmActions": {
-      "Description": "List of actions that will receive updates on ELB healthy host count metric.",
+
+    "AlarmActions": {
+      "Description": "List of actions that will receive updates on alarms from this stack",
       "Type": "CommaDelimitedList",
       "Default": "",
       "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
     },
+
+    "ELBHealthyHostCountAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the healthy host count ELB metric",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "ELBLatencyAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the latency ELB metric",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "ELBLatencyAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "60"
+    },
+    "ELBLatencyAlarmStatistic": {
+      "Description": "Threshold for ELB latency in seconds, value above the threshold triggers an alarm",
+      "Type": "String",
+      "Default": "Average",
+      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
+    },
+    "ELBLatencyAlarmThreshold": {
+      "Description": "Threshold for ELB latency in seconds, value equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "10"
+    },
+
     "DiskMetrics": {
       "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
       "Type": "CommaDelimitedList",
       "Default": ""
+    },
+    "DiskMetricsCollectionInterval": {
+      "Description": "Disk metrics collection interval in seconds",
+      "Type": "Number",
+      "Default": "3600"
+    },
+    "DiskUsedPercentAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the maximum disk used percent metric",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "DiskUsedPercentAlarmThreshold": {
+      "Description": "Threshold for the disk used in percents, value equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "85"
     },
     "MemoryMetrics": {
       "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
       "Type": "CommaDelimitedList",
       "Default": ""
     },
+    "MemoryMetricsCollectionInterval": {
+      "Description": "Memory metrics collection interval in seconds",
+      "Type": "Number",
+      "Default": "300"
+    },
     "SwapMetrics": {
       "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
       "Type": "CommaDelimitedList",
       "Default": ""
+    },
+    "SwapMetricsCollectionInterval": {
+      "Description": "Swap metrics collection interval in seconds",
+      "Type": "Number",
+      "Default": "300"
     }
   },
   "Conditions": {
+    "CreateAlarmForELBHealthyHostCount": {
+      "Fn::Equals": [{ "Ref": "ELBHealthyHostCountAlarmEnabled" }, "true"]
+    },
+    "CreateAlarmForELBLatency": {
+      "Fn::Equals": [{ "Ref": "ELBLatencyAlarmEnabled" }, "true"]
+    },
+    "CreateAlarmForDiskUsedPercent": {
+      "Fn::Equals": [{ "Ref": "DiskUsedPercentAlarmEnabled" }, "true"]
+    },
     "CollectDiskMetrics": {
       "Fn::Not": [{
         "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "DiskMetrics" }] }, ""]
@@ -205,11 +275,6 @@
     },
     "CustomImageIdEmpty": {
       "Fn::Equals": [{ "Ref": "CustomImageId" }, ""]
-    },
-    "CreateELBAlarm": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "ELBAlarmActions" }] }, ""]
-      }]
     }
   },
   "Mappings": {
@@ -510,10 +575,13 @@
                                        "\""
                                       ]]},
                           "        ],",
-                          "        \"metrics_collection_interval\": 60,",
+                          { "Fn::Join": ["", [
+                          "        \"metrics_collection_interval\": ",
+                                        { "Ref": "DiskMetricsCollectionInterval" }, "," ]] },
                           "        \"resources\": [",
                           "          \"*\"",
-                          "        ]",
+                          "        ],",
+                          "        \"ignore_file_system_types\": [\"devtmpfs\",\"tmpfs\",\"xfs\"]",
                           "      }"
                         ]]},
                         ""
@@ -532,7 +600,9 @@
                                        "\""
                                      ]]},
                           "        ],",
-                          "        \"metrics_collection_interval\": 60",
+                          { "Fn::Join": ["", [
+                          "        \"metrics_collection_interval\": ",
+                                        { "Ref": "MemoryMetricsCollectionInterval" } ]] },
                           "      }"
                         ]]},
                         ""
@@ -551,7 +621,9 @@
                                        "\""
                                      ]]},
                           "        ],",
-                          "        \"metrics_collection_interval\": 60",
+                          { "Fn::Join": ["", [
+                          "        \"metrics_collection_interval\": ",
+                                        { "Ref": "SwapMetricsCollectionInterval" } ]] },
                           "      }"
                         ]]},
                         ""
@@ -962,14 +1034,14 @@
         }]
       }
     },
-    "MyELBAlarm": {
+    "MyELBHealthyHostCountAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
-      "Condition": "CreateELBAlarm",
+      "Condition": "CreateAlarmForELBHealthyHostCount",
       "Properties": {
         "ActionsEnabled": true,
-        "AlarmActions": { "Ref": "ELBAlarmActions" },
-        "InsufficientDataActions": { "Ref": "ELBAlarmActions" },
-        "OKActions": { "Ref": "ELBAlarmActions" },
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
         "Namespace": "AWS/ELB",
         "Dimensions": [{
           "Name": "LoadBalancerName",
@@ -982,6 +1054,52 @@
         "Statistic": "Minimum",
         "Threshold": 1,
         "ComparisonOperator": "LessThanThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyELBLatencyAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "CreateAlarmForELBLatency",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/ELB",
+        "Dimensions": [{
+          "Name": "LoadBalancerName",
+          "Value": { "Ref": "MyELB" }
+        }],
+        "MetricName": "Latency",
+        "Unit": "Seconds",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "ELBLatencyAlarmPeriod" },
+        "Statistic": { "Ref": "ELBLatencyAlarmStatistic" },
+        "Threshold": { "Ref": "ELBLatencyAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDiskUsedPercentAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "CreateAlarmForDiskUsedPercent",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "CWAgent",
+        "Dimensions": [{
+          "Name": "AutoScalingGroupName",
+          "Value": { "Ref": "MyASG" }
+        }],
+        "MetricName": "disk_used_percent",
+        "Unit": "Percent",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "DiskMetricsCollectionInterval" },
+        "Statistic": "Maximum",
+        "Threshold": { "Ref": "DiskUsedPercentAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
       }
     }
