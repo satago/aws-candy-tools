@@ -44,12 +44,12 @@
     },
 
     "DockerVersion": {
-      "Description": "Version of Docker, i.e. '18.03.1ce'",
+      "Description": "Version of Docker, i.e. '18.06.1ce'",
       "Type": "String"
     },
 
     "DockerComposeVersion": {
-      "Description": "Version of Docker Compose, i.e. '1.21.0'",
+      "Description": "Version of Docker Compose, i.e. '1.23.2'",
       "Type": "String"
     },
 
@@ -279,9 +279,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-e056690b", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-41505fab", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-e2b35a85", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-0bf80f4d357a5c9a8", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-015452c7eae46034c", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-0df074a9989cc910f", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
