@@ -43,6 +43,12 @@
       "ConstraintDescription": "true or false (default)"
     },
 
+    "InstanceSecurityGroups": {
+      "Description": "Additional SecurityGroups for EC2 instances",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>",
+      "Default": ""
+    },
+
     "DockerVersion": {
       "Description": "Version of Docker, i.e. '18.06.1ce'",
       "Type": "String"
@@ -161,6 +167,12 @@
       "Description": "Threshold for ELB latency in seconds, value equals to or above the threshold triggers an alarm",
       "Type": "Number",
       "Default": "10"
+    },
+
+    "ELBSecurityGroups": {
+      "Description": "Additional SecurityGroups for ELB",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>",
+      "Default": ""
     },
 
     "DiskMetrics": {
@@ -356,7 +368,12 @@
         "Subnets": {
           "Fn::If": ["InternalELB", { "Ref": "InternalELBSubnets" }, { "Ref": "AWS::NoValue" }]
         },
-        "SecurityGroups": [{ "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] }],
+        "SecurityGroups": { "Fn::Split": [",",
+          { "Fn::Join": [ ",", [
+            { "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] },
+            { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
+          ]]}
+        ]},
         "LBCookieStickinessPolicy": [{
           "PolicyName": "CookieBasedPolicy",
           "CookieExpirationPeriod": "10"
@@ -816,7 +833,12 @@
         },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "SecurityGroups": [{ "Ref": "MyInstanceSecurityGroup" }],
+        "SecurityGroups": { "Fn::Split": [",",
+          { "Fn::Join": [ ",", [
+            { "Ref": "MyInstanceSecurityGroup" },
+            { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }
+          ]]}
+        ]},
         "IamInstanceProfile": { "Ref": "MyInstanceProfile" },
         "UserData": {
           "Fn::Base64": {

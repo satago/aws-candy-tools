@@ -1,3 +1,13 @@
+Version 0.2.24
+==============
+- `web-cluster-template`: new parameters to specify additional security groups for ELB and EC2 instances.
+  * `ELBSecurityGroups`
+  * `InstanceSecurityGroups`
+
+Version 0.2.23
+==============
+- `web-cluster-template`: updated default AMI versions to latest
+
 Version 0.2.22
 ==============
 - `web-cluster-template`: changes to parameters for alarms & metrics
