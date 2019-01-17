@@ -1,3 +1,8 @@
+Version 0.2.25
+==============
+- `web-cluster-template`: changing type of `ELBSecurityGroups` and `InstanceSecurityGroups` to allow blank defaults.
+
+
 Version 0.2.24
 ==============
 - `web-cluster-template`: new parameters to specify additional security groups for ELB and EC2 instances.
