@@ -498,6 +498,7 @@
               "yum-versionlock",
               "cfn-config",
               "cloudwatch-agent",
+              "install-pip",
               "aws-cli",
               "aws-configure",
               "before-docker",
@@ -710,12 +711,14 @@
               }
             }
           },
-          "aws-cli": {
-            "packages": {
-              "yum": {
-                "python2-pip": []
+          "install-pip": {
+            "commands": {
+              "pip": {
+                "command": "command -v pip || (curl -O https://bootstrap.pypa.io/get-pip.py ; python get-pip.py)"
               }
-            },
+            }
+          },
+          "aws-cli": {
             "commands": {
               "aws-cli": {
                 "command": {
