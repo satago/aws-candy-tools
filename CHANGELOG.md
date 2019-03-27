@@ -1,3 +1,8 @@
+Version 0.3.0
+==============
+- `web-cluster-template`: added support for Amazon Linux 2
+  * default AMI versions now use Amazon Linux 2
+
 Version 0.2.25
 ==============
 - `web-cluster-template`: changing type of `ELBSecurityGroups` and `InstanceSecurityGroups` to allow blank defaults.
