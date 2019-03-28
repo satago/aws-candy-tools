@@ -520,8 +520,25 @@
                   "Fn::Join": ["", [
                     "#!/bin/bash -ex\n",
                     "/opt/aws/bin/cfn-signal -e 1 -r \"$1\" ",
-                    "  --resource MyASG --stack ", { "Ref" : "AWS::StackName" },
-                    "  --region ", { "Ref" : "AWS::Region" }, "\n"
+                    " --stack ", { "Ref" : "AWS::StackName" },
+                    " --resource MyASG ",
+                    " --region ", { "Ref" : "AWS::Region" }
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              },
+              "/opt/satago/cfn-success": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "if [[ $1 == '--soft' ]]; then set +e; shift; fi\n",
+                    "/opt/aws/bin/cfn-signal -e 0 -r \"$1\" ",
+                    "  --stack ", { "Ref" : "AWS::StackName" },
+                    "  --resource MyASG ",
+                    "  --region ", { "Ref" : "AWS::Region" }, "\n",
+                    "exit 0\n"
                   ]]
                 },
                 "mode": "000555",
@@ -844,6 +861,8 @@
             "Fn::Join": ["", [
               "#!/bin/bash -ex\n",
 
+              "exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1\n",
+
               "yum update -y\n",
 
               "/opt/aws/bin/cfn-init --verbose --configsets default",
@@ -852,11 +871,32 @@
               " --region ", { "Ref": "AWS::Region" },
               " || (/opt/satago/cfn-error 'Failed to run cfn-init.' && exit 1)\n",
 
-              "# All is well, so signal success to the AutoScalingGroup's CreationPolicy.\n",
-              "/opt/aws/bin/cfn-signal -e 0 -r \"Instance setup completed successfully.\"",
-              " --stack ", { "Ref" : "AWS::StackName" },
-              " --resource MyASG ",
-              " --region ", { "Ref" : "AWS::Region" }, "\n"
+              "# Check if ASG has active deployments...\n",
+              "set +e\n",
+              "APPLICATION_NAME=$(aws deploy list-applications",
+              "  --region=", { "Ref": "AWS::Region" },
+              "  --query=applications",
+              "  | grep -oE '", { "Ref": "AWS::StackName" }, "-MyApplication-[^\"]+')\n",
+              "DEPLOYMENT_GROUP=$(aws deploy list-deployment-groups",
+              "  --region=", { "Ref": "AWS::Region" },
+              "  --application-name=${APPLICATION_NAME}",
+              "  --query='deploymentGroups[0]'",
+              "  --output=text)\n",
+              "SUCCESSFUL_DEPLOYMENT_ID=$(aws deploy list-deployments ",
+              "  --region=", { "Ref": "AWS::Region" },
+              "  --application-name=${APPLICATION_NAME}",
+              "  --deployment-group=${DEPLOYMENT_GROUP}",
+              "  --include-only-statuses=Succeeded",
+              "  --query='deployments[0]'",
+              "  --output=text)\n",
+              "set -e\n",
+
+              "if [[ ${SUCCESSFUL_DEPLOYMENT_ID} =~ ^d-.*$ ]]; then\n",
+              "  echo Active deployment detected, waiting for successful signal from validate.bash\n",
+              "else\n",
+              "  echo Could not find any CodeDeploy deployments, signalling success to the ASG now\n",
+              "  /opt/satago/cfn-success 'Instance setup completed successfully.'\n",
+              "fi\n"
             ]]
           }
         }
@@ -1036,7 +1076,9 @@
               "autoscaling:ResumeProcesses",
 
               "ec2messages:*",
-              "ssm:UpdateInstanceInformation"
+              "ssm:UpdateInstanceInformation",
+
+              "codedeploy:List*"
             ],
             "Resource": "*"
           }]
