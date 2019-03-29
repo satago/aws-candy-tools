@@ -1,4 +1,4 @@
-Version 0.3.0
+Version 0.3.1
 ==============
 - `web-cluster-template`: added support for Amazon Linux 2
   * default AMI versions now use Amazon Linux 2
