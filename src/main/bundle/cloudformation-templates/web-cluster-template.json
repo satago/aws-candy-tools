@@ -563,6 +563,14 @@
                     "/etc/cfn/cfn-hup.conf",
                     "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
                   ]
+                },
+                "rpcbind.service": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "rpcbind.socket": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
                 }
               }
             }
