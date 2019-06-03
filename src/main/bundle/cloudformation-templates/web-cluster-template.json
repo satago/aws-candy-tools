@@ -291,9 +291,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-0bf80f4d357a5c9a8", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-015452c7eae46034c", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-0df074a9989cc910f", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-08782e1cd8f682ceb", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-06a376457af6d8e1c", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-0dbd5595b1b1bdab4", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -498,7 +498,7 @@
               "yum-versionlock",
               "cfn-config",
               "cloudwatch-agent",
-              "awslogs-agent",
+              "install-pip",
               "aws-cli",
               "aws-configure",
               "before-docker",
@@ -520,8 +520,25 @@
                   "Fn::Join": ["", [
                     "#!/bin/bash -ex\n",
                     "/opt/aws/bin/cfn-signal -e 1 -r \"$1\" ",
-                    "  --resource MyASG --stack ", { "Ref" : "AWS::StackName" },
-                    "  --region ", { "Ref" : "AWS::Region" }, "\n"
+                    " --stack ", { "Ref" : "AWS::StackName" },
+                    " --resource MyASG ",
+                    " --region ", { "Ref" : "AWS::Region" }
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              },
+              "/opt/satago/cfn-success": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "if [[ $1 == '--soft' ]]; then set +e; shift; fi\n",
+                    "/opt/aws/bin/cfn-signal -e 0 -r \"$1\" ",
+                    "  --stack ", { "Ref" : "AWS::StackName" },
+                    "  --resource MyASG ",
+                    "  --region ", { "Ref" : "AWS::Region" }, "\n",
+                    "exit 0\n"
                   ]]
                 },
                 "mode": "000555",
@@ -647,6 +664,37 @@
                       ]
                     },
                     "    }",
+                    "  },",
+                    "  \"logs\": {",
+                    "     \"force_flush_interval\": 5,",
+                    "     \"logs_collected\": {",
+                    "        \"files\": {",
+                    "           \"collect_list\": [",
+                    "             {",
+                    "                \"file_path\": \"/var/log/messages\",",
+                    "                \"log_group_name\": \"/var/log/messages\",",
+                    "                \"log_stream_name\": \"{instance_id}\",",
+                    "                \"timestamp_format\": \"%b %d %H:%M:%S\"",
+                    "             },",
+                    "             {",
+                    "                \"file_path\": \"/var/log/aws/codedeploy-agent/codedeploy-agent.log\",",
+                    "                \"log_group_name\": \"codedeploy-agent-log\",",
+                    "                \"log_stream_name\": \"{instance_id}-codedeploy-agent-log\",",
+                    "                \"timestamp_format\": \"%Y-%m-%d %H:%M:%S\"",
+                    "             },",
+                    "             {",
+                    "                \"file_path\": \"/opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log\",",
+                    "                \"log_group_name\": \"codedeploy-deployments-log\",",
+                    "                \"log_stream_name\": \"{instance_id}-codedeploy-deployments-log\"",
+                    "             },",
+                    "             {",
+                    "                \"file_path\": \"/tmp/codedeploy-agent.update.log\",",
+                    "                \"log_group_name\": \"codedeploy-updater-log\",",
+                    "                \"log_stream_name\": \"{instance_id}-codedeploy-updater-log\"",
+                    "             }",
+                    "           ]",
+                    "        }",
+                    "     }",
                     "  }",
                     "}"
                   ]]
@@ -657,13 +705,8 @@
                   "Fn::Join": ["", [
                     "#!/bin/bash -ex\n",
                     "# Install CloudWatch Agent to collect disk/memory metrics\n",
-                    "cd /home/ec2-user/\n",
-                    "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip \\\n",
-                    "    -O AmazonCloudWatchAgent.zip\n",
-                    "rm -rf ./AmazonCloudWatchAgent\n",
-                    "unzip AmazonCloudWatchAgent.zip -d AmazonCloudWatchAgent\n",
-                    "cd AmazonCloudWatchAgent\n",
-                    "yum list installed $(rpm -qp ./amazon-cloudwatch-agent.rpm) || ./install.sh\n",
+                    "yum list installed amazon-cloudwatch-agent \\\n",
+                    "    || rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm\n",
                     { "Fn::If": ["AnyMetricsCollected", "false", "true"]}, " \\\n",
                     "    && /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop \\\n",
                     "    && exit 0\n",
@@ -685,43 +728,10 @@
               }
             }
           },
-          "awslogs-agent": {
-            "files": {
-              "/opt/satago/install-awslogs-agent": {
-                "content": {
-                  "Fn::Join": ["", [
-                    "#!/bin/bash -ex\n",
-                    "# Install CloudWatch Logs Agent to monitor CodeDeploy\n",
-                    "cd /home/ec2-user/\n",
-                    "wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py\n",
-                    "wget https://aws-codedeploy-", { "Ref" : "AWS::Region" }, ".s3.amazonaws.com/cloudwatch/codedeploy_logs.conf\n",
-                    "chmod +x ./awslogs-agent-setup.py\n",
-                    "python awslogs-agent-setup.py",
-                    " --non-interactive",
-                    " --region ", { "Ref" : "AWS::Region" },
-                    " --configfile s3://aws-codedeploy-", { "Ref" : "AWS::Region" }, "/cloudwatch/awslogs.conf",
-                    " || (/opt/satago/cfn-error 'Failed to install AWS CloudWatch Agent.' && exit 1)\n",
-                    "mkdir -p /var/awslogs/etc/config\n",
-                    "cp codedeploy_logs.conf /var/awslogs/etc/config/\n",
-                    "service awslogs restart"
-                  ]]
-                },
-                "mode": "000555",
-                "owner": "root",
-                "group": "root"
-              }
-            },
+          "install-pip": {
             "commands": {
-              "install-awslogs-agent": {
-                "command": "/opt/satago/install-awslogs-agent"
-              }
-            },
-            "services": {
-              "sysvinit": {
-                "awslogs": {
-                  "enabled": "true",
-                  "ensureRunning": "true"
-                }
+              "pip": {
+                "command": "command -v pip || (curl -O https://bootstrap.pypa.io/get-pip.py ; python get-pip.py)"
               }
             }
           },
@@ -785,6 +795,12 @@
             }
           },
           "codedeploy-agent": {
+            "packages": {
+              "yum": {
+                "wget": [],
+                "ruby": []
+              }
+            },
             "files": {
               "/opt/satago/install-codedeploy-agent": {
                 "content": {
@@ -845,6 +861,8 @@
             "Fn::Join": ["", [
               "#!/bin/bash -ex\n",
 
+              "exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1\n",
+
               "yum update -y\n",
 
               "/opt/aws/bin/cfn-init --verbose --configsets default",
@@ -853,11 +871,32 @@
               " --region ", { "Ref": "AWS::Region" },
               " || (/opt/satago/cfn-error 'Failed to run cfn-init.' && exit 1)\n",
 
-              "# All is well, so signal success to the AutoScalingGroup's CreationPolicy.\n",
-              "/opt/aws/bin/cfn-signal -e 0 -r \"Instance setup completed successfully.\"",
-              " --stack ", { "Ref" : "AWS::StackName" },
-              " --resource MyASG ",
-              " --region ", { "Ref" : "AWS::Region" }, "\n"
+              "# Check if ASG has active deployments...\n",
+              "set +e\n",
+              "APPLICATION_NAME=$(aws deploy list-applications",
+              "  --region=", { "Ref": "AWS::Region" },
+              "  --query=applications",
+              "  | grep -oE '", { "Ref": "AWS::StackName" }, "-MyApplication-[^\"]+')\n",
+              "DEPLOYMENT_GROUP=$(aws deploy list-deployment-groups",
+              "  --region=", { "Ref": "AWS::Region" },
+              "  --application-name=${APPLICATION_NAME}",
+              "  --query='deploymentGroups[0]'",
+              "  --output=text)\n",
+              "SUCCESSFUL_DEPLOYMENT_ID=$(aws deploy list-deployments ",
+              "  --region=", { "Ref": "AWS::Region" },
+              "  --application-name=${APPLICATION_NAME}",
+              "  --deployment-group=${DEPLOYMENT_GROUP}",
+              "  --include-only-statuses=Succeeded",
+              "  --query='deployments[0]'",
+              "  --output=text)\n",
+              "set -e\n",
+
+              "if [[ ${SUCCESSFUL_DEPLOYMENT_ID} =~ ^d-.*$ ]]; then\n",
+              "  echo Active deployment detected, waiting for successful signal from validate.bash\n",
+              "else\n",
+              "  echo Could not find any CodeDeploy deployments, signalling success to the ASG now\n",
+              "  /opt/satago/cfn-success 'Instance setup completed successfully.'\n",
+              "fi\n"
             ]]
           }
         }
@@ -1037,7 +1076,9 @@
               "autoscaling:ResumeProcesses",
 
               "ec2messages:*",
-              "ssm:UpdateInstanceInformation"
+              "ssm:UpdateInstanceInformation",
+
+              "codedeploy:List*"
             ],
             "Resource": "*"
           }]

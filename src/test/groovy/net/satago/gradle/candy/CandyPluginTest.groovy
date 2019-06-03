@@ -54,6 +54,7 @@ class CandyPluginTest {
         assertEquals(
                 ['revision-A/_common-functions.bash',
                  'revision-A/appspec.yml',
+                 'revision-A/cfn-success.bash',
                  'revision-A/compose.bash',
                  'revision-A/compose.env',
                  'revision-A/data/config.properties',
@@ -120,6 +121,7 @@ class CandyPluginTest {
                  pathToContent + '/bin/stack',
                  pathToContent + '/build/revisions/revision-A/_common-functions.bash',
                  pathToContent + '/build/revisions/revision-A/appspec.yml',
+                 pathToContent + '/build/revisions/revision-A/cfn-success.bash',
                  pathToContent + '/build/revisions/revision-A/compose.bash',
                  pathToContent + '/build/revisions/revision-A/compose.env',
                  pathToContent + '/build/revisions/revision-A/data/config.properties',

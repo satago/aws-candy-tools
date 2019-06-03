@@ -30,3 +30,5 @@ hooks:
       timeout: 3600
     - location: elb/wait_for_elb.sh
       timeout: 3600
+    - location: cfn-success.bash
+      timeout: 3600
