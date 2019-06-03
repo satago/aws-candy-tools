@@ -8,7 +8,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'java-gradle-plugin'
 
 group = 'net.satago.gradle'
-version = '0.2.13'
+version = file('./src/main/bundle/version').text
 
 repositories {
     jcenter()
@@ -100,6 +100,10 @@ task tarBundle(type: Tar) {
 }
 
 jar {
+    manifest {
+        attributes 'Implementation-Title': 'aws-candy-tools',
+                   'Implementation-Version': version
+    }
     with copySpec() {
         from tarBundle.outputs
         into 'META-INF/aws-candy-tools'

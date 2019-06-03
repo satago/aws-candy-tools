@@ -1,3 +1,82 @@
+Version 0.2.25
+==============
+- `web-cluster-template`: changing type of `ELBSecurityGroups` and `InstanceSecurityGroups` to allow blank defaults.
+
+
+Version 0.2.24
+==============
+- `web-cluster-template`: new parameters to specify additional security groups for ELB and EC2 instances.
+  * `ELBSecurityGroups`
+  * `InstanceSecurityGroups`
+
+Version 0.2.23
+==============
+- `web-cluster-template`: updated default AMI versions to latest
+
+Version 0.2.22
+==============
+- `web-cluster-template`: changes to parameters for alarms & metrics
+  * parameter `ELBAlarmActions` renamed to `AlarmActions`
+  * new parameters:
+    * `ELBHealthyHostCountAlarmEnabled` (default false)
+    * `ELBLatencyAlarmEnabled` (default false)
+    * `ELBLatencyAlarmPeriod` (60 seconds),
+      `ELBLatencyAlarmStatistic` (Average),
+      `ELBLatencyAlarmThreshold` (10 seconds)
+    * `DiskMetricsCollectionInterval` (default 1 hour),
+      `MemoryMetricsCollectionInterval` (default 5 minutes),
+      `SwapMetricsCollectionInterval` (default 5 minutes)
+    * `DiskUsedPercentAlarmEnabled` (default false),
+      `DiskUsedPercentAlarmThreshold` (default 85%)
+  * ignore `devtmpfs`, `tmpfs`, and `xfs` filesystems from disk monitoring
+
+Version 0.2.21
+==============
+- `web-cluster-template`: new parameters `DiskMetrics`, `MemoryMetrics`,
+   and `SwapMetrics` to collect and publish corresponding metrics
+   using CloudWatch agent.
+
+   Full list of supported metrics can be found here:
+   https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html
+
+Version 0.2.20
+==============
+- `web-cluster-template`: new parameter `ELBAlarmActions`
+
+    Non-blank value creates a CloudWatch alarm to watch over the
+    `HealthyHostCount` metric of ELB associated with current web cluster.
+
+Version 0.2.19
+==============
+- `web-cluster-template`: new default AMI versions & packages
+  * AMI versions => 2018.3 (released on 2018-06-28)
+  * docker => 18.03.1ce
+
+Version 0.2.18
+==============
+- `web-cluster-template`: install AWS CLI using `pip install --upgrade ...`
+
+Version 0.2.17
+==============
+- `web-cluster-template`: AWS CLI version 1.15.8
+
+Version 0.2.16
+==============
+- `web-cluster-template`: new default AMI versions & packages
+  * AMI versions => 2018.3
+  * docker => 17.12.1ce
+  * docker-compose => 1.21.0
+  * AWS CLI => 1.14.9
+
+Version 0.2.15
+==============
+- `web-cluster-template`: new default AMI versions with fixes for [Meltdown/Spectre vulnerabilities](https://aws.amazon.com/security/security-bulletins/AWS-2018-013/).
+
+Version 0.2.14
+==============
+- `web-cluster-template`: new parameter `ELBReferenceSecurityPolicy` to specify one of the [predefined ELB security policies](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html). Default value is `ELBSecurityPolicy-2016-08`.
+- Auto-detect expired bundles when using `bin/exec`: the script now runs the `binInit` task not only when bundle is not extracted, but also if its version does not match plugin version.
+
 Version 0.2.13
 ==============
 - `bin/deploy`: Set Gradle project root to the location of gradle wrapper script

@@ -43,20 +43,26 @@
       "ConstraintDescription": "true or false (default)"
     },
 
+    "InstanceSecurityGroups": {
+      "Description": "Additional SecurityGroups for EC2 instances",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+
     "DockerVersion": {
-      "Description": "Version of Docker, i.e. '17.03.2ce'",
+      "Description": "Version of Docker, i.e. '18.06.1ce'",
       "Type": "String"
     },
 
     "DockerComposeVersion": {
-      "Description": "Version of Docker Compose, i.e. '1.13.0'",
+      "Description": "Version of Docker Compose, i.e. '1.23.2'",
       "Type": "String"
     },
 
     "AWSCLIVersion": {
       "Description": "Version of AWS CLI tools",
       "Type": "String",
-      "Default": "1.11.121"
+      "Default": "1.15.8"
     },
 
     "ManagedPolicyArns": {
@@ -94,6 +100,11 @@
       "Description": "List of VPC subnets for internal ELB",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
+    "ELBReferenceSecurityPolicy": {
+      "Description": "Name of Reference-Security-Policy to apply to the ELB, http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html",
+      "Type": "String",
+      "Default": "ELBSecurityPolicy-2016-08"
+    },
     "SSLCertificateId": {
       "Description": "ARN of SSL Certificate for ELB",
       "Type": "String",
@@ -117,9 +128,134 @@
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
+    },
+
+    "AlarmActions": {
+      "Description": "List of actions that will receive updates on alarms from this stack",
+      "Type": "CommaDelimitedList",
+      "Default": "",
+      "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
+    },
+
+    "ELBHealthyHostCountAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the healthy host count ELB metric",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "ELBLatencyAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the latency ELB metric",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "ELBLatencyAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "60"
+    },
+    "ELBLatencyAlarmStatistic": {
+      "Description": "Threshold for ELB latency in seconds, value above the threshold triggers an alarm",
+      "Type": "String",
+      "Default": "Average",
+      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
+    },
+    "ELBLatencyAlarmThreshold": {
+      "Description": "Threshold for ELB latency in seconds, value equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "10"
+    },
+
+    "ELBSecurityGroups": {
+      "Description": "Additional SecurityGroups for ELB",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+
+    "DiskMetrics": {
+      "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "DiskMetricsCollectionInterval": {
+      "Description": "Disk metrics collection interval in seconds",
+      "Type": "Number",
+      "Default": "3600"
+    },
+    "DiskUsedPercentAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the maximum disk used percent metric",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "DiskUsedPercentAlarmThreshold": {
+      "Description": "Threshold for the disk used in percents, value equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "85"
+    },
+    "MemoryMetrics": {
+      "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "MemoryMetricsCollectionInterval": {
+      "Description": "Memory metrics collection interval in seconds",
+      "Type": "Number",
+      "Default": "300"
+    },
+    "SwapMetrics": {
+      "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "SwapMetricsCollectionInterval": {
+      "Description": "Swap metrics collection interval in seconds",
+      "Type": "Number",
+      "Default": "300"
     }
   },
   "Conditions": {
+    "CreateAlarmForELBHealthyHostCount": {
+      "Fn::Equals": [{ "Ref": "ELBHealthyHostCountAlarmEnabled" }, "true"]
+    },
+    "CreateAlarmForELBLatency": {
+      "Fn::Equals": [{ "Ref": "ELBLatencyAlarmEnabled" }, "true"]
+    },
+    "CreateAlarmForDiskUsedPercent": {
+      "Fn::Equals": [{ "Ref": "DiskUsedPercentAlarmEnabled" }, "true"]
+    },
+    "CollectDiskMetrics": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "DiskMetrics" }] }, ""]
+      }]
+    },
+    "CollectMemoryMetrics": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "MemoryMetrics" }] }, ""]
+      }]
+    },
+    "CollectSwapMetrics": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "SwapMetrics" }] }, ""]
+      }]
+    },
+    "AnyMetricsBeforeSwap": {
+      "Fn::Or": [
+        { "Condition": "CollectDiskMetrics" },
+        { "Condition": "CollectMemoryMetrics" }
+      ]
+    },
+    "AnyMetricsCollected": {
+      "Fn::Or": [
+        { "Condition": "CollectDiskMetrics" },
+        { "Condition": "CollectMemoryMetrics" },
+        { "Condition": "CollectSwapMetrics" }
+      ]
+    },
     "CreateELB": {
       "Fn::Equals": [{ "Ref": "CreateELB" }, "true"]
     },
@@ -155,9 +291,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-c7ee5ca8", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-acd005d5", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-1a7f6d7e", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-0bf80f4d357a5c9a8", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-015452c7eae46034c", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-0df074a9989cc910f", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -232,7 +368,12 @@
         "Subnets": {
           "Fn::If": ["InternalELB", { "Ref": "InternalELBSubnets" }, { "Ref": "AWS::NoValue" }]
         },
-        "SecurityGroups": [{ "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] }],
+        "SecurityGroups": { "Fn::Split": [",",
+          { "Fn::Join": [ ",", [
+            { "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] },
+            { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
+          ]]}
+        ]},
         "LBCookieStickinessPolicy": [{
           "PolicyName": "CookieBasedPolicy",
           "CookieExpirationPeriod": "10"
@@ -285,7 +426,7 @@
             "Attributes": [
               {
                 "Name": "Reference-Security-Policy",
-                "Value": "ELBSecurityPolicy-2016-08"
+                "Value": { "Ref": "ELBReferenceSecurityPolicy" }
               }
             ]
           }
@@ -356,8 +497,10 @@
             "default": [
               "yum-versionlock",
               "cfn-config",
+              "cloudwatch-agent",
               "awslogs-agent",
               "aws-cli",
+              "aws-configure",
               "before-docker",
               "docker",
               "codedeploy-agent"
@@ -424,13 +567,131 @@
               }
             }
           },
+          "cloudwatch-agent": {
+            "files": {
+              "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json": {
+                "content": {
+                  "Fn::Join": ["\n", [
+                    "{",
+                    "  \"metrics\": {",
+                    "    \"append_dimensions\": {",
+                    "      \"AutoScalingGroupName\": \"${aws:AutoScalingGroupName}\",",
+                    "      \"InstanceId\": \"${aws:InstanceId}\"",
+                    "    },",
+                    "    \"aggregation_dimensions\": [[\"AutoScalingGroupName\"]],",
+                    "    \"metrics_collected\": {",
+                    {
+                      "Fn::If": [
+                        "CollectDiskMetrics",
+                        { "Fn::Join": ["\n", [
+                          "      \"disk\": {",
+                          "        \"measurement\": [", {
+                                     "Fn::Join": ["", [
+                                       "\"",
+                                       { "Fn::Join": ["\",\"", { "Ref": "DiskMetrics" } ] },
+                                       "\""
+                                      ]]},
+                          "        ],",
+                          { "Fn::Join": ["", [
+                          "        \"metrics_collection_interval\": ",
+                                        { "Ref": "DiskMetricsCollectionInterval" }, "," ]] },
+                          "        \"resources\": [",
+                          "          \"*\"",
+                          "        ],",
+                          "        \"ignore_file_system_types\": [\"devtmpfs\",\"tmpfs\",\"xfs\"]",
+                          "      }"
+                        ]]},
+                        ""
+                      ]
+                    },
+                    {
+                      "Fn::If": [
+                        "CollectMemoryMetrics",
+                        { "Fn::Join": ["\n", [
+                          { "Fn::If": ["CollectDiskMetrics", ",", ""] },
+                          "      \"mem\": {",
+                          "        \"measurement\": [", {
+                                     "Fn::Join": ["", [
+                                       "\"",
+                                       { "Fn::Join": ["\",\"", { "Ref": "MemoryMetrics" } ] },
+                                       "\""
+                                     ]]},
+                          "        ],",
+                          { "Fn::Join": ["", [
+                          "        \"metrics_collection_interval\": ",
+                                        { "Ref": "MemoryMetricsCollectionInterval" } ]] },
+                          "      }"
+                        ]]},
+                        ""
+                      ]
+                    },
+                    {
+                      "Fn::If": [
+                        "CollectSwapMetrics",
+                        { "Fn::Join": ["\n", [
+                          { "Fn::If": ["AnyMetricsBeforeSwap", ",", ""] },
+                          "      \"swap\": {",
+                          "        \"measurement\": [", {
+                                     "Fn::Join": ["", [
+                                       "\"",
+                                       { "Fn::Join": ["\",\"", { "Ref": "SwapMetrics" } ] },
+                                       "\""
+                                     ]]},
+                          "        ],",
+                          { "Fn::Join": ["", [
+                          "        \"metrics_collection_interval\": ",
+                                        { "Ref": "SwapMetricsCollectionInterval" } ]] },
+                          "      }"
+                        ]]},
+                        ""
+                      ]
+                    },
+                    "    }",
+                    "  }",
+                    "}"
+                  ]]
+                }
+              },
+              "/opt/satago/install-cloudwatch-agent": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "# Install CloudWatch Agent to collect disk/memory metrics\n",
+                    "cd /home/ec2-user/\n",
+                    "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip \\\n",
+                    "    -O AmazonCloudWatchAgent.zip\n",
+                    "rm -rf ./AmazonCloudWatchAgent\n",
+                    "unzip AmazonCloudWatchAgent.zip -d AmazonCloudWatchAgent\n",
+                    "cd AmazonCloudWatchAgent\n",
+                    "yum list installed $(rpm -qp ./amazon-cloudwatch-agent.rpm) || ./install.sh\n",
+                    { "Fn::If": ["AnyMetricsCollected", "false", "true"]}, " \\\n",
+                    "    && /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a stop \\\n",
+                    "    && exit 0\n",
+                    "/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \\\n",
+                    "    -a fetch-config \\\n",
+                    "    -m ec2 \\\n",
+                    "    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \\\n",
+                    "    -s\n"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "amazon-cloudwatch-agent": {
+                "command": "/opt/satago/install-cloudwatch-agent"
+              }
+            }
+          },
           "awslogs-agent": {
             "files": {
               "/opt/satago/install-awslogs-agent": {
                 "content": {
                   "Fn::Join": ["", [
                     "#!/bin/bash -ex\n",
-                    "# Install CloudWatch Agent to monitor CodeDeploy\n",
+                    "# Install CloudWatch Logs Agent to monitor CodeDeploy\n",
                     "cd /home/ec2-user/\n",
                     "wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py\n",
                     "wget https://aws-codedeploy-", { "Ref" : "AWS::Region" }, ".s3.amazonaws.com/cloudwatch/codedeploy_logs.conf\n",
@@ -466,11 +727,17 @@
             }
           },
           "aws-cli": {
-            "packages": {
-              "python": {
-                "awscli": [ { "Ref": "AWSCLIVersion" } ]
+            "commands": {
+              "aws-cli": {
+                "command": {
+                  "Fn::Join": ["", [
+                    "pip install --upgrade awscli==", { "Ref": "AWSCLIVersion" }
+                  ]]
+                }
               }
-            },
+            }
+          },
+          "aws-configure": {
             "commands": {
               "aws-configure": {
                 "command": {
@@ -567,7 +834,12 @@
         },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "SecurityGroups": [{ "Ref": "MyInstanceSecurityGroup" }],
+        "SecurityGroups": { "Fn::Split": [",",
+          { "Fn::Join": [ ",", [
+            { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] },
+            { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }
+          ]]}
+        ]},
         "IamInstanceProfile": { "Ref": "MyInstanceProfile" },
         "UserData": {
           "Fn::Base64": {
@@ -701,11 +973,19 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "ManagedPolicyArns": {
-            "Fn::If": [
-              "UseManagedPolicyArns",
-              { "Ref": "ManagedPolicyArns" },
-              { "Ref": "AWS::NoValue" }
-            ]
+          "Fn::Split": [",",
+            { "Fn::Join": [",", [
+              "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+              "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+              "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess",
+              "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+              { "Fn::If": [
+                "UseManagedPolicyArns",
+                { "Fn::Join": [",", { "Ref": "ManagedPolicyArns" } ] },
+                { "Ref": "AWS::NoValue" }
+              ]}
+            ]]}
+          ]
         },
         "AssumeRolePolicyDocument": {
           "Statement": [{
@@ -737,15 +1017,6 @@
               "s3:Get*",
               "s3:List*",
 
-              "ecr:GetAuthorizationToken",
-              "ecr:BatchCheckLayerAvailability",
-              "ecr:GetDownloadUrlForLayer",
-              "ecr:GetRepositoryPolicy",
-              "ecr:DescribeRepositories",
-              "ecr:ListImages",
-              "ecr:DescribeImages",
-              "ecr:BatchGetImage",
-
               "logs:CreateLogGroup",
               "logs:CreateLogStream",
               "logs:PutLogEvents",
@@ -764,7 +1035,10 @@
               "autoscaling:ExitStandby",
               "autoscaling:UpdateAutoScalingGroup",
               "autoscaling:SuspendProcesses",
-              "autoscaling:ResumeProcesses"
+              "autoscaling:ResumeProcesses",
+
+              "ec2messages:*",
+              "ssm:UpdateInstanceInformation"
             ],
             "Resource": "*"
           }]
@@ -781,6 +1055,75 @@
         "Roles": [{
           "Ref": "MyInstanceRole"
         }]
+      }
+    },
+    "MyELBHealthyHostCountAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "CreateAlarmForELBHealthyHostCount",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/ELB",
+        "Dimensions": [{
+          "Name": "LoadBalancerName",
+          "Value": { "Ref": "MyELB" }
+        }],
+        "MetricName": "HealthyHostCount",
+        "Unit": "Count",
+        "EvaluationPeriods": 1,
+        "Period": 60,
+        "Statistic": "Minimum",
+        "Threshold": 1,
+        "ComparisonOperator": "LessThanThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyELBLatencyAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "CreateAlarmForELBLatency",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/ELB",
+        "Dimensions": [{
+          "Name": "LoadBalancerName",
+          "Value": { "Ref": "MyELB" }
+        }],
+        "MetricName": "Latency",
+        "Unit": "Seconds",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "ELBLatencyAlarmPeriod" },
+        "Statistic": { "Ref": "ELBLatencyAlarmStatistic" },
+        "Threshold": { "Ref": "ELBLatencyAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDiskUsedPercentAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "CreateAlarmForDiskUsedPercent",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "CWAgent",
+        "Dimensions": [{
+          "Name": "AutoScalingGroupName",
+          "Value": { "Ref": "MyASG" }
+        }],
+        "MetricName": "disk_used_percent",
+        "Unit": "Percent",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "DiskMetricsCollectionInterval" },
+        "Statistic": "Maximum",
+        "Threshold": { "Ref": "DiskUsedPercentAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
       }
     }
   },
