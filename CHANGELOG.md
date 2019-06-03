@@ -1,3 +1,13 @@
+Version 0.3.2
+==============
+- `web-cluster-template`: Prevent startup of rpcbind.service (and rpc.socket)
+  * rpc is a security vulnerability, one which can be started remotely even when the service is stopped. It must be stopped and disabled, along with its sibling service rpc.socket which is able to remotely start it.
+
+Version 0.3.1
+==============
+- `web-cluster-template`: added support for Amazon Linux 2
+  * default AMI versions now use Amazon Linux 2
+
 Version 0.2.25
 ==============
 - `web-cluster-template`: changing type of `ELBSecurityGroups` and `InstanceSecurityGroups` to allow blank defaults.
