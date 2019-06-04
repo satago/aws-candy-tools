@@ -1,4 +1,4 @@
-Version 0.3.2
+Version 0.3.3
 ==============
 - `web-cluster-template`: Prevent startup of rpcbind.service (and rpc.socket)
   * rpc is a security vulnerability, one which can be started remotely even when the service is stopped. It must be stopped and disabled, along with its sibling service rpc.socket which is able to remotely start it.
