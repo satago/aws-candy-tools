@@ -503,7 +503,8 @@
               "aws-configure",
               "before-docker",
               "docker",
-              "codedeploy-agent"
+              "codedeploy-agent",
+              "disable-services"
             ]
           },
           "yum-versionlock": {
@@ -834,6 +835,27 @@
                   "enabled": "true",
                   "ensureRunning": "true"
                 }
+              }
+            }
+          },
+          "disable-services": {
+            "files": {
+              "/opt/satago/disable-services": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "systemctl stop rpcbind.service rpcbind.socket\n",
+                    "systemctl disable rpcbind.service rpcbind.socket\n",
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "rpcbind": {
+                "command": "/opt/satago/disable-services"
               }
             }
           }
