@@ -1,3 +1,7 @@
+Version 0.3.5
+=============
+- maintenance release, upgrade project's Gradle to latest (5.6.2)
+
 Version 0.3.4
 ==============
 - `web-cluster-template`: Prevent startup of `rpcbind.service` (and `rpc.socket`)
