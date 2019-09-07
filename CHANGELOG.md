@@ -1,3 +1,9 @@
+Version 0.3.6
+==============
+- `bin/stack`: new commands
+ * `set-desired-capacity <stack-name> <desired-capacity>` to change desired number of instances in ASG
+ * `wait-for-elb-instances <stack-name>` to wait for number of healthy instances in ELB to match its ASG
+
 Version 0.3.5
 =============
 - maintenance release, upgrade project's Gradle to latest (5.6.2)
