@@ -1,5 +1,5 @@
 plugins {
-    id "com.jfrog.bintray" version "1.7.3"
+    id "com.jfrog.bintray" version "1.8.4"
 }
 
 apply plugin: 'groovy'
@@ -24,12 +24,12 @@ dependencies {
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allSource
-    classifier = 'sources'
+    archiveClassifier.set('sources')
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
-    classifier = 'javadoc'
+    archiveClassifier.set('javadoc')
 }
 
 jar.dependsOn sourcesJar
@@ -102,7 +102,7 @@ task tarBundle(type: Tar) {
 jar {
     manifest {
         attributes 'Implementation-Title': 'aws-candy-tools',
-                   'Implementation-Version': version
+                'Implementation-Version': project.version
     }
     with copySpec() {
         from tarBundle.outputs
@@ -114,5 +114,8 @@ pluginUnderTestMetadata.dependsOn jar
 
 pluginUnderTestMetadata {
     //  Run tests with final JAR file instead of extracted classes/resources
-    pluginClasspath = files(jar.archivePath) + pluginUnderTestMetadata.pluginClasspath - files(sourceSets.main.output.classesDir, sourceSets.main.output.resourcesDir)
+    pluginClasspath.from(
+            files(jar.archiveFile),
+            sourceSets.main.output.classesDirs,
+            sourceSets.main.output.resourcesDir)
 }
