@@ -203,6 +203,60 @@ case "$CMD" in
                 ${OUTPUT}
             ;;
 
+        set-desired-capacity)
+            DESIRED_CAPACITY=$3
+            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+
+            aws autoscaling set-desired-capacity \
+                --auto-scaling-group-name ${ASG_NAME} \
+                --desired-capacity ${DESIRED_CAPACITY}
+            ;;
+
+        wait-for-elb-instances)
+            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            ELB_NAME=$(physical_resource_id_by_logical_id ${STACK} MyELB)
+
+            DESIRED_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
+                --auto-scaling-group-name ${ASG_NAME} \
+                --query 'AutoScalingGroups[0].DesiredCapacity' \
+                --output text)
+
+            printf "$(date +%H:%M:%S) Waiting for ${STACK} ELB to have ${DESIRED_CAPACITY} healthy instance(s) to match its ASG\n"
+
+            PREV_STATUS=
+            PRINT_NEW_LINE=false
+            while true
+            do
+                IN_SERVICE_COUNT=$(aws elb describe-instance-health \
+                  --load-balancer-name ${ELB_NAME} \
+                  --query "length(InstanceStates[?State=='InService'].InstanceId)")
+
+                STATUS="${STACK} ELB has ${IN_SERVICE_COUNT} healthy instance(s)"
+                STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
+
+                if [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} != ${STATUS} ]]; then
+                    if [[ ${PRINT_NEW_LINE} ]]; then
+                        echo
+                    fi
+                    printf "${STATUS_LINE}"
+                    PRINT_NEW_LINE=false
+                else
+                    printf "\r${STATUS_LINE}"
+                    PRINT_NEW_LINE=true
+                fi
+
+              if [[ ${IN_SERVICE_COUNT} == ${DESIRED_CAPACITY} ]]; then
+                echo
+                exit 0
+              fi
+
+              PREV_STATUS=${STATUS}
+
+              sleep 1
+
+            done
+            ;;
+
         ssh)
             # Take IP of the first available EC2 instance in the stack
             PRIVATE_IP=$($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None' | head -n 1)
@@ -251,10 +305,12 @@ case "$CMD" in
   $0 list
   $0 resources <stack-name>
   $0 run <stack-name> <shell-command>
+  $0 set-desired-capacity <stack-name> <desired-capacity>
   $0 ssh <stack-name>
   $0 status <stack-name>
   $0 update <stack-name>
-  $0 wait <stack-name>"
+  $0 wait <stack-name>
+  $0 wait-for-elb-instances <stack-name>"
             exit 1
             ;;
 esac
