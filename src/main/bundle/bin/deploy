@@ -149,8 +149,7 @@ case "$CMD" in
             CREATE_DEPLOYMENT=${CREATE_DEPLOYMENT/${DESCRIPTION_TEMPLATE}/\'Deploy after push\'}
 
             echo ${CREATE_DEPLOYMENT} \
-                --auto-rollback-configuration enabled=true,events=DEPLOYMENT_FAILURE \
-                --ignore-application-stop-failures
+                --auto-rollback-configuration enabled=true,events=DEPLOYMENT_FAILURE
             ;;
 
         status)
