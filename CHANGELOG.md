@@ -1,3 +1,8 @@
+Version 0.3.7
+==============
+- `appspec.yml`
+  * added calling 'pre-hooks' before Application stop
+
 Version 0.3.6
 ==============
 - `bin/stack`: new commands

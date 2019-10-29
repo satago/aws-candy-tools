@@ -9,6 +9,8 @@ hooks:
   ApplicationStop:
     - location: elb/deregister_from_elb.sh
       timeout: 3600
+    - location: pre-hooks.bash
+      timeout: 3600
     - location: stop.bash
       timeout: 3600
   BeforeInstall:
