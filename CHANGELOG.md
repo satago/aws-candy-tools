@@ -2,8 +2,6 @@ Version 0.3.7
 ==============
 - `appspec.yml`
   * added calling 'pre-hooks' before Application stop
-- `bin/deploy`
-  * removed option '--ignore-application-stop-failures' when creating deployment
 
 Version 0.3.6
 ==============
