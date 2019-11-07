@@ -982,8 +982,7 @@
                       "\n",
                       "#confirm to access group that scaling down can proceed\n",
                       "print 'Confirming lifecycle action to autoscaling group'\n",
-                      "subprocess.check_output(['aws', 'autoscaling', 'complete-lifecycle-action', '--region', REGION, '--lifecycle-action-result', 'CONTINUE',\n",
-                      "    '--lifecycle-hook-name', message['Body']['LifecycleHookName'], '--auto-scaling-group-name', message['Body']['AutoScalingGroupName'], '--instance-id', myInstanceId])\n",
+                      "subprocess.check_output(['./asg-confirm-instance-termination.sh'])\n",
                       "\n",
                       "print 'Termininate instance finished'\n"
                     ]]
@@ -1025,7 +1024,7 @@
                       "RestartSec=15\n",
                       "User=root\n",
                       "WorkingDirectory=/opt/satago\n",
-                      "ExecStart=/opt/satago/asg-terminate-listener.py ",
+                      "ExecStart=/opt/satago/asg-terminate-listener.py", " ",
                       { "Ref": "AWS::Region" }, " ",
                       { "Ref": "MyTerminateNotificationQueue" }, "\n"
                     ]]
