@@ -6,6 +6,8 @@ Version 0.3.7
   * registering deamon process on instance to listen for events on the queue
 - `codedeploy-common-files/asg-terminate-listener.py`
   * code of the deamon listening for termination notifications in the SQS queue
+- `bin/stack`
+  * cloud formation templates send to s3 bucket before use as the become too big to be used by AWS from local filesystem  
 
 Version 0.3.7
 ==============
