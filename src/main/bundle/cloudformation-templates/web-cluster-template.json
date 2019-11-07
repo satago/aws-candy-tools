@@ -183,6 +183,12 @@
       "ConstraintDescription": "true or false (default)"
     },
 
+    "GracefulShutdownTimeout": {
+      "Description": "Timeout in seconds of waiting till instance confirms it has shut down. When passed termination of the instance will be abandonded",
+      "Type": "Number",
+      "Default": "600"
+    },
+
     "DiskMetrics": {
       "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
       "Type": "CommaDelimitedList",
@@ -384,7 +390,7 @@
             [
               {
                 "DefaultResult": "ABANDON",
-                "HeartbeatTimeout": 600,
+                "HeartbeatTimeout": { "Ref": "GracefulShutdownTimeout" },
                 "LifecycleHookName": "MyASG-Termination-Hook",
                 "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
                 "NotificationTargetARN" : { "Fn::GetAtt" : ["MyTerminateNotificationQueue", "Arn"] },
@@ -917,6 +923,95 @@
             "Fn::If": ["CreateGracefulShutdown",
               {
               "files" : {
+                "/opt/satago/asg-terminate-listener.py": {
+                  "content": {
+                    "Fn::Join": ["", [
+                      "#!/usr/bin/python\n",
+                      "#\n",
+                      "\n",
+                      "import yaml\n",
+                      "import subprocess\n",
+                      "import time\n",
+                      "import json\n",
+                      "import sys\n",
+                      "import requests\n",
+                      "import os.path\n",
+                      "\n",
+                      "REGION=sys.argv[1]\n",
+                      "QUEUE_URL=sys.argv[2]\n",
+                      "\n",
+                      "\n",
+                      "#find my instance id\n",
+                      "myInstanceId=requests.get('http://169.254.169.254/latest/meta-data/instance-id').text\n",
+                      "\n",
+                      "#wait for terminate message appears in the queue\n",
+                      "print 'Waiting for termination message in queue', QUEUE_URL\n",
+                      "receivedMessage=None\n",
+                      "while not receivedMessage:\n",
+                      "    sqsMessagesJson = subprocess.check_output(['aws','sqs', 'receive-message', '--region', REGION, '--queue-url', QUEUE_URL])\n",
+                      "    if sqsMessagesJson != '':\n",
+                      "        sqsMessages=json.loads(sqsMessagesJson)\n",
+                      "        for message in sqsMessages['Messages']:\n",
+                      "            message['Body'] = json.loads(message['Body'])\n",
+                      "            if 'EC2InstanceId' not in message['Body']:\n",
+                      "                # delete garbage\n",
+                      "                subprocess.check_output(['aws','sqs', 'delete-message', '--region', REGION, '--queue-url', QUEUE_URL, '--receipt-handle', message['ReceiptHandle']])\n",
+                      "            elif message['Body']['EC2InstanceId'] == myInstanceId:\n",
+                      "                # delete the message from the queue\n",
+                      "                receivedMessage = message\n",
+                      "                subprocess.check_output(['aws','sqs', 'delete-message', '--region', REGION, '--queue-url', QUEUE_URL, '--receipt-handle', receivedMessage['ReceiptHandle']])\n",
+                      "                break\n",
+                      "    if not receivedMessage:\n",
+                      "        time.sleep(5)\n",
+                      "print 'Received termination message'\n",
+                      "\n",
+                      "#execute application stop scripts configured in appspec.xml\n",
+                      "if os.path.exists('current/appspec.yml'):\n",
+                      "   appspec = yaml.safe_load(open('current/appspec.yml', 'r'))\n",
+                      "   if 'ApplicationStop' in appspec['hooks']:\n",
+                      "       for hook in appspec['hooks']['ApplicationStop']:\n",
+                      "           timeout = hook['timeout']\n",
+                      "           startTime = time.time()\n",
+                      "           print 'Executing', hook['location']\n",
+                      "           task = subprocess.Popen(['./'+hook['location']], cwd='current', env={'LIFECYCLE_EVENT':'ApplicationStop'})\n",
+                      "           while task.poll() is None:\n",
+                      "               if time.time() - startTime > timeout:\n",
+                      "                   print 'Timeouted'\n",
+                      "                   break\n",
+                      "               time.sleep(1)\n",
+                      "\n",
+                      "#confirm to access group that scaling down can proceed\n",
+                      "print 'Confirming lifecycle action to autoscaling group'\n",
+                      "subprocess.check_output(['aws', 'autoscaling', 'complete-lifecycle-action', '--region', REGION, '--lifecycle-action-result', 'CONTINUE',\n",
+                      "    '--lifecycle-hook-name', message['Body']['LifecycleHookName'], '--auto-scaling-group-name', message['Body']['AutoScalingGroupName'], '--instance-id', myInstanceId])\n",
+                      "\n",
+                      "print 'Termininate instance finished'\n"
+                    ]]
+                  },
+                  "mode": "000555",
+                  "owner": "root",
+                  "group": "root"
+                },
+                "/opt/satago/asg-confirm-instance-termination.sh": {
+                  "content": {
+                    "Fn::Join": ["", [
+                      "#!/bin/bash -ex\n",
+                      "# Confirms to ASG that instance termination can continuer\n",
+                      "# Run this script when of some reasons handling notification from SQS has failed\n",
+                      "# and you want to continue with scalling down.\n",
+                      "\n",
+                      "aws autoscaling complete-lifecycle-action ",
+                      "--region ", { "Ref": "AWS::Region" }, " ",
+                      "--lifecycle-action-result CONTINUE ",
+                      "--lifecycle-hook-name MyASG-Termination-Hook ",
+                      "--auto-scaling-group-name MyASG ",
+                      "--instance-id $(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n"
+                    ]]
+                  },
+                  "mode": "000555",
+                  "owner": "root",
+                  "group": "root"
+                },
                 "/etc/systemd/system/asg-terminate-listener.service": {
                   "content": {
                     "Fn::Join": ["", [
@@ -929,8 +1024,8 @@
                       "Restart=on-failure\n",
                       "RestartSec=15\n",
                       "User=root\n",
-                      "WorkingDirectory=/opt/satago/current\n",
-                      "ExecStart=/opt/satago/current/asg-terminate-listener.py ",
+                      "WorkingDirectory=/opt/satago\n",
+                      "ExecStart=/opt/satago/asg-terminate-listener.py ",
                       { "Ref": "AWS::Region" }, " ",
                       { "Ref": "MyTerminateNotificationQueue" }, "\n"
                     ]]

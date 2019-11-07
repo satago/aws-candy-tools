@@ -35,6 +35,11 @@ function aws_account_id {
                 --output text)
 }
 
+function bucket_name {
+    ALIAS=$(aws iam list-account-aliases --query 'AccountAliases[0]' --output text)
+    echo "cloudformation-$ALIAS"
+}
+
 function physical_resource_id_by_logical_id {
     echo $(aws cloudformation list-stack-resources \
             --stack-name $1 \
@@ -66,6 +71,13 @@ case "$CMD" in
             aws s3 mb s3://${BUCKET}
             ;;
 
+        create-cloudformation-bucket)
+            BUCKET=$(bucket_name)
+            aws s3 mb s3://${BUCKET}
+            aws s3api put-bucket-versioning --bucket ${BUCKET} \
+                --versioning-configuration Status=Enabled
+            ;;
+
         id)
             aws cloudformation describe-stacks --stack-name ${STACK} \
                 --query 'Stacks[0].StackId' --output text
@@ -73,9 +85,10 @@ case "$CMD" in
 
         create)
             TEMPLATE=$(template_name)
+            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
             aws cloudformation create-stack \
                 --stack-name ${STACK} \
-                --template-body file://$(template_path ${TEMPLATE}) \
+                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
                 --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
                 --disable-rollback \
                 --capabilities CAPABILITY_IAM
@@ -83,9 +96,10 @@ case "$CMD" in
 
         update)
             TEMPLATE=$(template_name)
+            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
             aws cloudformation update-stack \
                 --stack-name ${STACK} \
-                --template-body file://$(template_path ${TEMPLATE}) \
+                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
                 --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
                 --capabilities CAPABILITY_IAM
             ;;
@@ -93,10 +107,11 @@ case "$CMD" in
         create-change-set)
             TEMPLATE=$(template_name)
             CHANGESET_NAME=change$(date -u +%Y%m%dT%H%M%S%Z)
+            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
             aws cloudformation create-change-set \
                 --capabilities CAPABILITY_IAM \
                 --stack-name ${STACK} \
-                --template-body file://$(template_path ${TEMPLATE}) \
+                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
                 --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
                 --change-set-name change$(date -u +%Y%m%dT%H%M%S%Z) \
             && echo ${CHANGESET_NAME} \
@@ -164,8 +179,9 @@ case "$CMD" in
 
         estimate-template-cost)
             TEMPLATE=$(template_name)
+            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
             aws cloudformation estimate-template-cost \
-                --template-body file://$(template_path ${TEMPLATE}) \
+                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
                 --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json
             ;;
 
@@ -293,6 +309,7 @@ case "$CMD" in
 
   $0 create <stack-name>
   $0 create-access-logs-bucket <stack-name>
+  $0 create-cloudformation-bucket
   $0 create-change-set <stack-name>
   $0 describe-change-set <stack-name> <change-set-name>
   $0 ec2-instances <stack-name> [InstanceId,PublicIpAddress,...|'*']
