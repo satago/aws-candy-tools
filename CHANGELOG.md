@@ -1,4 +1,4 @@
-Version 0.3.7
+Version 0.3.8
 ==============
 - `cloudformation-templates/web-cluster-template`
   * create ASG lifecycle hook for instance termination
