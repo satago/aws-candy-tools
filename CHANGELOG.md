@@ -1,5 +1,14 @@
 Version 0.3.7
 ==============
+- `cloudformation-templates/web-cluster-template`
+  * create ASG lifecycle hook for instance termination
+  * create SQS queue where instance termination notifications will be send to
+  * registering deamon process on instance to listen for events on the queue
+- `codedeploy-common-files/asg-terminate-listener.py`
+  * code of the deamon listening for termination notifications in the SQS queue
+
+Version 0.3.7
+==============
 - `appspec.yml`
   * added calling 'pre-hooks' before Application stop
 

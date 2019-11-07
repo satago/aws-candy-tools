@@ -175,6 +175,14 @@
       "Default": ""
     },
 
+    "GracefulShutdownEnabled": {
+      "Description": "Call graceful shutdown of application when ASG scales down",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+
     "DiskMetrics": {
       "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
       "Type": "CommaDelimitedList",
@@ -232,6 +240,9 @@
       "Fn::Not": [{
         "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "DiskMetrics" }] }, ""]
       }]
+    },
+    "CreateGracefulShutdown":  {
+      "Fn::Equals": [{ "Ref": "GracefulShutdownEnabled" }, "true"]
     },
     "CollectMemoryMetrics": {
       "Fn::Not": [{
@@ -297,8 +308,55 @@
     }
   },
   "Resources": {
+    "MyTerminateNotificationQueue" : {
+      "Type": "AWS::SQS::Queue",
+      "Condition": "CreateGracefulShutdown",
+      "Properties" : {
+        "VisibilityTimeout" : 0
+      }
+    },
+    "AutoScalingServiceRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "CreateGracefulShutdown",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Sid": "1",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                { "Fn::Join": [".", ["autoscaling", "amazonaws.com"]] }
+              ]
+            },
+            "Action": "sts:AssumeRole"
+          }]
+        },
+        "Path": "/"
+      }
+    },
+    "AutoScalingServiceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Condition": "CreateGracefulShutdown",
+      "Properties": {
+        "PolicyName": "SendAutoScalingNotification",
+        "PolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Resource": "*",
+            "Action": [
+              "sqs:SendMessage",
+              "sqs:GetQueueUrl"
+            ]
+          }]
+        },
+        "Roles": [{
+          "Ref": "AutoScalingServiceRole"
+        }]
+      }
+    },
     "MyASG": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn": ["MyTerminateNotificationQueue", "AutoScalingServiceRole", "AutoScalingServiceRolePolicies"],
       "Properties": {
         "AvailabilityZones": {
           "Fn::If": [
@@ -319,7 +377,23 @@
             { "Ref": "MyELB" },
             { "Ref": "AWS::NoValue" }
           ]
-        }]
+        }],
+        "LifecycleHookSpecificationList": {
+          "Fn::If": [
+            "CreateGracefulShutdown",
+            [
+              {
+                "DefaultResult": "ABANDON",
+                "HeartbeatTimeout": 600,
+                "LifecycleHookName": "MyASG-Termination-Hook",
+                "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
+                "NotificationTargetARN" : { "Fn::GetAtt" : ["MyTerminateNotificationQueue", "Arn"] },
+                "RoleARN" : { "Fn::GetAtt" : ["AutoScalingServiceRole", "Arn"] }
+              }
+            ],
+            []
+          ]
+        }
       },
       "CreationPolicy": {
         "AutoScalingCreationPolicy" : {
@@ -504,7 +578,8 @@
               "before-docker",
               "docker",
               "codedeploy-agent",
-              "disable-services"
+              "disable-services",
+              "asg-terminate-listener"
             ]
           },
           "yum-versionlock": {
@@ -838,6 +913,41 @@
               }
             }
           },
+          "asg-terminate-listener": {
+            "Fn::If": ["CreateGracefulShutdown",
+              {
+              "files" : {
+                "/etc/systemd/system/asg-terminate-listener.service": {
+                  "content": {
+                    "Fn::Join": ["", [
+                      "[Unit]\n",
+                      "Description=Terminate Instance Listener\n",
+                      "After=network.target\n",
+                      "\n",
+                      "[Service]\n",
+                      "Type=simple\n",
+                      "Restart=on-failure\n",
+                      "RestartSec=15\n",
+                      "User=root\n",
+                      "WorkingDirectory=/opt/satago/current\n",
+                      "ExecStart=/opt/satago/current/asg-terminate-listener.py ",
+                      { "Ref": "AWS::Region" }, " ",
+                      { "Ref": "MyTerminateNotificationQueue" }, "\n"
+                    ]]
+                  },
+                  "mode": "000644",
+                  "owner": "root",
+                  "group": "root"
+                }
+              },
+              "commands": {
+                "start-asg-terminate-listener.service": {
+                  "command": "systemctl start asg-terminate-listener"
+                }
+              }
+            },
+          { "Ref": "AWS::NoValue" }
+          ]},
           "disable-services": {
             "files": {
               "/opt/satago/disable-services": {
@@ -845,7 +955,7 @@
                   "Fn::Join": ["", [
                     "#!/bin/bash -ex\n",
                     "systemctl stop rpcbind.service rpcbind.socket\n",
-                    "systemctl disable rpcbind.service rpcbind.socket\n",
+                    "systemctl disable rpcbind.service rpcbind.socket\n"
                   ]]
                 },
                 "mode": "000555",
@@ -1091,6 +1201,7 @@
               "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
               "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
               "autoscaling:Describe*",
+              "autoscaling:CompleteLifecycleAction",
               "autoscaling:EnterStandby",
               "autoscaling:ExitStandby",
               "autoscaling:UpdateAutoScalingGroup",
@@ -1100,7 +1211,12 @@
               "ec2messages:*",
               "ssm:UpdateInstanceInformation",
 
-              "codedeploy:List*"
+              "codedeploy:List*",
+
+              "sqs:SendMessage",
+              "sqs:ReceiveMessage",
+              "sqs:DeleteMessage"
+
             ],
             "Resource": "*"
           }]
