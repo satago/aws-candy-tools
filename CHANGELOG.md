@@ -10,6 +10,7 @@ Version 0.3.8
   * when `GracefulShutdownEnabled=true`:
     * new `asg-terminate-listener` systemd service will monitor stack's own SQS for ASG shutdown events; on shutdown it will try to execute all `ApplicationStop` hooks from current CodeDeploy deployment
     * `/opt/satago/asg-confirm-instance-termination.sh` can be used to signal successful termination to ASG manually
+  * AMI versions => 2.0.20191024.3
 
 Version 0.3.7
 ==============
