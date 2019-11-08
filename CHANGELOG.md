@@ -1,3 +1,16 @@
+Version 0.3.8
+==============
+- `bin/stack`:
+  * new command: `create-cloudformation-bucket` creates new account-wide s3 bucket to store CFN templates
+  * CFN templates are now sent to s3 bucket before use as they become too big to be used by AWS from local filesystem
+- `cloudformation-templates/web-cluster-template` support for graceful shutdown of ASG instances via SQS
+  * new parameters:
+    * `GracefulShutdownEnabled` (default false)
+    * `GracefulShutdownTimeout` (default 600)
+  * when `GracefulShutdownEnabled=true`:
+    * new `asg-terminate-listener` systemd service will monitor stack's own SQS for ASG shutdown events; on shutdown it will try to execute all `ApplicationStop` hooks from current CodeDeploy deployment
+    * `/opt/satago/asg-confirm-instance-termination.sh` can be used to signal successful termination to ASG manually
+
 Version 0.3.7
 ==============
 - `appspec.yml`
