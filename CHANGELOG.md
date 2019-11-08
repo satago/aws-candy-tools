@@ -4,6 +4,7 @@ Version 0.3.8
   * create ASG lifecycle hook for instance termination
   * create SQS queue where instance termination notifications will be send to
   * registering deamon process on instance to listen for events on the queue
+  * AMI versions => 2.0.20191024.3
 - `codedeploy-common-files/asg-terminate-listener.py`
   * code of the deamon listening for termination notifications in the SQS queue
 - `bin/stack`
