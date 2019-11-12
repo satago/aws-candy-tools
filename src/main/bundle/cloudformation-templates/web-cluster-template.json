@@ -316,6 +316,7 @@
   "Resources": {
     "MyTerminateNotificationQueue" : {
       "Type": "AWS::SQS::Queue",
+      "DependsOn": ["AutoScalingServiceRole", "AutoScalingServiceRolePolicies"],
       "Condition": "CreateGracefulShutdown",
       "Properties" : {
         "VisibilityTimeout" : 0
@@ -362,7 +363,6 @@
     },
     "MyASG": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn": ["MyTerminateNotificationQueue", "AutoScalingServiceRole", "AutoScalingServiceRolePolicies"],
       "Properties": {
         "AvailabilityZones": {
           "Fn::If": [

@@ -1,3 +1,7 @@
+Version 0.3.9
+==============
+- `web-cluster-template`: fixed bug of broken dependencies for stacks with graceful shutdown disabled
+
 Version 0.3.8
 ==============
 - `bin/stack`:
