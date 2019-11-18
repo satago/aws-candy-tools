@@ -50,12 +50,12 @@
     },
 
     "DockerVersion": {
-      "Description": "Version of Docker, i.e. '18.06.1ce'",
+      "Description": "Version of Docker, i.e. '18.09.9ce'",
       "Type": "String"
     },
 
     "DockerComposeVersion": {
-      "Description": "Version of Docker Compose, i.e. '1.23.2'",
+      "Description": "Version of Docker Compose, i.e. '1.24.1'",
       "Type": "String"
     },
 
@@ -128,6 +128,26 @@
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
+    },
+
+    "HealthCheckType": {
+      "Description": "The service to use for the health checks of ASG instances",
+      "Type": "String",
+      "Default": "EC2",
+      "AllowedValues": ["EC2", "ELB"],
+      "ConstraintDescription": "EC2 (default) or ELB"
+    },
+    "HealthCheckGracePeriod": {
+      "Description": "The amount of time, in seconds, that ASG waits before checking the health status of an EC2 instance that has come into service",
+      "Type": "Number",
+      "Default": "300"
+    },
+
+    "TerminationPolicies": {
+      "Description": "A policy or a list of policies that are used to select the instances to terminate",
+      "Type": "CommaDelimitedList",
+      "Default": "Default",
+      "ConstraintDescription": "See https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-instance-termination.html"
     },
 
     "AlarmActions": {
@@ -372,8 +392,9 @@
           ]
         },
         "LaunchConfigurationName": { "Ref": "MyInstanceLaunchConfig" },
-        "HealthCheckGracePeriod": "300",
-        "HealthCheckType": "EC2",
+        "HealthCheckGracePeriod": { "Ref": "HealthCheckGracePeriod" },
+        "HealthCheckType": { "Ref": "HealthCheckType" },
+        "TerminationPolicies": { "Ref": "TerminationPolicies" },
         "MinSize": "1",
         "DesiredCapacity": { "Ref": "DesiredCapacity" },
         "MaxSize": "4",

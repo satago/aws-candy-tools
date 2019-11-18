@@ -113,7 +113,7 @@ case "$CMD" in
                 --stack-name ${STACK} \
                 --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
                 --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
-                --change-set-name change$(date -u +%Y%m%dT%H%M%S%Z) \
+                --change-set-name ${CHANGESET_NAME} \
             && echo ${CHANGESET_NAME} \
             && echo $0 describe-change-set ${STACK} ${CHANGESET_NAME}
             ;;
