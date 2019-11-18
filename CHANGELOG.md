@@ -1,3 +1,7 @@
+Version 0.3.11
+==============
+- `web-cluster-template`: fix error "No configuration found with name: asg-terminate-listener" when `GracefulShutdownEnabled=false`
+
 Version 0.3.10
 ==============
 - `web-cluster-template`: new parameters for finer control of instance health and termination policies
