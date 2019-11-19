@@ -1,3 +1,16 @@
+Version 0.3.11
+==============
+- `web-cluster-template`: fix error "No configuration found with name: asg-terminate-listener" when `GracefulShutdownEnabled=false`
+
+Version 0.3.10
+==============
+- `web-cluster-template`: new parameters for finer control of instance health and termination policies
+  * `HealthCheckType` whether to use EC2 (default) or ELB metrics to check instance health
+  * `HealthCheckGracePeriod` the amount of time, in seconds, that ASG waits before checking the health status of an EC2 instance that has come into service
+  * `TerminationPolicies` a policy or a list of policies that are used to select the instances to terminate
+- `bin/stack`:
+  * fix a bug in parameter value of generated command hint after `create-change-set`
+
 Version 0.3.9
 ==============
 - `web-cluster-template`: fixed bug of broken dependencies for stacks with graceful shutdown disabled
