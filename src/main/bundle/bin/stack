@@ -228,6 +228,20 @@ case "$CMD" in
                 --desired-capacity ${DESIRED_CAPACITY}
             ;;
 
+        require-minimum-instances)
+            REQUIRED_MINIMUM=$3
+            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            CURRENT_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
+                --auto-scaling-group-name ${ASG_NAME} \
+                --query 'AutoScalingGroups[0].DesiredCapacity' \
+                --output text)
+            if ((CURRENT_CAPACITY < REQUIRED_MINIMUM)); then
+                $0 set-desired-capacity ${STACK} ${REQUIRED_MINIMUM}
+                $0 wait-for-elb-instances ${STACK} > /dev/null 2>&1
+            fi
+            printf ${CURRENT_CAPACITY}
+            ;;
+
         wait-for-elb-instances)
             ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
             ELB_NAME=$(physical_resource_id_by_logical_id ${STACK} MyELB)
@@ -321,6 +335,7 @@ case "$CMD" in
   $0 list-exports
   $0 list
   $0 resources <stack-name>
+  $0 require-minimum-instances <stack-name> <mininum-instances-running>
   $0 run <stack-name> <shell-command>
   $0 set-desired-capacity <stack-name> <desired-capacity>
   $0 ssh <stack-name>
