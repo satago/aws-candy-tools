@@ -1,6 +1,6 @@
 Version 0.3.12
 ==============
-- `bin/stack`: new command `require-minimum-instances` which checks if ASG has at least given number of instances. If not it starts additional instances. It prints out orignal number if instances in ASG.
+- `bin/stack`: new command `require-minimum-instances` which checks if ASG has at least given number of instances. If not it starts additional instances. It prints out orignal number of instances in ASG.
 
 Version 0.3.11
 ==============
