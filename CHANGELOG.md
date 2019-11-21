@@ -1,3 +1,14 @@
+Version 0.3.12
+==============
+- `bin/stack`: 
+    * new command `get-desired-capacity` which returns current desired capacity of the stack auto scaling group
+    * in `wait` and `wait-for-elb-instances` commands: improved new lines handling when not running from terminal
+- `bin/deploy`: 
+    * in `wait` command: improved new lines handling when not running from terminal
+- `bin/httping`: 
+    * improved new lines handling when not running from terminal
+    
+
 Version 0.3.11
 ==============
 - `web-cluster-template`: fix error "No configuration found with name: asg-terminate-listener" when `GracefulShutdownEnabled=false`

@@ -134,21 +134,15 @@ case "$CMD" in
             printf "$(date +%H:%M:%S) Waiting for stack update"
 
             PREV_STATUS=
-            PRINT_NEW_LINE=false
             while true
             do
                 STATUS=`$0 status ${STACK}`
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
 
-                if [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} != ${STATUS} ]]; then
-                    if [[ ${PRINT_NEW_LINE} ]]; then
-                        echo
-                    fi
-                    printf "${STATUS_LINE}"
-                    PRINT_NEW_LINE=false
-                else
+                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
                     printf "\r${STATUS_LINE}"
-                    PRINT_NEW_LINE=true
+                else
+                    printf "\n${STATUS_LINE}"
                 fi
 
                 # Wait for one of the terminal statuses
@@ -219,6 +213,15 @@ case "$CMD" in
                 ${OUTPUT}
             ;;
 
+        get-desired-capacity)
+            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            CURRENT_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
+                --auto-scaling-group-name ${ASG_NAME} \
+                --query 'AutoScalingGroups[0].DesiredCapacity' \
+                --output text)
+            printf ${CURRENT_CAPACITY}
+            ;;
+
         set-desired-capacity)
             DESIRED_CAPACITY=$3
             ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
@@ -240,7 +243,6 @@ case "$CMD" in
             printf "$(date +%H:%M:%S) Waiting for ${STACK} ELB to have ${DESIRED_CAPACITY} healthy instance(s) to match its ASG\n"
 
             PREV_STATUS=
-            PRINT_NEW_LINE=false
             while true
             do
                 IN_SERVICE_COUNT=$(aws elb describe-instance-health \
@@ -250,15 +252,10 @@ case "$CMD" in
                 STATUS="${STACK} ELB has ${IN_SERVICE_COUNT} healthy instance(s)"
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
 
-                if [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} != ${STATUS} ]]; then
-                    if [[ ${PRINT_NEW_LINE} ]]; then
-                        echo
-                    fi
-                    printf "${STATUS_LINE}"
-                    PRINT_NEW_LINE=false
-                else
+                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
                     printf "\r${STATUS_LINE}"
-                    PRINT_NEW_LINE=true
+                else
+                    printf "\n${STATUS_LINE}"
                 fi
 
               if [[ ${IN_SERVICE_COUNT} == ${DESIRED_CAPACITY} ]]; then
@@ -316,6 +313,7 @@ case "$CMD" in
   $0 estimate-template-cost <stack-name>
   $0 events <stack-name> [max-events]
   $0 execute-change-set <stack-name> <change-set-name>
+  $0 get-desired-capacity <stack-name>
   $0 id <stack-name>
   $0 list-arns <stack-name>
   $0 list-exports
