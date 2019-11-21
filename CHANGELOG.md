@@ -1,6 +1,13 @@
 Version 0.3.12
 ==============
-- `bin/stack`: new command `require-minimum-instances` which checks if ASG has at least given number of instances. If not it starts additional instances. It prints out orignal number of instances in ASG.
+- `bin/stack`: 
+    * new command `get-desired-capacity` which returns current desired capacity of the stack auto scaling group
+    * in `wait` and `wait-for-elb-instances` commands: improved new lines handling when not running from terminal
+- `bin/deploy`: 
+    * in `wait` command: improved new lines handling when not running from terminal
+- `bin/httping`: 
+    * improved new lines handling when not running from terminal
+    
 
 Version 0.3.11
 ==============

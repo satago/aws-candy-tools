@@ -163,21 +163,15 @@ case "$CMD" in
             printf "$(date +%H:%M:%S) Deployment \"${DEPLOYMENT_ID}\""
 
             PREV_STATUS=
-            PRINT_NEW_LINE=false
             while true
             do
                 STATUS=`$0 status ${DEPLOYMENT_ID}`
                 STATUS_LINE="$(date +%H:%M:%S) Deployment ${STATUS}"
 
-                if [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} != ${STATUS} ]]; then
-                    if [[ ${PRINT_NEW_LINE} ]]; then
-                        echo
-                    fi
-                    printf "${STATUS_LINE}"
-                    PRINT_NEW_LINE=false
-                else
+                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
                     printf "\r${STATUS_LINE}"
-                    PRINT_NEW_LINE=true
+                else
+                    printf "\n${STATUS_LINE}"
                 fi
 
                 if [[ ${STATUS} == '"Succeeded"' ]]; then
