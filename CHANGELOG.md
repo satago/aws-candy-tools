@@ -1,4 +1,4 @@
-Version 0.3.12
+Version 0.3.13
 ==============
 - `aws/elb/common_function`:
     * suspending AutoScalling processes while deploing will be enabled by default now
