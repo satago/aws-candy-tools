@@ -41,7 +41,7 @@ MIN_CLI_VERSION='1.3.25'
 FLAGFILE="/tmp/asg_codedeploy_flags-$DEPLOYMENT_GROUP_ID-$DEPLOYMENT_ID"
 
 # Handle ASG processes
-HANDLE_PROCS=false
+HANDLE_PROCS=true
 
 # Usage: get_instance_region
 #

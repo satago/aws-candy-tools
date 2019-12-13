@@ -1,5 +1,10 @@
 Version 0.3.12
 ==============
+- `aws/elb/common_function`:
+    * suspending AutoScalling processes while deploing will be enabled by default now
+     
+Version 0.3.12
+==============
 - `bin/stack`: 
     * new command `get-desired-capacity` which returns current desired capacity of the stack auto scaling group
     * in `wait` and `wait-for-elb-instances` commands: improved new lines handling when not running from terminal
