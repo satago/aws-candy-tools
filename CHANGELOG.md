@@ -1,4 +1,4 @@
-Version 0.3.13
+Version 0.3.14
 ==============
 - `web-cluster-template`:
     * updated default AMI versions to latest
