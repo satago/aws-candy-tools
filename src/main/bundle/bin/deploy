@@ -111,15 +111,40 @@ case "$CMD" in
             ;;
 
         codedeploy-push-and-wait)
+            AUTO_SCALING=false
+            if [[ $2 == "--auto-scaling" ]]; then
+                AUTO_SCALING=true
+                shift 1
+            fi
+
             STACK=$2
             REVISION_DIR=$3
             REVISION_DIR_RELATIVE=$(realpath --relative-to=`pwd` ${REVISION_DIR})
+
+            STACK_CMD="${SCRIPT_PATH}/stack"
+
+            if ${AUTO_SCALING}; then
+                ORIGINAL_CAPACITY=$(${STACK_CMD} get-desired-capacity ${STACK})
+
+                if [[ ${ORIGINAL_CAPACITY} -lt 2 ]]; then
+                   echo -e "*\n* Desired capacity of ${STACK} ASG is ${ORIGINAL_CAPACITY}, temporarily making it 2\n*"
+
+                   ${STACK_CMD} set-desired-capacity ${STACK} 2
+                   timeout 900 ${STACK_CMD} wait-for-elb-instances ${STACK}
+                fi
+            fi
 
             echo -e "*\n* Pushing ${REVISION_DIR_RELATIVE} to S3 and initiating CodeDeploy deployment to ${STACK}\n*"
 
             DEPLOYMENT_ID=`eval $($0 codedeploy-push ${STACK} ${REVISION_DIR}) --output text`
 
             $0 wait ${DEPLOYMENT_ID}
+
+            if ${AUTO_SCALING}; then
+                echo Changing desired capacity of ${STACK} ASG back to ${ORIGINAL_CAPACITY}
+
+                ${STACK_CMD} set-desired-capacity ${STACK} ${ORIGINAL_CAPACITY}
+            fi
             ;;
 
         codedeploy-push)
@@ -160,7 +185,7 @@ case "$CMD" in
         wait)
             DEPLOYMENT_ID=$2
 
-            printf "$(date +%H:%M:%S) Deployment \"${DEPLOYMENT_ID}\""
+            printf "$(date +%H:%M:%S) Deployment \"${DEPLOYMENT_ID}\"\n"
 
             PREV_STATUS=
             while true
@@ -199,7 +224,7 @@ case "$CMD" in
             echo $"Usage: $0 <command> <args>
 
   $0 codedeploy-push <stack-name> <revision-dir>
-  $0 codedeploy-push-and-wait <stack-name> <deployable-name>
+  $0 codedeploy-push-and-wait [--auto-scaling] <stack-name> <revision-dir>
   $0 create-codedeploy-bucket
   $0 docker-tag-and-push <revision-dir>
   $0 docker-tag-and-push-all

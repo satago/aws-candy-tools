@@ -1,7 +1,19 @@
+Version 0.3.14
+==============
+- `web-cluster-template`:
+    * updated default AMI versions to latest
+    * updated default aws-cli version to 1.17.9
+- `bin/deploy`
+    * new option `--auto-scaling` in `codedeploy-push-and-wait` command:
+       - changes desired capacity of associated ASG to at least 2,
+       - waits for all instances to appear in ELB,
+       - performs CodeDeploy push and waits for successful deployment,
+       - scales instances down to original capacity
+     
 Version 0.3.13
 ==============
 - `aws/elb/common_function`:
-    * suspending AutoScalling processes while deploing will be enabled by default now
+    * suspending AutoScaling processes while deploying will be enabled by default now
      
 Version 0.3.12
 ==============

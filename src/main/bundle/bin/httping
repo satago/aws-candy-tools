@@ -7,7 +7,7 @@ COOKIES_FILE=$(mktemp)
 
 trap 'rm -f -- "${COOKIES_FILE}"' INT TERM HUP EXIT
 
-printf "$(date +%H:%M:%S) Sending HTTP requests to ${URL}"
+printf "$(date +%H:%M:%S) Sending HTTP requests to ${URL}\n"
 
 PREV_STATUS=
 while true

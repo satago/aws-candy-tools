@@ -131,7 +131,7 @@ case "$CMD" in
             ;;
 
         wait)
-            printf "$(date +%H:%M:%S) Waiting for stack update"
+            printf "$(date +%H:%M:%S) Waiting for stack update\n"
 
             PREV_STATUS=
             while true
