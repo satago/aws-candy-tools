@@ -55,14 +55,14 @@
     },
 
     "DockerComposeVersion": {
-      "Description": "Version of Docker Compose, i.e. '1.24.1'",
+      "Description": "Version of Docker Compose, i.e. '1.25.3'",
       "Type": "String"
     },
 
     "AWSCLIVersion": {
       "Description": "Version of AWS CLI tools",
       "Type": "String",
-      "Default": "1.15.8"
+      "Default": "1.17.9"
     },
 
     "ManagedPolicyArns": {
@@ -328,9 +328,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-015a9f5a78783af58", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-02cb710b1c2abdd83", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-07b6188fb3fca3119", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-07cda0db070313c52", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-0713f98de93617bb4", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-0089b31e09ac3fffc", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
