@@ -1,3 +1,7 @@
+Version 0.4.0
+=============
+- Updated minimum supported version of `gradle-docker-plugin` to 6.x
+
 Version 0.3.14
 ==============
 - `web-cluster-template`:

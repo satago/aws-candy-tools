@@ -4,7 +4,6 @@ import org.apache.commons.io.FileUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
-import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Rule
