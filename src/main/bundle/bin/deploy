@@ -186,7 +186,7 @@ case "$CMD" in
             DEPLOYMENT_ID=$2
             STACK=$(aws deploy get-deployment \
                           --deployment-id ${DEPLOYMENT_ID} \
-                          --query=deploymentInfo.applicationName
+                          --query=deploymentInfo.applicationName \
                           --output text \
                           | awk -F-MyApplication- '{print $1}')
 
