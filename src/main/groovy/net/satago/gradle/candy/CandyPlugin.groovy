@@ -405,8 +405,8 @@ class CandyPlugin implements Plugin<Project> {
                     //  Build image using DockerBuildImage Gradle task
                     def wireDockerBuildImageTask = { Task buildImage ->
                         copyTask.dependsOn buildImage
-                        index[service].getImageId = { buildImage.getImageId() }
-                        index[service].getImageName = { buildImage.getTag() }
+                        index[service].getImageId = { buildImage.getImageId().get() }
+                        index[service].getImageName = { (buildImage.getImages().get() as Set<String>).first() }
                     }
 
                     def dockerBuildProject = imageBuilder.project as Project

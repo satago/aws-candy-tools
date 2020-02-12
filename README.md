@@ -220,7 +220,7 @@ import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 
 task buildImageServiceB(type: DockerBuildImage) {
     inputDir = file("apps/revision-A/service-b")
-    tag = "service-b:latest"
+    images.add("service-b:latest")
 }
 ```
 
