@@ -184,14 +184,19 @@ case "$CMD" in
 
         wait)
             DEPLOYMENT_ID=$2
+            STACK=$(aws deploy get-deployment \
+                          --deployment-id ${DEPLOYMENT_ID} \
+                          --query=deploymentInfo.applicationName
+                          --output text \
+                          | awk -F-MyApplication- '{print $1}')
 
-            printf "$(date +%H:%M:%S) Deployment \"${DEPLOYMENT_ID}\"\n"
+            printf "$(date +%H:%M:%S) ${STACK} deployment \"${DEPLOYMENT_ID}\"\n"
 
             PREV_STATUS=
             while true
             do
                 STATUS=`$0 status ${DEPLOYMENT_ID}`
-                STATUS_LINE="$(date +%H:%M:%S) Deployment ${STATUS}"
+                STATUS_LINE="$(date +%H:%M:%S) ${STACK} deployment ${STATUS}"
 
                 if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
                     printf "\r${STATUS_LINE}"

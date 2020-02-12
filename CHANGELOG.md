@@ -1,3 +1,10 @@
+Version 0.4.1
+=============
+- `appspec.yml`
+    * added calling 'pre-hooks' to all supported hooks
+- `bin/deploy wait`
+    * include name of a stack next in the status line
+
 Version 0.4.0
 =============
 - Updated minimum supported version of `gradle-docker-plugin` to 6.x

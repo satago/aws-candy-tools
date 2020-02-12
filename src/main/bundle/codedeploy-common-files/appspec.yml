@@ -20,14 +20,20 @@ hooks:
   AfterInstall:
     - location: decrypt-properties.bash
       timeout: 3600
+    - location: pre-hooks.bash
+      timeout: 3600
     - location: pull.bash
       timeout: 3600
   ApplicationStart:
+    - location: pre-hooks.bash
+      timeout: 3600
     - location: up.bash
       timeout: 3600
     - location: elb/register_with_elb.sh
       timeout: 3600
   ValidateService:
+    - location: pre-hooks.bash
+      timeout: 3600
     - location: validate.bash
       timeout: 3600
     - location: elb/wait_for_elb.sh
