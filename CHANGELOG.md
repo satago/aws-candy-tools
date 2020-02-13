@@ -1,3 +1,8 @@
+Version 0.4.2
+=============
+- `appspec.yml`
+    * 'pre-hooks' for `ApplicationStop` now triggered before instance is removed from ELB
+
 Version 0.4.1
 =============
 - `appspec.yml`
