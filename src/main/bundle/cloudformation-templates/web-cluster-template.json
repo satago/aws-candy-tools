@@ -35,6 +35,13 @@
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for 0.0.0.0/0",
       "Default": ""
     },
+    "Ingress8080SecurityGroupId": {
+      "Description": "(Optional) ID of ingress security group to allow access to port 8080 of EC2 instances",
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ELB",
+      "Default": ""
+    },
     "ExposeCustomPortRange": {
       "Description": "Expose custom port range to entire VPC (from 33000 to 33100)",
       "Type": "String",
@@ -313,6 +320,9 @@
     },
     "SSHSecurityGroupIdEmpty": {
       "Fn::Equals": [{ "Ref": "SSHSecurityGroupId" }, ""]
+    },
+    "Ingress8080SecurityGroupIdEmpty": {
+      "Fn::Equals": [{ "Ref":  "Ingress8080SecurityGroupId" }, ""]
     },
     "UseManagedPolicyArns": {
       "Fn::Not": [{
@@ -1160,7 +1170,16 @@
           "FromPort": "8080",
           "ToPort": "8080",
           "SourceSecurityGroupId": { "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] }
-        }, {
+        }, { "Fn::If": [
+          "Ingress8080SecurityGroupIdEmpty",
+          { "Ref": "AWS::NoValue" },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8080",
+            "ToPort": "8080",
+            "SourceSecurityGroupId": { "Ref": "Ingress8080SecurityGroupId" }
+          }
+        ]}, {
           "IpProtocol": "tcp",
           "FromPort": "22",
           "ToPort": "22",

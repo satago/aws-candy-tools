@@ -1,3 +1,9 @@
+Version 0.4.3
+=============
+- `web-cluster-template`:
+    * new property `Ingress8080SecurityGroupId` allows specifying
+      additional SecurityGroup to access port 8080 of EC2 instances
+
 Version 0.4.2
 =============
 - `appspec.yml`
