@@ -245,9 +245,11 @@ case "$CMD" in
             PREV_STATUS=
             while true
             do
+                set +e
                 IN_SERVICE_COUNT=$(aws elb describe-instance-health \
                   --load-balancer-name ${ELB_NAME} \
                   --query "length(InstanceStates[?State=='InService'].InstanceId)")
+                set -e
 
                 STATUS="${STACK} ELB has ${IN_SERVICE_COUNT} healthy instance(s)"
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
