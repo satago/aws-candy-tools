@@ -195,7 +195,9 @@ case "$CMD" in
             PREV_STATUS=
             while true
             do
+                set +e
                 STATUS=`$0 status ${DEPLOYMENT_ID}`
+                set -e
                 STATUS_LINE="$(date +%H:%M:%S) ${STACK} deployment ${STATUS}"
 
                 if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then

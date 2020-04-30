@@ -1,3 +1,11 @@
+Version 0.4.4
+=============
+- `bin/deploy`:
+    * ignore error when getting deployment status in `wait`. Just check again.
+- `bin/stack`:
+    * ignore error when getting count of instances in `wait-for-elb-instances`. Just check again.
+   
+
 Version 0.4.3
 =============
 - `web-cluster-template`:
