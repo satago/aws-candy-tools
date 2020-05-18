@@ -29,10 +29,10 @@ hooks:
       timeout: 3600
     - location: up.bash
       timeout: 3600
-    - location: elb/register_with_elb.sh
-      timeout: 3600
   ValidateService:
     - location: pre-hooks.bash
+      timeout: 3600
+    - location: elb/register_with_elb.sh
       timeout: 3600
     - location: validate.bash
       timeout: 3600

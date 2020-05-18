@@ -1008,7 +1008,7 @@
                         "           task = subprocess.Popen(['./'+hook['location']], cwd='current', env={'LIFECYCLE_EVENT':'ApplicationStop'})\n",
                         "           while task.poll() is None:\n",
                         "               if time.time() - startTime > timeout:\n",
-                        "                   print 'Timeouted'\n",
+                        "                   print 'Time out'\n",
                         "                   break\n",
                         "               time.sleep(1)\n",
                         "\n",
@@ -1016,7 +1016,7 @@
                         "print 'Confirming lifecycle action to autoscaling group'\n",
                         "subprocess.check_output(['./asg-confirm-instance-termination.sh'])\n",
                         "\n",
-                        "print 'Termininate instance finished'\n"
+                        "print 'Terminate instance finished'\n"
                       ]]
                     },
                     "mode": "000555",
@@ -1027,9 +1027,9 @@
                     "content": {
                       "Fn::Join": ["", [
                         "#!/bin/bash -ex\n",
-                        "# Confirms to ASG that instance termination can continuer\n",
+                        "# Confirms to ASG that instance termination can continue\n",
                         "# Run this script when of some reasons handling notification from SQS has failed\n",
-                        "# and you want to continue with scalling down.\n",
+                        "# and you want to continue with scaling down.\n",
                         "\n",
                         "aws autoscaling complete-lifecycle-action ",
                         "--region ", { "Ref": "AWS::Region" }, " ",
