@@ -1,3 +1,10 @@
+Version 0.4.5
+=============
+- `appspec.yml`:
+    * move `register_with_elb.sh` call from `ApplicationStart` to `ValidateService`
+      to make it possible to implement custom warm-up logic in `pre-ValidateService`
+      before attaching instance back to ELB
+   
 Version 0.4.4
 =============
 - `bin/deploy`:
