@@ -1,3 +1,9 @@
+Version 0.4.6
+=============
+- `web-cluster-template`:
+    * updated default AMI versions to latest
+    * updated default aws-cli version to 1.18.68
+
 Version 0.4.5
 =============
 - `appspec.yml`:
