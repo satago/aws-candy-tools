@@ -15,11 +15,11 @@ repositories {
 }
 
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
-    testCompile 'junit:junit:4.12'
-    testCompile gradleTestKit()
-    testCompile 'commons-io:commons-io:2.4'
+    implementation gradleApi()
+    implementation localGroovy()
+    testImplementation 'junit:junit:4.12'
+    testImplementation gradleTestKit()
+    testImplementation 'commons-io:commons-io:2.4'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -52,13 +52,9 @@ def pomFragments = {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            from components.java
+        pluginMaven(MavenPublication) {
             artifact sourcesJar
             artifact javadocJar
-            groupId project.group
-            artifactId project.name
-            version project.version
 
             pom.withXml {
                 def root = asNode()
@@ -79,7 +75,7 @@ publishing {
 bintray {
     user = "$bintray_user"
     key = "$bintray_api_key"
-    publications = ['mavenJava']
+    publications = ['pluginMaven']
     pkg {
         repo = 'maven'
         name = 'aws-candy-tools'
@@ -91,8 +87,8 @@ bintray {
 }
 
 task tarBundle(type: Tar) {
-    archiveName "bundle.tgz"
-    destinationDir file('build/tar')
+    archiveFileName = 'bundle.tgz'
+    destinationDirectory = file('build/tar')
     from('./src/main/bundle') {
         exclude 'build/tar/'
     }

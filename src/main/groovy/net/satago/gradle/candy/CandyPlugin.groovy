@@ -192,9 +192,9 @@ class CandyPlugin implements Plugin<Project> {
                 tar.group = GRADLE_TASKS_GROUP
                 tar.description = 'Packages previously created CodeDeploy revisions into a self-contained redistributable archive'
 
-                tar.baseName 'revision'
+                tar.archiveBaseName = 'revision'
                 tar.into project.name
-                tar.destinationDir project.file("${project.buildDir}/tar")
+                tar.destinationDirectory = project.file("${project.buildDir}/tar")
                 tar.from(extractedBundleDirPath) {
                     include 'bin/'
                     exclude "bin/${BIN_EXEC}"
@@ -228,6 +228,7 @@ class CandyPlugin implements Plugin<Project> {
                 sync.description = 'Extracts previously packaged revisions archive (for debugging purposes)'
 
                 def file = project.file("${project.buildDir}/tar/${tarRevisionsTask.archiveName}")
+                System.err.println(file.absolutePath)
                 def targetDir = new File(file.absolutePath.substring(0, file.absolutePath.lastIndexOf('.')))
                 if (!Objects.equals(file.parentFile, targetDir.parentFile)) {
                     throw new IllegalArgumentException("Unable to build a path for tar extraction from '${file.absolutePath}'." +

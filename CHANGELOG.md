@@ -1,3 +1,8 @@
+Version 0.4.7
+=============
+- internal cleanup
+    * upgrade Gradle wrapper to 6.5 and fix deprecation warnings
+
 Version 0.4.6
 =============
 - `web-cluster-template`:
