@@ -192,9 +192,9 @@ class CandyPlugin implements Plugin<Project> {
                 tar.group = GRADLE_TASKS_GROUP
                 tar.description = 'Packages previously created CodeDeploy revisions into a self-contained redistributable archive'
 
-                tar.baseName 'revision'
+                tar.archiveBaseName = 'revision'
                 tar.into project.name
-                tar.destinationDir project.file("${project.buildDir}/tar")
+                tar.destinationDirectory = project.file("${project.buildDir}/tar")
                 tar.from(extractedBundleDirPath) {
                     include 'bin/'
                     exclude "bin/${BIN_EXEC}"
