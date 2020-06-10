@@ -1,3 +1,13 @@
+Version 0.4.8
+=============
+- `bin/deploy`
+    * `ecr get-login` replaced with more secure `ecr get-login-password`
+- `codedeploy-common-file/pull.bash`
+    * `ecr get-login` replaced with more secure `ecr get-login-password`
+- `bin/_common-functions.bash`
+    * changed function `docker_login_options` to suit usage with `ecr get-login-password`
+    * added function `docker_server`    
+
 Version 0.4.7
 =============
 - internal cleanup

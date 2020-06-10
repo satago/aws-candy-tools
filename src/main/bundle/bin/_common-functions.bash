@@ -48,14 +48,17 @@ function check_version {
     return 0
 }
 
-# `aws ecr get-login` + `docker login`
 function docker_login_options {
 
     local DOCKER_CLIENT_VERSION=$(docker version --format '{{json .Client.Version}}' | sed 's/"//g')
 
     if check_version ${DOCKER_CLIENT_VERSION} "17.06"; then
-        echo "--no-include-email"
-    else
         echo ""
+    else
+        echo "-e none"
     fi
+}
+
+function docker_server {
+  echo $(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.$(aws configure get region).amazonaws.com
 }
