@@ -100,7 +100,7 @@ case "$CMD" in
 
                 docker tag ${!IMAGE_ID} ${TARGET_IMAGE}:${!IMAGE_TAG}
 
-                aws ecr get-login-password | docker login --username AWS --password-stdin $(docker_login_options) $(docker_server)
+                docker_login_ecr
 
                 docker push ${TARGET_IMAGE}:${!IMAGE_TAG}
 

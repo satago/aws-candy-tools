@@ -1,12 +1,15 @@
 Version 0.4.8
 =============
 - `bin/deploy`
-    * `ecr get-login` replaced with more secure `ecr get-login-password`
+    * `ecr get-login` replaced with function `docker_login_ecr`
 - `codedeploy-common-file/pull.bash`
-    * `ecr get-login` replaced with more secure `ecr get-login-password`
+    * `ecr get-login` replaced with function `docker_login_ecr`
 - `bin/_common-functions.bash`
-    * changed function `docker_login_options` to suit usage with `ecr get-login-password`
-    * added function `docker_server`    
+    * added function `docker_login_ecr` which does secure log in to ecr using `ecr get-login-password` not `ecr get-login`   
+    * removed functions `docker_login_options` and `check_version` - we do not support docker versions < 17.06 any longer
+    * function `aws_account_id` extracted from `bin/stack`
+- `bin/stack`
+    * function `aws_account_id` extracted to `bin/_common-functions.bash`   
 
 Version 0.4.7
 =============
