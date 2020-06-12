@@ -4,6 +4,8 @@ set -e
 SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
 source ${SCRIPT_PATH}/set-aws-profile
+source ${SCRIPT_PATH}/_common-functions.bash
+
 
 STACKS_DIR=${SCRIPT_PATH}/../cloudformation-stacks
 
@@ -25,14 +27,6 @@ function template_name {
     # each stack has exactly one parameters file
     echo $(ls ${STACKS_DIR}/${STACK}/*-parameters.json) \
         | sed 's/.*\/\(.*\)-parameters.json/\1/'
-}
-
-function aws_account_id {
-    # http://stackoverflow.com/a/33791322
-    echo $(aws ec2 describe-security-groups \
-                --group-names 'Default' \
-                --query 'SecurityGroups[0].OwnerId' \
-                --output text)
 }
 
 function bucket_name {
