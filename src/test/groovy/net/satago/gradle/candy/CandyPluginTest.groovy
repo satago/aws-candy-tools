@@ -1,6 +1,7 @@
 package net.satago.gradle.candy
 
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -98,11 +99,12 @@ class CandyPluginTest {
                 .forwardOutput()
                 .build()
 
-        def tarName = "revision.tgz"
+        def tarName = "revision-v1.tgz"
         def pathToContent = "${tarName.replace('.tgz', '')}/${testProjectDir.getRoot().name}".toString()
 
         assertEquals(TaskOutcome.SUCCESS, result.task(':tarRevisions').outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(':untarRevisions').outcome)
+        def targetDir = new File(testProjectDir.getRoot(), 'build/tar')
         assertEquals(
                 [tarName,
                  pathToContent + '/bin/_common-functions.bash',
@@ -143,7 +145,10 @@ class CandyPluginTest {
                  pathToContent + '/build/revisions/revision-A/up.bash',
                  pathToContent + '/build/revisions/revision-A/validate.bash'
                 ],
-                listFiles(new File(testProjectDir.getRoot(), 'build/tar'), { true }))
+                listFiles(targetDir, { true }))
+
+        assertEquals('#custom-set-aws-profile', new File(targetDir, pathToContent + '/bin/set-aws-profile').text)
+        assertEquals('#custom-set-bastion-ssh', new File(targetDir, pathToContent + '/bin/set-bastion-ssh').text)
     }
 
     private static List listFiles(File root, Predicate<String> filter) {
@@ -208,7 +213,7 @@ class CandyPluginTest {
                 projectRoot,
                 testProjectDir.getRoot())
 
-        def extractedBundleDir = new File(testProjectDir.getRoot(),'build/tmp/aws-candy-tools/bundle')
+        def extractedBundleDir = new File(testProjectDir.getRoot(), 'build/tmp/aws-candy-tools/bundle')
         def versionFile = new File(extractedBundleDir, "version")
         def expiredFile = new File(extractedBundleDir, "expired")
 
@@ -285,5 +290,4 @@ class CandyPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(':candyRunTask').outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(':fooBinInit').outcome)
     }
-
 }
