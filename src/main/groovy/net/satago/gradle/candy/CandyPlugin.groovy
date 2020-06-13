@@ -6,6 +6,7 @@ import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
@@ -187,17 +188,20 @@ class CandyPlugin implements Plugin<Project> {
 
         //  `createRevisionsTask` should be executed by this moment followed by `bin/deploy docker-tag-and-push ...`
         //  The latter is required to update docker image IDs in `compose.env` with ECR image URLs
-        def tarRevisionsTask = project.task(extension.getTaskName('tarRevisions'), type: Tar) {
+        Tar tarRevisionsTask = (Tar) project.task(extension.getTaskName('tarRevisions'), type: Tar) {
             tar ->
                 tar.group = GRADLE_TASKS_GROUP
                 tar.description = 'Packages previously created CodeDeploy revisions into a self-contained redistributable archive'
 
                 tar.archiveBaseName = 'revision'
+                tar.archiveVersion = project.version
                 tar.into project.name
                 tar.destinationDirectory = project.file("${project.buildDir}/tar")
                 tar.from(extractedBundleDirPath) {
                     include 'bin/'
                     exclude "bin/${BIN_EXEC}"
+                    exclude "bin/${BIN_SET_AWS_PROFILE}"
+                    exclude "bin/${BIN_SET_BASTION_SSH}"
                 }
                 tar.from(project.projectDir) {
                     include 'bin/'
@@ -215,6 +219,7 @@ class CandyPlugin implements Plugin<Project> {
                     exclude 'tar/'
                 }
                 tar.compression Compression.GZIP
+                tar.duplicatesStrategy = DuplicatesStrategy.FAIL
                 tar.doLast {
                     outputs.getFiles().asFileTree.forEach {
                         project.logger.info '{}', it
@@ -227,7 +232,7 @@ class CandyPlugin implements Plugin<Project> {
                 sync.group = GRADLE_TASKS_GROUP
                 sync.description = 'Extracts previously packaged revisions archive (for debugging purposes)'
 
-                def file = project.file("${project.buildDir}/tar/${tarRevisionsTask.archiveName}")
+                def file = tarRevisionsTask.archiveFile.get().asFile
                 def targetDir = new File(file.absolutePath.substring(0, file.absolutePath.lastIndexOf('.')))
                 if (!Objects.equals(file.parentFile, targetDir.parentFile)) {
                     throw new IllegalArgumentException("Unable to build a path for tar extraction from '${file.absolutePath}'." +
@@ -236,8 +241,9 @@ class CandyPlugin implements Plugin<Project> {
 
                 sync.from project.tarTree(file)
                 sync.into targetDir
+                sync.duplicatesStrategy = DuplicatesStrategy.FAIL
                 sync.doFirst {
-                    project.logger.info "Untarring archive ${file.absolutePath}..."
+                    project.logger.info "Untarring archive ${file.absolutePath} into ${targetDir.absolutePath}..."
                 }
         }
 

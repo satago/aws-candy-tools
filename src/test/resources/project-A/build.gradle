@@ -12,6 +12,8 @@ plugins {
     id 'net.satago.gradle.aws-candy-tools'
 }
 
+version='v1'
+
 candy {
     services {
         SERVICE_A {

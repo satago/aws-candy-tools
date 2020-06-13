@@ -1,3 +1,10 @@
+Version 0.4.9
+=============
+- Bug fix release:
+    * `tarRevisions` was missing `version` suffix in the name of revision archive after 0.4.7
+    * fix deprecation warnings in `tarRevisions` and `untarRevisions`
+    * exclude duplicate entries from revision tarball
+
 Version 0.4.8
 =============
 - `bin/deploy`
