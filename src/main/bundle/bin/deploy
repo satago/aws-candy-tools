@@ -77,9 +77,11 @@ case "$CMD" in
             ;;
 
         docker-tag-and-push-all)
+            PARALLEL_COUNT=${2:-1}
+
             for REVISION_DIR in ${REVISIONS_DIR}/*; do
-                $0 docker-tag-and-push ${REVISION_DIR}
-            done
+                echo ${REVISION_DIR}
+            done | xargs -n 1 -I {} -P ${PARALLEL_COUNT} $0 docker-tag-and-push {}
             ;;
 
         docker-tag-and-push)
@@ -234,7 +236,7 @@ case "$CMD" in
   $0 codedeploy-push-and-wait [--auto-scaling] <stack-name> <revision-dir>
   $0 create-codedeploy-bucket
   $0 docker-tag-and-push <revision-dir>
-  $0 docker-tag-and-push-all
+  $0 docker-tag-and-push-all [<parallel-count=1>]
   $0 push <stack-name> [<deployable-name>]
   $0 status <deployment-id>
   $0 wait <deployment-id>"

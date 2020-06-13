@@ -1,3 +1,10 @@
+Version 0.4.10
+==============
+- `bin/deploy`
+    * new option `parallel-count` in `docker-tag-and-push-all` command:
+        - max number of parallel `docker-tag-and-push` invocations at a time
+        - optional, default value is 1
+
 Version 0.4.9
 =============
 - Bug fix release:
