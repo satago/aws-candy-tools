@@ -81,6 +81,10 @@ case "$CMD" in
 
             for REVISION_DIR in ${REVISIONS_DIR}/*; do
                 echo ${REVISION_DIR}
+
+                # Sleep for a bit before the next parallel run to prevent throttling errors from AWS CLI
+                # An error occurred (Throttling) when calling the DescribeStacks operation (reached max retries: 2): Rate exceeded
+                sleep 1
             done | xargs -n 1 -I {} -P ${PARALLEL_COUNT} $0 docker-tag-and-push {}
             ;;
 

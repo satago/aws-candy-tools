@@ -21,4 +21,5 @@ set -e
 #
 #    Make sure to pick the right AWS region for the profile, this is where the stacks will be created.
 
+export AWS_PAGER=
 export AWS_DEFAULT_PROFILE=replace-me
