@@ -6,7 +6,6 @@ SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 source ${SCRIPT_PATH}/set-aws-profile
 source ${SCRIPT_PATH}/_common-functions.bash
 
-
 STACKS_DIR=${SCRIPT_PATH}/../cloudformation-stacks
 
 CMD=$1
@@ -39,6 +38,19 @@ function physical_resource_id_by_logical_id {
             --stack-name $1 \
             --query "StackResourceSummaries[?LogicalResourceId==\`$2\`].PhysicalResourceId" \
             --output text)
+}
+
+function configure_bastion_ssh {
+    source ${SCRIPT_PATH}/set-bastion-ssh
+
+    # Configure port, username and other settings via `~/.ssh/config`
+    SSH_BASTION_HOST="ssh -t ${BASTION_HOST}"
+    if [[ $(hostname) == ${BASTION_HOST} ]]; then
+      # No need to use self as jump host
+      SSH_BASTION_HOST=
+    fi
+
+    SSH_INSTANCE_OPTIONS='-o StrictHostKeyChecking=no -o GlobalKnownHostsFile=/dev/null -o UserKnownHostsFile=/dev/null'
 }
 
 case "$CMD" in
@@ -270,17 +282,16 @@ case "$CMD" in
             # Take IP of the first available EC2 instance in the stack
             PRIVATE_IP=$($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None' | head -n 1)
 
-            source ${SCRIPT_PATH}/set-bastion-ssh
+            configure_bastion_ssh
 
-            # Configure port, username and other settings via `~/.ssh/config`
-            ssh -t ${BASTION_HOST} \
-                ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_USER}@${PRIVATE_IP}
+            ${SSH_BASTION_HOST} \
+                ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_OPTIONS} ${SSH_INSTANCE_USER}@${PRIVATE_IP}
             ;;
 
         run)
             PRIVATE_IPS=($($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None'))
 
-            source ${SCRIPT_PATH}/set-bastion-ssh
+            configure_bastion_ssh
 
             shift 2
             REMOTE_COMMAND="$*"
@@ -288,9 +299,9 @@ case "$CMD" in
             for PRIVATE_IP in "${PRIVATE_IPS[@]}"; do
                 echo -e "*\n* About to run '$@' on ${PRIVATE_IP} (${STACK})...\n*"
                 set +e
-                # Configure port, username and other settings via `~/.ssh/config`
-                ssh -t ${BASTION_HOST} \
-                    ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_USER}@${PRIVATE_IP} \
+
+                ${SSH_BASTION_HOST} \
+                    ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_OPTIONS} ${SSH_INSTANCE_USER}@${PRIVATE_IP} \
                         "'${REMOTE_COMMAND}'"
                 echo -e "*\n* Exit code was: $?\n*"
                 set -e

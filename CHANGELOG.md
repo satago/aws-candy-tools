@@ -1,3 +1,21 @@
+Version 0.4.11
+==============
+- `bin/deploy`
+    * delay each run in parallel `docker-tag-and-push-all` to avoid throttling error from AWS CLI
+- `bin/set-aws-profile`
+    * suggest to use `export AWS_PAGER=` as default
+- `bin/stack`
+    * don't use `BASTION_HOST` as jump-host when `bin/stack` is invoked from the `BASTION_HOST` itself
+    * SSH'ing from bastion host to internal instances is now ignoring strict host key checking:
+        `-o StrictHostKeyChecking=no -o GlobalKnownHostsFile=/dev/null -o UserKnownHostsFile=/dev/null`
+
+Version 0.4.10
+==============
+- `bin/deploy`
+    * new option `parallel-count` in `docker-tag-and-push-all` command:
+        - max number of parallel `docker-tag-and-push` invocations at a time
+        - optional, default value is 1
+
 Version 0.4.9
 =============
 - Bug fix release:
