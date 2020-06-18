@@ -1,3 +1,10 @@
+Version 0.4.12
+==============
+- `bin/encrypt`
+    * Base64-encode secrets transparently before passing them down to `aws kms`:
+      https://docs.aws.amazon.com/cli/latest/userguide/cliv2-migration.html#cliv2-migration-binaryparam
+    * Drop support for AWS CLI version 1, fail with `Unknown options: --cli-binary-format, base64` 
+
 Version 0.4.11
 ==============
 - `bin/deploy`

@@ -6,7 +6,10 @@ SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 source ${SCRIPT_PATH}/set-aws-profile
 
 KEY=$1
-PLAINTEXT=$2
+PLAINTEXT=$(echo -n $2 | base64)
 
+# since 0.4.12 we specify `--cli-binary-format` explicitly to fail this call in aws-cli v1
+# see https://docs.aws.amazon.com/cli/latest/userguide/cliv2-migration.html#cliv2-migration-binaryparam
 aws kms encrypt --query CiphertextBlob --output text \
+   --cli-binary-format base64 \
    --cli-input-json "{ \"KeyId\": \"${KEY}\", \"Plaintext\": \"${PLAINTEXT}\" }"
