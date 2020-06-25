@@ -1,3 +1,20 @@
+Version 0.5.0
+==============
+- `postgresql-template`
+    * new CloudFormation template to create RDS PostgreSQL database instances with optional read replicas
+- `web-cluster-template`
+    * friendly names for CloudWatch alarms
+    * dropped `DesiredCapacity` stack parameter in favour of `MinSize`
+    * `Ingress8080SecurityGroupId` is now optional
+    * updated default AMI versions to latest
+- `bin/*`
+    * executables changed bash executable to `#!/usr/bin/env bash`
+- Support custom policy for stacks
+    * It is now possible to define a custom policy for a stack when it's created
+      by adding a file named `stack-policy.json` in the same directory as `<stack>-template.json`.
+      `postgresql-template` has a default stack policy that prevents removal and replacement of DB instance.
+      https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html
+
 Version 0.4.12
 ==============
 - `bin/encrypt`

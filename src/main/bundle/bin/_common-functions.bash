@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function aws_account_id {
     # http://stackoverflow.com/a/33791322
