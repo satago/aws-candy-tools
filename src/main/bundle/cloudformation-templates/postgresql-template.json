@@ -718,6 +718,7 @@
     "MyDBInstanceHighCPUUtilizationAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "HighCPUUtilizationAlarmEnabled",
+      "DependsOn": "MyDBInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " High CPU Utilization"]] },
         "ActionsEnabled": true,
@@ -742,6 +743,7 @@
     "MyDBInstanceLowCPUCreditBalanceAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "LowCPUCreditBalanceAlarmEnabled",
+      "DependsOn": "MyDBInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low CPU Credit Balance"]] },
         "ActionsEnabled": true,
@@ -766,6 +768,7 @@
     "MyDBReplicaInstanceLowCPUCreditBalanceAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "LowCPUCreditBalanceAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low CPU Credit Balance"]] },
         "ActionsEnabled": true,
@@ -790,6 +793,7 @@
     "MyDBReplicaInstanceHighReplicaLagAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "HighReplicaLagAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " High Replica Lag"]] },
         "ActionsEnabled": true,
@@ -814,6 +818,7 @@
     "MyDBInstanceLowFreeStorageSpaceAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "LowFreeStorageSpaceAlarmEnabled",
+      "DependsOn": "MyDBInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low Free Storage Space"]] },
         "ActionsEnabled": true,
@@ -838,6 +843,7 @@
     "MyDBReplicaInstanceLowFreeStorageSpaceAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "LowFreeStorageSpaceAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low Free Storage Space"]] },
         "ActionsEnabled": true,
@@ -862,6 +868,7 @@
     "MyDBInstanceHighDatabaseConnectionsAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "HighDatabaseConnectionsAlarmEnabled",
+      "DependsOn": "MyDBInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " High Database Connections"]] },
         "ActionsEnabled": true,
@@ -886,6 +893,7 @@
     "MyDBInstanceLowDatabaseConnectionsAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "LowDatabaseConnectionsAlarmEnabled",
+      "DependsOn": "MyDBInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low Database Connections"]] },
         "ActionsEnabled": true,
