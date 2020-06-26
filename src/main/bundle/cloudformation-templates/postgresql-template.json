@@ -27,7 +27,7 @@
       ],
       "ConstraintDescription": "true or false (default)"
     },
-    "PubliclyAccessible": {
+    "DBPubliclyAccessible": {
       "Description": "Indicates whether the DB instance is an internet-facing instance.",
       "Type": "String",
       "Default": "false",
@@ -111,29 +111,62 @@
       "Description": "The password for the master user. The password can include any printable ASCII character except \"/\", \"\"\", or \"@\".",
       "Type": "String"
     },
-    "AllowAccessFromSecurityGroupId": {
-      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
-      "Type": "String"
+
+    "DBInstanceVPCSecurityGroupId2": {
+      "Description": "Additional VPC security group to attach to the DB instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
-    "AllowAccessFromSecurityGroupId2": {
+    "DBReplicaInstanceVPCSecurityGroupId2": {
+      "Description": "Additional VPC security group to attach to the DB replica instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+
+    "DBInstanceIngressSourceSecurityGroupId": {
       "Description": "Allow access to RDS instance from instances associated with the specified security group.",
       "Type": "String",
-      "Default": ""
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
-    "AllowAccessFromSecurityGroupId3": {
+    "DBInstanceIngressSourceSecurityGroupId2": {
       "Description": "Allow access to RDS instance from instances associated with the specified security group.",
       "Type": "String",
-      "Default": ""
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
-    "AllowAccessFromSecurityGroupId4": {
+    "DBInstanceIngressSourceSecurityGroupId3": {
       "Description": "Allow access to RDS instance from instances associated with the specified security group.",
       "Type": "String",
-      "Default": ""
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
-    "AllowAccessFromSecurityGroupId5": {
+    "DBInstanceIngressSourceSecurityGroupId4": {
       "Description": "Allow access to RDS instance from instances associated with the specified security group.",
       "Type": "String",
-      "Default": ""
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId5": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId6": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
 
     "CreateReadOnlyReplica": {
@@ -338,6 +371,28 @@
       "Description": "Causes all statements generating error at or above this level to be logged.",
       "Type": "String",
       "Default": ""
+    },
+    "pgForceSsl": {
+      "Description": "Allow only SSL connections to the database instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, equals to DBPubliclyAccessible)"
+    },
+    "pgReplicaForceSsl": {
+      "Description": "Allow only SSL connections to the database replica instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, equals to DBReplicaPubliclyAccessible)"
     }
   },
   "Conditions": {
@@ -363,11 +418,18 @@
       "Fn::Equals": [{ "Ref": "LowDatabaseConnectionsAlarmEnabled" }, "true"]
     },
 
+    "DBPubliclyAccessibleEnabled": {
+      "Fn::Equals": [{ "Ref": "DBPubliclyAccessible" }, "true"]
+    },
+
     "DBReplicaInstanceClassEmpty": {
       "Fn::Equals": [{ "Ref": "DBReplicaInstanceClass" }, ""]
     },
     "DBReplicaPubliclyAccessibleEmpty": {
       "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, ""]
+    },
+    "DBReplicaPubliclyAccessibleEnabled": {
+      "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, "true"]
     },
     "UseProvisionedIops": {
       "Fn::Not": [{
@@ -386,60 +448,61 @@
     "MultiAZ": {
       "Fn::Equals": [{ "Ref": "MultiAZ" }, "true"]
     },
-    "HasSourceSecurityGroupId": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "AllowAccessFromSecurityGroupId" }, ""]
-       }]
+
+    "DBInstanceVPCSecurityGroupId2Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId2" }, ""]
     },
-    "HasSourceSecurityGroupId2": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "AllowAccessFromSecurityGroupId2" }, ""]
-       }]
+    "DBReplicaInstanceVPCSecurityGroupId2Empty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaInstanceVPCSecurityGroupId2" }, ""]
     },
-    "HasSourceSecurityGroupId3": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "AllowAccessFromSecurityGroupId3" }, ""]
-       }]
+
+    "DBInstanceIngressSourceSecurityGroupIdEmpty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId" }, ""]
     },
-    "HasSourceSecurityGroupId4": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "AllowAccessFromSecurityGroupId4" }, ""]
-       }]
+    "DBInstanceIngressSourceSecurityGroupId2Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId2" }, ""]
     },
-    "HasSourceSecurityGroupId5": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "AllowAccessFromSecurityGroupId5" }, ""]
-       }]
+    "DBInstanceIngressSourceSecurityGroupId3Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId3" }, ""]
     },
-    "pgTrackActivityQuerySize": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "pgTrackActivityQuerySize" }, ""]
-      }]
+    "DBInstanceIngressSourceSecurityGroupId4Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId4" }, ""]
     },
-    "pgWorkMem": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "pgWorkMem" }, ""]
-      }]
+    "DBInstanceIngressSourceSecurityGroupId5Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId5" }, ""]
     },
-    "pgAutovacuumWorkMem": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "pgAutovacuumWorkMem" }, ""]
-      }]
+    "DBInstanceIngressSourceSecurityGroupId6Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId6" }, ""]
     },
-    "pgMaxConnections": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "pgMaxConnections" }, ""]
-      }]
+    "pgTrackActivityQuerySizeEmpty": {
+      "Fn::Equals": [{ "Ref": "pgTrackActivityQuerySize" }, ""]
     },
-    "pgSharedPreloadLibraries": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "pgSharedPreloadLibraries" }, ""]
-      }]
+    "pgWorkMemEmpty": {
+      "Fn::Equals": [{ "Ref": "pgWorkMem" }, ""]
     },
-    "pgLogMinErrorStatement": {
-      "Fn::Not": [{
-        "Fn::Equals": [{ "Ref": "pgLogMinErrorStatement" }, ""]
-      }]
+    "pgAutovacuumWorkMemEmpty": {
+      "Fn::Equals": [{ "Ref": "pgAutovacuumWorkMem" }, ""]
+    },
+    "pgMaxConnectionsEmpty": {
+      "Fn::Equals": [{ "Ref": "pgMaxConnections" }, ""]
+    },
+    "pgSharedPreloadLibrariesEmpty": {
+      "Fn::Equals": [{ "Ref": "pgSharedPreloadLibraries" }, ""]
+    },
+    "pgLogMinErrorStatementEmpty": {
+      "Fn::Equals": [{ "Ref": "pgLogMinErrorStatement" }, ""]
+    },
+    "pgForceSslEmpty": {
+      "Fn::Equals": [{ "Ref": "pgForceSsl" }, ""]
+    },
+    "pgForceSslEnabled": {
+      "Fn::Equals": [{ "Ref": "pgForceSsl" }, "true"]
+    },
+    "pgReplicaForceSslEmpty": {
+      "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, ""]
+    },
+    "pgReplicaForceSslEnabled": {
+      "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, "true"]
     }
   },
   "Resources": {
@@ -480,7 +543,7 @@
           { "Fn::Join": ["", ["arn:aws:iam::", { "Ref": "AWS::AccountId" }, ":role/rds-monitoring-role"]] },
           { "Ref": "AWS::NoValue" }
         ]},
-        "PubliclyAccessible": { "Ref": "PubliclyAccessible" },
+        "PubliclyAccessible": { "Ref": "DBPubliclyAccessible" },
         "PreferredMaintenanceWindow": { "Ref": "PreferredMaintenanceWindow" },
         "PreferredBackupWindow": { "Ref": "PreferredBackupWindow" },
         "BackupRetentionPeriod": 7,
@@ -488,7 +551,14 @@
         "PerformanceInsightsRetentionPeriod": 7,
         "EnableCloudwatchLogsExports": [ "postgresql", "upgrade" ],
         "PerformanceInsightsKMSKeyId": "alias/aws/rds",
-        "VPCSecurityGroups": [{ "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] }],
+        "VPCSecurityGroups": [
+          { "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] },
+          { "Fn::If": [
+            "DBInstanceVPCSecurityGroupId2Empty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "DBInstanceVPCSecurityGroupId2" }
+          ]}
+        ],
         "DBParameterGroupName": { "Ref": "MyDBParameterGroup" },
         "Port": "5432"
       }
@@ -501,34 +571,39 @@
         "Family": { "Ref": "DefaultDBParameterGroupFamily" },
         "Parameters": {
           "track_activity_query_size": { "Fn::If": [
-            "pgTrackActivityQuerySize",
-            { "Ref": "pgTrackActivityQuerySize" },
-            { "Ref": "AWS::NoValue" }
+            "pgTrackActivityQuerySizeEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgTrackActivityQuerySize" }
           ]},
           "work_mem": { "Fn::If": [
-            "pgWorkMem",
-            { "Ref": "pgWorkMem" },
-            { "Ref": "AWS::NoValue" }
+            "pgWorkMemEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgWorkMem" }
           ]},
           "autovacuum_work_mem": { "Fn::If": [
-            "pgAutovacuumWorkMem",
-            { "Ref": "pgAutovacuumWorkMem" },
-            { "Ref": "AWS::NoValue" }
+            "pgAutovacuumWorkMemEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgAutovacuumWorkMem" }
           ]},
           "max_connections": { "Fn::If": [
-            "pgMaxConnections",
-            { "Ref": "pgMaxConnections" },
-            { "Ref": "AWS::NoValue" }
+            "pgMaxConnectionsEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgMaxConnections" }
           ]},
           "shared_preload_libraries": { "Fn::If": [
-            "pgSharedPreloadLibraries",
-            { "Ref": "pgSharedPreloadLibraries" },
-            { "Ref": "AWS::NoValue" }
+            "pgSharedPreloadLibrariesEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgSharedPreloadLibraries" }
           ]},
           "log_min_error_statement": { "Fn::If": [
-            "pgLogMinErrorStatement",
-            { "Ref": "pgLogMinErrorStatement" },
-            { "Ref": "AWS::NoValue" }
+            "pgLogMinErrorStatementEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgLogMinErrorStatement" }
+          ]},
+          "rds.force_ssl": { "Fn::If": [
+            "pgForceSslEmpty",
+            { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
+            { "Fn::If": [ "pgForceSslEnabled", "1", "0" ]}
           ]}
         }
       }
@@ -553,14 +628,21 @@
         "StorageType": "gp2",
         "PubliclyAccessible": { "Fn::If": [
           "DBReplicaPubliclyAccessibleEmpty",
-          { "Ref": "PubliclyAccessible" },
+          { "Ref": "DBPubliclyAccessible" },
           { "Ref": "DBReplicaPubliclyAccessible" }
         ]},
         "PreferredMaintenanceWindow": { "Ref": "PreferredMaintenanceWindow" },
         "BackupRetentionPeriod": 0,
         "EnablePerformanceInsights": false,
         "EnableCloudwatchLogsExports": [ "postgresql", "upgrade" ],
-        "VPCSecurityGroups": [{ "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] }],
+        "VPCSecurityGroups": [
+          { "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] },
+          { "Fn::If": [
+            "DBReplicaInstanceVPCSecurityGroupId2Empty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "DBReplicaInstanceVPCSecurityGroupId2" }
+          ]}
+        ],
         "DBParameterGroupName": { "Ref": "MyDBReplicaParameterGroup" },
         "Port": "5432"
       }
@@ -570,7 +652,18 @@
       "DeletionPolicy" : "Delete",
       "Properties": {
         "Description": { "Fn::Join": ["", ["Parameter group for ", { "Ref": "DBInstanceIdentifier" }, "-ror" ]] },
-        "Family": { "Ref": "DefaultDBParameterGroupFamily" }
+        "Family": { "Ref": "DefaultDBParameterGroupFamily" },
+        "Parameters": {
+          "rds.force_ssl": { "Fn::If": [
+            "pgReplicaForceSslEmpty",
+            { "Fn::If": [
+              "DBReplicaPubliclyAccessibleEmpty",
+              { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
+              { "Fn::If": [ "DBReplicaPubliclyAccessibleEnabled", "1", "0" ]}
+            ]},
+            { "Fn::If": [ "pgReplicaForceSslEnabled", "1", "0" ]}
+          ]}
+        }
       }
     },
     "MyVPCSecurityGroup": {
@@ -579,54 +672,64 @@
         "GroupDescription": "Allow access to RDS instance from selected security groups",
         "SecurityGroupIngress": [
           { "Fn::If": [
-            "HasSourceSecurityGroupId",
+            "DBInstanceIngressSourceSecurityGroupIdEmpty",
+            { "Ref": "AWS::NoValue" },
             {
               "IpProtocol": "tcp",
               "FromPort": "5432",
               "ToPort": "5432",
-              "SourceSecurityGroupId": { "Ref": "AllowAccessFromSecurityGroupId" }
-            },
-            { "Ref": "AWS::NoValue" }
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId" }
+            }
           ]},
           { "Fn::If": [
-            "HasSourceSecurityGroupId2",
+            "DBInstanceIngressSourceSecurityGroupId2Empty",
+            { "Ref": "AWS::NoValue" },
             {
               "IpProtocol": "tcp",
               "FromPort": "5432",
               "ToPort": "5432",
-              "SourceSecurityGroupId": { "Ref": "AllowAccessFromSecurityGroupId2" }
-            },
-            { "Ref": "AWS::NoValue" }
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId2" }
+            }
           ]},
           { "Fn::If": [
-            "HasSourceSecurityGroupId3",
+            "DBInstanceIngressSourceSecurityGroupId3Empty",
+            { "Ref": "AWS::NoValue" },
             {
               "IpProtocol": "tcp",
               "FromPort": "5432",
               "ToPort": "5432",
-              "SourceSecurityGroupId": { "Ref": "AllowAccessFromSecurityGroupId3" }
-            },
-            { "Ref": "AWS::NoValue" }
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId3" }
+            }
           ]},
           { "Fn::If": [
-            "HasSourceSecurityGroupId4",
+            "DBInstanceIngressSourceSecurityGroupId4Empty",
+            { "Ref": "AWS::NoValue" },
             {
               "IpProtocol": "tcp",
               "FromPort": "5432",
               "ToPort": "5432",
-              "SourceSecurityGroupId": { "Ref": "AllowAccessFromSecurityGroupId4" }
-            },
-            { "Ref": "AWS::NoValue" }
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId4" }
+            }
           ]},
           { "Fn::If": [
-            "HasSourceSecurityGroupId5",
+            "DBInstanceIngressSourceSecurityGroupId5Empty",
+            { "Ref": "AWS::NoValue" },
             {
               "IpProtocol": "tcp",
               "FromPort": "5432",
               "ToPort": "5432",
-              "SourceSecurityGroupId": { "Ref": "AllowAccessFromSecurityGroupId5" }
-            },
-            { "Ref": "AWS::NoValue" }
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId5" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourceSecurityGroupId6Empty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId6" }
+            }
           ]}
         ]
       }
