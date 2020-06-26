@@ -396,9 +396,21 @@
     "LowCPUCreditBalanceAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "LowCPUCreditBalanceAlarmEnabled" }, "true"]
     },
+    "ReplicaLowCPUCreditBalanceAlarmEnabled": {
+      "Fn::And": [
+        { "Condition": "LowCPUCreditBalanceAlarmEnabled" },
+        { "Condition": "CreateReadOnlyReplica" }
+      ]
+    },
+    "ReplicaLowFreeStorageSpaceAlarmEnabled": {
+      "Fn::And": [
+        { "Condition": "LowFreeStorageSpaceAlarmEnabled" },
+        { "Condition": "CreateReadOnlyReplica" }
+      ]
+    },
     "HighReplicaLagAlarmEnabled": {
       "Fn::And": [
-        { "Fn::Equals": [{ "Ref": "CreateReadOnlyReplica" }, "true"] },
+        { "Condition": "CreateReadOnlyReplica" },
         { "Fn::Equals": [{ "Ref": "HighReplicaLagAlarmEnabled" }, "true"] }
       ]
     },
@@ -500,6 +512,7 @@
     "MyDBInstance": {
       "Type": "AWS::RDS::DBInstance",
       "DeletionPolicy" : "Retain",
+      "DependsOn": ["MyVPCSecurityGroup", "MyDBParameterGroup"],
       "Properties": {
         "DBInstanceIdentifier": { "Ref": "DBInstanceIdentifier" },
         "DBName": { "Ref": "DBName" },
@@ -603,6 +616,7 @@
       "Type": "AWS::RDS::DBInstance",
       "DeletionPolicy" : "Delete",
       "Condition": "CreateReadOnlyReplica",
+      "DependsOn": ["MyDBInstance", "MyDBReplicaParameterGroup"],
       "Properties": {
         "DBInstanceIdentifier": { "Fn::Join": ["", [ { "Ref": "DBInstanceIdentifier" }, "-ror" ]]},
         "SourceDBInstanceIdentifier": { "Ref": "DBInstanceIdentifier" },
@@ -767,7 +781,7 @@
     },
     "MyDBReplicaInstanceLowCPUCreditBalanceAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
-      "Condition": "LowCPUCreditBalanceAlarmEnabled",
+      "Condition": "ReplicaLowCPUCreditBalanceAlarmEnabled",
       "DependsOn": "MyDBReplicaInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low CPU Credit Balance"]] },
@@ -842,7 +856,7 @@
     },
     "MyDBReplicaInstanceLowFreeStorageSpaceAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
-      "Condition": "LowFreeStorageSpaceAlarmEnabled",
+      "Condition": "ReplicaLowFreeStorageSpaceAlarmEnabled",
       "DependsOn": "MyDBReplicaInstance",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low Free Storage Space"]] },
@@ -932,9 +946,9 @@
       "Export" : {
         "Name" : {
           "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "DBReplicaHostname" ] ]
-        },
-        "Condition": "CreateReadOnlyReplica"
-      }
+        }
+      },
+      "Condition": "CreateReadOnlyReplica"
     }
   }
 }
