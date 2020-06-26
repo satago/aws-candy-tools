@@ -115,13 +115,6 @@
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
-    "DBInstanceIngressSourceSecurityGroupId6": {
-      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
-      "Type": "String",
-      "Default": "",
-      "AllowedPattern": "(|sg-[a-z0-9]+)",
-      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
-    },
     "DBInstanceVPCSecurityGroupId2": {
       "Description": "Additional VPC security group to attach to the DB instance",
       "Type": "String",
@@ -472,9 +465,6 @@
     "DBInstanceIngressSourceSecurityGroupId5Empty": {
       "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId5" }, ""]
     },
-    "DBInstanceIngressSourceSecurityGroupId6Empty": {
-      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId6" }, ""]
-    },
     "pgTrackActivityQuerySizeEmpty": {
       "Fn::Equals": [{ "Ref": "pgTrackActivityQuerySize" }, ""]
     },
@@ -720,16 +710,6 @@
               "FromPort": "5432",
               "ToPort": "5432",
               "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId5" }
-            }
-          ]},
-          { "Fn::If": [
-            "DBInstanceIngressSourceSecurityGroupId6Empty",
-            { "Ref": "AWS::NoValue" },
-            {
-              "IpProtocol": "tcp",
-              "FromPort": "5432",
-              "ToPort": "5432",
-              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId6" }
             }
           ]}
         ]
