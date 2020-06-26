@@ -2,33 +2,8 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "PostgreSQL on RDS",
   "Parameters": {
-    "MultiAZ": {
-      "Description": "Specifies whether the database instance is a multiple Availability Zone deployment.",
-      "Type": "String",
-      "Default": "true",
-      "AllowedValues": [
-        "true",
-        "false"
-      ],
-      "ConstraintDescription": "true (default) or false"
-    },
-    "AZIndex": {
-      "Description": "Zero-based index of availability zone for non-MultiAZ cluster",
-      "Type": "Number",
-      "Default": "0"
-    },
     "Ephemeral": {
       "Description": "Whether the DB instance can safely be removed or replaced, i.e. if it's a test instance",
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": [
-        "true",
-        "false"
-      ],
-      "ConstraintDescription": "true or false (default)"
-    },
-    "DBPubliclyAccessible": {
-      "Description": "Indicates whether the DB instance is an internet-facing instance.",
       "Type": "String",
       "Default": "false",
       "AllowedValues": [
@@ -43,6 +18,22 @@
     },
     "DBName": {
       "Description": "The name of the database to create when the DB instance is created.",
+      "Type": "String"
+    },
+    "MasterUsername": {
+      "Description": "The master user name for the DB instance.",
+      "Type": "String"
+    },
+    "MasterUserPassword": {
+      "Description": "The password for the master user. The password can include any printable ASCII character except \"/\", \"\"\", or \"@\".",
+      "Type": "String"
+    },
+    "EngineVersion": {
+      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].EngineVersion\"",
+      "Type": "String"
+    },
+    "DBInstanceClass": {
+      "Description": "The compute and memory capacity of the DB instance.",
       "Type": "String"
     },
     "AllocatedStorage": {
@@ -60,8 +51,28 @@
       ],
       "ConstraintDescription": "standard, gp2 (default), io1"
     },
-    "EnhancedMonitoring": {
-      "Description": "Enable enhanced monitoring for the DB instance.",
+    "Iops": {
+      "Description": "The number of I/O operations per second (IOPS) that the database provisions. The value must be equal to or greater than 1000.",
+      "Type": "Number",
+      "Default": "0"
+    },
+    "MultiAZ": {
+      "Description": "Specifies whether the database instance is a multiple Availability Zone deployment.",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true (default) or false"
+    },
+    "AZIndex": {
+      "Description": "Zero-based index of availability zone for non-MultiAZ cluster",
+      "Type": "Number",
+      "Default": "0"
+    },
+    "DBPubliclyAccessible": {
+      "Description": "Indicates whether the DB instance is an internet-facing instance.",
       "Type": "String",
       "Default": "false",
       "AllowedValues": [
@@ -70,63 +81,6 @@
       ],
       "ConstraintDescription": "true or false (default)"
     },
-    "Iops": {
-      "Description": "The number of I/O operations per second (IOPS) that the database provisions. The value must be equal to or greater than 1000.",
-      "Type": "Number",
-      "Default": "0"
-    },
-    "DBInstanceClass": {
-      "Description": "The compute and memory capacity of the DB instance.",
-      "Type": "String"
-    },
-    "DBReplicaInstanceClass": {
-      "Description": "The compute and memory capacity of the DB instance.",
-      "Type": "String",
-      "Default": ""
-    },
-    "DBReplicaPubliclyAccessible": {
-      "Description": "Indicates whether the DB replica instance is an internet-facing instance.",
-      "Type": "String",
-      "Default": "",
-      "AllowedValues": [
-        "true",
-        "false",
-        ""
-      ],
-      "ConstraintDescription": "true, false, or blank (default, to inherit same value as source database instance)"
-    },
-    "EngineVersion": {
-      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].EngineVersion\"",
-      "Type": "String"
-    },
-    "DefaultDBParameterGroupFamily": {
-      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].DBParameterGroupFamily\"",
-      "Type": "String"
-    },
-    "MasterUsername": {
-      "Description": "The master user name for the DB instance.",
-      "Type": "String"
-    },
-    "MasterUserPassword": {
-      "Description": "The password for the master user. The password can include any printable ASCII character except \"/\", \"\"\", or \"@\".",
-      "Type": "String"
-    },
-
-    "DBInstanceVPCSecurityGroupId2": {
-      "Description": "Additional VPC security group to attach to the DB instance",
-      "Type": "String",
-      "Default": "",
-      "AllowedPattern": "(|sg-[a-z0-9]+)",
-      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
-    },
-    "DBReplicaInstanceVPCSecurityGroupId2": {
-      "Description": "Additional VPC security group to attach to the DB replica instance",
-      "Type": "String",
-      "Default": "",
-      "AllowedPattern": "(|sg-[a-z0-9]+)",
-      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
-    },
-
     "DBInstanceIngressSourceSecurityGroupId": {
       "Description": "Allow access to RDS instance from instances associated with the specified security group.",
       "Type": "String",
@@ -168,9 +122,56 @@
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
+    "DBInstanceVPCSecurityGroupId2": {
+      "Description": "Additional VPC security group to attach to the DB instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DefaultDBParameterGroupFamily": {
+      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].DBParameterGroupFamily\"",
+      "Type": "String"
+    },
 
     "CreateReadOnlyReplica": {
       "Description": "Create read replica DB for this instance",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "DBReplicaInstanceClass": {
+      "Description": "The compute and memory capacity of the DB instance.",
+      "Type": "String",
+      "Default": ""
+    },
+    "DBReplicaPubliclyAccessible": {
+      "Description": "Indicates whether the DB replica instance is an internet-facing instance.",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, to inherit same value as source database instance)"
+    },
+
+    "DBReplicaInstanceVPCSecurityGroupId2": {
+      "Description": "Additional VPC security group to attach to the DB replica instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+
+    "EnhancedMonitoring": {
+      "Description": "Enable enhanced monitoring for the DB instance.",
       "Type": "String",
       "Default": "false",
       "AllowedValues": [
