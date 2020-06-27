@@ -334,6 +334,9 @@
     },
     "CustomImageIdEmpty": {
       "Fn::Equals": [{ "Ref": "CustomImageId" }, ""]
+    },
+    "InstanceSecurityGroupsEmpty": {
+      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }, ""]
     }
   },
   "Mappings": {
@@ -1110,7 +1113,11 @@
         "SecurityGroups": { "Fn::Split": [",",
           { "Fn::Join": [ ",", [
             { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] },
-            { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }
+            { "Fn::If": [
+              "InstanceSecurityGroupsEmpty",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }
+            ]}
           ]]}
         ]},
         "IamInstanceProfile": { "Ref": "MyInstanceProfile" },
