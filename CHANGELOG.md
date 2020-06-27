@@ -6,6 +6,7 @@ Version 0.5.0
     * friendly names for CloudWatch alarms
     * dropped `DesiredCapacity` stack parameter in favour of `MinSize`
     * `Ingress8080SecurityGroupId` is now optional
+    * `InstanceSecurityGroups` is now optional
     * updated default AMI versions to latest
 - `bin/*`
     * executables changed bash executable to `#!/usr/bin/env bash`
