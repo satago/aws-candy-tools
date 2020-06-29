@@ -16,21 +16,30 @@
       "Description": "A name for the DB instance. AWS CloudFormation converts it to lowercase.",
       "Type": "String"
     },
+    "DBSnapshotIdentifier": {
+      "Description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance.",
+      "Type": "String",
+      "Default": ""
+    },
     "DBName": {
       "Description": "The name of the database to create when the DB instance is created.",
-      "Type": "String"
+      "Type": "String",
+      "Default": ""
     },
     "MasterUsername": {
       "Description": "The master user name for the DB instance.",
-      "Type": "String"
+      "Type": "String",
+      "Default": ""
     },
     "MasterUserPassword": {
       "Description": "The password for the master user. The password can include any printable ASCII character except \"/\", \"\"\", or \"@\".",
-      "Type": "String"
+      "Type": "String",
+      "Default": ""
     },
     "EngineVersion": {
       "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].EngineVersion\"",
-      "Type": "String"
+      "Type": "String",
+      "Default": ""
     },
     "DBInstanceClass": {
       "Description": "The compute and memory capacity of the DB instance.",
@@ -174,6 +183,14 @@
       "ConstraintDescription": "true or false (default)"
     },
 
+    "EnablePerformanceInsights": {
+      "Description": "A value that indicates whether to enable Performance Insights for the DB instance.",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true (default) or false"
+    },
+
     "AlarmActions": {
       "Description": "List of actions that will receive updates on alarms from this stack",
       "Type": "CommaDelimitedList",
@@ -193,12 +210,6 @@
       "Type": "Number",
       "Default": "3600"
     },
-    "HighCPUUtilizationAlarmStatistic": {
-      "Description": "Statistic for the alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
-    },
     "HighCPUUtilizationAlarmThreshold": {
       "Description": "Value of CPU utilization in percents equals to or above the threshold triggers an alarm",
       "Type": "Number",
@@ -216,12 +227,6 @@
       "Description": "Evaluation period for this alarm in seconds",
       "Type": "Number",
       "Default": "900"
-    },
-    "LowCPUCreditBalanceAlarmStatistic": {
-      "Description": "Statistic for the alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
     },
     "LowCPUCreditBalanceAlarmThreshold": {
       "Description": "Value of CPU credits equals to or below the threshold triggers an alarm",
@@ -241,12 +246,6 @@
       "Type": "Number",
       "Default": "300"
     },
-    "HighReplicaLagAlarmStatistic": {
-      "Description": "Statistic for the alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
-    },
     "HighReplicaLagAlarmThreshold": {
       "Description": "Value of the replica lag in seconds equals to or above the threshold triggers an alarm",
       "Type": "Number",
@@ -264,12 +263,6 @@
       "Description": "Evaluation period for this alarm in seconds",
       "Type": "Number",
       "Default": "300"
-    },
-    "LowFreeStorageSpaceAlarmStatistic": {
-      "Description": "Statistic for the alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
     },
     "LowFreeStorageSpaceAlarmThreshold": {
       "Description": "Value of free storage space in bytes equals to or below the threshold triggers an alarm",
@@ -289,12 +282,6 @@
       "Type": "Number",
       "Default": "60"
     },
-    "HighDatabaseConnectionsAlarmStatistic": {
-      "Description": "Statistic for the alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
-    },
     "HighDatabaseConnectionsAlarmThreshold": {
       "Description": "Value of number of database connections equals to or above the threshold triggers an alarm",
       "Type": "Number",
@@ -312,12 +299,6 @@
       "Description": "Evaluation period for this alarm in seconds",
       "Type": "Number",
       "Default": "60"
-    },
-    "LowDatabaseConnectionsAlarmStatistic": {
-      "Description": "Statistic for the alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
     },
     "LowDatabaseConnectionsAlarmThreshold": {
       "Description": "Value of number of database connections equals to or below the threshold triggers an alarm",
@@ -390,6 +371,12 @@
     }
   },
   "Conditions": {
+    "EnablePerformanceInsights": {
+      "Fn::Equals": [{ "Ref": "EnablePerformanceInsights" }, "true"]
+    },
+    "DBSnapshotIdentifierEmpty": {
+      "Fn::Equals": [{ "Ref": "DBSnapshotIdentifier" }, ""]
+    },
     "HighCPUUtilizationAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "HighCPUUtilizationAlarmEnabled" }, "true"]
     },
@@ -515,7 +502,16 @@
       "DependsOn": ["MyVPCSecurityGroup", "MyDBParameterGroup"],
       "Properties": {
         "DBInstanceIdentifier": { "Ref": "DBInstanceIdentifier" },
-        "DBName": { "Ref": "DBName" },
+        "DBSnapshotIdentifier": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "AWS::NoValue"},
+          { "Ref": "DBSnapshotIdentifier" }
+        ]},
+        "DBName": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "DBName" },
+          { "Ref": "AWS::NoValue"}
+        ]},
         "AllowMajorVersionUpgrade": true,
         "AutoMinorVersionUpgrade": false,
         "MultiAZ": { "Ref": "MultiAZ" },
@@ -527,12 +523,28 @@
         "AllocatedStorage": { "Ref": "AllocatedStorage" },
         "DeletionProtection": { "Fn::If": [ "Ephemeral", false, true ] },
         "DeleteAutomatedBackups": { "Fn::If": [ "Ephemeral", true, false ] },
-        "DBSubnetGroupName": "default",
+        "DBSubnetGroupName": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          "default",
+          { "Ref": "AWS::NoValue"}
+        ]},
         "DBInstanceClass": { "Ref": "DBInstanceClass" },
         "Engine": "postgres",
-        "EngineVersion": { "Ref": "EngineVersion" },
-        "MasterUsername": { "Ref": "MasterUsername" },
-        "MasterUserPassword": { "Ref": "MasterUserPassword" },
+        "EngineVersion": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "EngineVersion" },
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "MasterUsername": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "MasterUsername" },
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "MasterUserPassword": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "MasterUserPassword" },
+          { "Ref": "AWS::NoValue"}
+        ]},
         "KmsKeyId": "alias/aws/rds",
         "StorageEncrypted": true,
         "StorageType": { "Ref": "StorageType" },
@@ -551,10 +563,18 @@
         "PreferredMaintenanceWindow": { "Ref": "PreferredMaintenanceWindow" },
         "PreferredBackupWindow": { "Ref": "PreferredBackupWindow" },
         "BackupRetentionPeriod": 7,
-        "EnablePerformanceInsights": true,
-        "PerformanceInsightsRetentionPeriod": 7,
+        "EnablePerformanceInsights": { "Ref": "EnablePerformanceInsights" },
+        "PerformanceInsightsRetentionPeriod": { "Fn::If": [
+          "EnablePerformanceInsights",
+          7,
+          { "Ref": "AWS::NoValue" }
+        ]},
         "EnableCloudwatchLogsExports": [ "postgresql", "upgrade" ],
-        "PerformanceInsightsKMSKeyId": "alias/aws/rds",
+        "PerformanceInsightsKMSKeyId": { "Fn::If": [
+          "EnablePerformanceInsights",
+          "alias/aws/rds",
+          { "Ref": "AWS::NoValue" }
+        ]},
         "VPCSecurityGroups": [
           { "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] },
           { "Fn::If": [
@@ -748,7 +768,7 @@
         "Unit": "Percent",
         "EvaluationPeriods": 1,
         "Period": { "Ref": "HighCPUUtilizationAlarmPeriod" },
-        "Statistic": { "Ref": "HighCPUUtilizationAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "HighCPUUtilizationAlarmThreshold" },
         "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -773,7 +793,7 @@
         "Unit": "Count",
         "EvaluationPeriods": 1,
         "Period": { "Ref": "LowCPUCreditBalanceAlarmPeriod" },
-        "Statistic": { "Ref": "LowCPUCreditBalanceAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "LowCPUCreditBalanceAlarmThreshold" },
         "ComparisonOperator": "LessThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -798,7 +818,7 @@
         "Unit": "Count",
         "EvaluationPeriods": 1,
         "Period": { "Ref": "LowCPUCreditBalanceAlarmPeriod" },
-        "Statistic": { "Ref": "LowCPUCreditBalanceAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "LowCPUCreditBalanceAlarmThreshold" },
         "ComparisonOperator": "LessThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -823,7 +843,7 @@
         "Unit": "Seconds",
         "EvaluationPeriods": 1,
         "Period": { "Ref": "HighReplicaLagAlarmPeriod" },
-        "Statistic": { "Ref": "HighReplicaLagAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "HighReplicaLagAlarmThreshold" },
         "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -848,7 +868,7 @@
         "Unit": "Bytes",
         "EvaluationPeriods": 10,
         "Period": { "Ref": "LowFreeStorageSpaceAlarmPeriod" },
-        "Statistic": { "Ref": "LowFreeStorageSpaceAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "LowFreeStorageSpaceAlarmThreshold" },
         "ComparisonOperator": "LessThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -873,7 +893,7 @@
         "Unit": "Bytes",
         "EvaluationPeriods": 10,
         "Period": { "Ref": "LowFreeStorageSpaceAlarmPeriod" },
-        "Statistic": { "Ref": "LowFreeStorageSpaceAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "LowFreeStorageSpaceAlarmThreshold" },
         "ComparisonOperator": "LessThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -898,7 +918,7 @@
         "Unit": "Count",
         "EvaluationPeriods": 1,
         "Period": { "Ref": "HighDatabaseConnectionsAlarmPeriod" },
-        "Statistic": { "Ref": "HighDatabaseConnectionsAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "HighDatabaseConnectionsAlarmThreshold" },
         "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
@@ -923,7 +943,7 @@
         "Unit": "Count",
         "EvaluationPeriods": 1,
         "Period": { "Ref": "LowDatabaseConnectionsAlarmPeriod" },
-        "Statistic": { "Ref": "LowDatabaseConnectionsAlarmStatistic" },
+        "Statistic": "Average",
         "Threshold": { "Ref": "LowDatabaseConnectionsAlarmThreshold" },
         "ComparisonOperator": "LessThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
