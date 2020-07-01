@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
@@ -19,6 +19,16 @@ function template_path {
         TEMPLATE_PATH=${SCRIPT_PATH}/../build/tmp/aws-candy-tools/bundle/cloudformation-templates/$1-template.json
     fi
     echo ${TEMPLATE_PATH}
+}
+
+function stack_policy_path {
+    # Search in user folders first
+    local STACK_POLICY_PATH=${STACKS_DIR}/${STACK}/stack-policy.json
+    if [[ ! -f ${STACK_POLICY_PATH} ]]; then
+        # If not found, try a built-in policy
+        STACK_POLICY_PATH=${SCRIPT_PATH}/../build/tmp/aws-candy-tools/bundle/cloudformation-templates/$1-stack-policy.json
+    fi
+    echo ${STACK_POLICY_PATH}
 }
 
 function template_name {
@@ -92,10 +102,19 @@ case "$CMD" in
         create)
             TEMPLATE=$(template_name)
             aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
+            STACK_POLICY_FILE=$(stack_policy_path ${TEMPLATE})
+
+            STACK_POLICY_OPTS=
+            if [[ -f ${STACK_POLICY_FILE} ]]; then
+              aws s3 cp $(stack_policy_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-stack-policy.json
+              STACK_POLICY_OPTS="--stack-policy-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-stack-policy.json"
+            fi
+
             aws cloudformation create-stack \
                 --stack-name ${STACK} \
                 --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
                 --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
+                ${STACK_POLICY_OPTS} \
                 --disable-rollback \
                 --capabilities CAPABILITY_IAM
             ;;

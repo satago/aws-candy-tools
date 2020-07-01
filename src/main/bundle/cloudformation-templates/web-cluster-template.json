@@ -16,10 +16,10 @@
       "Default": ""
     },
 
-    "DesiredCapacity": {
-      "Description": "Desired capacity in AutoScaling Group",
+    "MinSize": {
+      "Description": "Minimum size of AutoScaling Group",
       "Type": "String",
-      "Default": 2
+      "Default": 1
     },
 
     "KeyName": {
@@ -37,7 +37,7 @@
     },
     "Ingress8080SecurityGroupId": {
       "Description": "(Optional) ID of ingress security group to allow access to port 8080 of EC2 instances",
-      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Type": "String",
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ELB",
       "Default": ""
@@ -89,14 +89,14 @@
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["true", "false"],
-      "ConstraintDescription": "true of false (default)"
+      "ConstraintDescription": "true or false (default)"
     },
     "MultiAZ": {
       "Description": "Create EC2 instances in different availability zones",
       "Type": "String",
       "Default": "true",
       "AllowedValues": ["true", "false"],
-      "ConstraintDescription": "true (true) of false"
+      "ConstraintDescription": "true (default) or false"
     },
     "AZIndex": {
       "Description": "Zero-based index of availability zone for non-MultiAZ cluster",
@@ -334,13 +334,16 @@
     },
     "CustomImageIdEmpty": {
       "Fn::Equals": [{ "Ref": "CustomImageId" }, ""]
+    },
+    "InstanceSecurityGroupsEmpty": {
+      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }, ""]
     }
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-076431be05aaf8080", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-06ce3edf0cff21f07", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-01a6e31ac994bbc09", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-0a02ee601d742e89f", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-0ea3405d2d2522162", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-032598fcc7e9d1c7a", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -405,8 +408,7 @@
         "HealthCheckGracePeriod": { "Ref": "HealthCheckGracePeriod" },
         "HealthCheckType": { "Ref": "HealthCheckType" },
         "TerminationPolicies": { "Ref": "TerminationPolicies" },
-        "MinSize": "1",
-        "DesiredCapacity": { "Ref": "DesiredCapacity" },
+        "MinSize": { "Ref": "MinSize" },
         "MaxSize": "4",
         "LoadBalancerNames": [{
           "Fn::If": [
@@ -437,7 +439,7 @@
           "MinSuccessfulInstancesPercent" : 100
         },
         "ResourceSignal": {
-          "Count": { "Ref": "DesiredCapacity" },
+          "Count": { "Ref": "MinSize" },
           "Timeout": "PT15M"
         }
       },
@@ -1111,7 +1113,11 @@
         "SecurityGroups": { "Fn::Split": [",",
           { "Fn::Join": [ ",", [
             { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] },
-            { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }
+            { "Fn::If": [
+              "InstanceSecurityGroupsEmpty",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }
+            ]}
           ]]}
         ]},
         "IamInstanceProfile": { "Ref": "MyInstanceProfile" },
@@ -1375,6 +1381,7 @@
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "CreateAlarmForELBHealthyHostCount",
       "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " ELB Healthy Host Count"]] },
         "ActionsEnabled": true,
         "AlarmActions": { "Ref": "AlarmActions" },
         "InsufficientDataActions": { "Ref": "AlarmActions" },
@@ -1398,6 +1405,7 @@
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "CreateAlarmForELBLatency",
       "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " ELB Latency"]] },
         "ActionsEnabled": true,
         "AlarmActions": { "Ref": "AlarmActions" },
         "InsufficientDataActions": { "Ref": "AlarmActions" },
@@ -1421,6 +1429,7 @@
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "CreateAlarmForDiskUsedPercent",
       "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " Disk Used Percent"]] },
         "ActionsEnabled": true,
         "AlarmActions": { "Ref": "AlarmActions" },
         "InsufficientDataActions": { "Ref": "AlarmActions" },

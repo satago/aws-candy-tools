@@ -1,0 +1,974 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "PostgreSQL on RDS",
+  "Parameters": {
+    "Ephemeral": {
+      "Description": "Whether the DB instance can safely be removed or replaced, i.e. if it's a test instance",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "DBInstanceIdentifier": {
+      "Description": "A name for the DB instance. AWS CloudFormation converts it to lowercase.",
+      "Type": "String"
+    },
+    "DBSnapshotIdentifier": {
+      "Description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance.",
+      "Type": "String",
+      "Default": ""
+    },
+    "DBName": {
+      "Description": "The name of the database to create when the DB instance is created.",
+      "Type": "String",
+      "Default": ""
+    },
+    "MasterUsername": {
+      "Description": "The master user name for the DB instance.",
+      "Type": "String",
+      "Default": ""
+    },
+    "MasterUserPassword": {
+      "Description": "The password for the master user. The password can include any printable ASCII character except \"/\", \"\"\", or \"@\".",
+      "Type": "String",
+      "Default": ""
+    },
+    "EngineVersion": {
+      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].EngineVersion\"",
+      "Type": "String",
+      "Default": ""
+    },
+    "DBInstanceClass": {
+      "Description": "The compute and memory capacity of the DB instance.",
+      "Type": "String"
+    },
+    "AllocatedStorage": {
+      "Description": "The amount of storage (in gigabytes) to be initially allocated for the database instance.",
+      "Type": "Number"
+    },
+    "StorageType": {
+      "Description": "Storage type to be associated with the DB instance. If you specify io1, you must also include a value for the Iops parameter.",
+      "Type": "String",
+      "Default": "gp2",
+      "AllowedValues": [
+        "standard",
+        "gp2",
+        "io1"
+      ],
+      "ConstraintDescription": "standard, gp2 (default), io1"
+    },
+    "Iops": {
+      "Description": "The number of I/O operations per second (IOPS) that the database provisions. The value must be equal to or greater than 1000.",
+      "Type": "Number",
+      "Default": "0"
+    },
+    "MultiAZ": {
+      "Description": "Specifies whether the database instance is a multiple Availability Zone deployment.",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true (default) or false"
+    },
+    "AZIndex": {
+      "Description": "Zero-based index of availability zone for non-MultiAZ cluster",
+      "Type": "Number",
+      "Default": "0"
+    },
+    "DBPubliclyAccessible": {
+      "Description": "Indicates whether the DB instance is an internet-facing instance.",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId2": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId3": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId4": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceIngressSourceSecurityGroupId5": {
+      "Description": "Allow access to RDS instance from instances associated with the specified security group.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DBInstanceVPCSecurityGroupId2": {
+      "Description": "Additional VPC security group to attach to the DB instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+    "DefaultDBParameterGroupFamily": {
+      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].DBParameterGroupFamily\"",
+      "Type": "String"
+    },
+
+    "CreateReadOnlyReplica": {
+      "Description": "Create read replica DB for this instance",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "DBReplicaInstanceClass": {
+      "Description": "The compute and memory capacity of the DB instance.",
+      "Type": "String",
+      "Default": ""
+    },
+    "DBReplicaPubliclyAccessible": {
+      "Description": "Indicates whether the DB replica instance is an internet-facing instance.",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, to inherit same value as source database instance)"
+    },
+
+    "DBReplicaInstanceVPCSecurityGroupId2": {
+      "Description": "Additional VPC security group to attach to the DB replica instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
+
+    "EnhancedMonitoring": {
+      "Description": "Enable enhanced monitoring for the DB instance.",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "EnablePerformanceInsights": {
+      "Description": "A value that indicates whether to enable Performance Insights for the DB instance.",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true (default) or false"
+    },
+
+    "AlarmActions": {
+      "Description": "List of actions that will receive updates on alarms from this stack",
+      "Type": "CommaDelimitedList",
+      "Default": "",
+      "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
+    },
+
+    "HighCPUUtilizationAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for high CPU utilization on the DB instance",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "HighCPUUtilizationAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "3600"
+    },
+    "HighCPUUtilizationAlarmThreshold": {
+      "Description": "Value of CPU utilization in percents equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "80"
+    },
+
+    "LowCPUCreditBalanceAlarmEnabled": {
+      "Description": "Create CloudWatch alarm low CPU credits on the DB instance",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "LowCPUCreditBalanceAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "900"
+    },
+    "LowCPUCreditBalanceAlarmThreshold": {
+      "Description": "Value of CPU credits equals to or below the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "50"
+    },
+
+    "HighReplicaLagAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for high replica lag",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "HighReplicaLagAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "300"
+    },
+    "HighReplicaLagAlarmThreshold": {
+      "Description": "Value of the replica lag in seconds equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "300"
+    },
+
+    "LowFreeStorageSpaceAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for low free storage space",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "LowFreeStorageSpaceAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "300"
+    },
+    "LowFreeStorageSpaceAlarmThreshold": {
+      "Description": "Value of free storage space in bytes equals to or below the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "10000000000"
+    },
+
+    "HighDatabaseConnectionsAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for high number of database connections",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "HighDatabaseConnectionsAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "60"
+    },
+    "HighDatabaseConnectionsAlarmThreshold": {
+      "Description": "Value of number of database connections equals to or above the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "200"
+    },
+
+    "LowDatabaseConnectionsAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for low number of database connections",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "LowDatabaseConnectionsAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "60"
+    },
+    "LowDatabaseConnectionsAlarmThreshold": {
+      "Description": "Value of number of database connections equals to or below the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "0"
+    },
+
+    "PreferredMaintenanceWindow": {
+      "Description": "",
+      "Type": "String",
+      "Default": "Sun:11:00-Sun:12:00"
+    },
+    "PreferredBackupWindow": {
+      "Description": "",
+      "Type": "String",
+      "Default": "22:00-22:30"
+    },
+
+    "pgTrackActivityQuerySize": {
+      "Description": "Sets the size reserved for pg_stat_activity.current_query, in bytes.",
+      "Type": "String",
+      "Default": "32768"
+    },
+    "pgWorkMem": {
+      "Description": "(kB) Sets the maximum memory to be used for query workspaces.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgAutovacuumWorkMem": {
+      "Description": "(kB) Sets the maximum memory to be used by each autovacuum worker process.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgMaxConnections": {
+      "Description": "Sets the maximum number of concurrent connections.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgSharedPreloadLibraries": {
+      "Description": "Lists shared libraries to preload into server.",
+      "Type": "String",
+      "Default": "pg_stat_statements,auto_explain"
+    },
+    "pgLogMinErrorStatement": {
+      "Description": "Causes all statements generating error at or above this level to be logged.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgForceSsl": {
+      "Description": "Allow only SSL connections to the database instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, equals to DBPubliclyAccessible)"
+    },
+    "pgReplicaForceSsl": {
+      "Description": "Allow only SSL connections to the database replica instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, equals to DBReplicaPubliclyAccessible)"
+    }
+  },
+  "Conditions": {
+    "EnablePerformanceInsights": {
+      "Fn::Equals": [{ "Ref": "EnablePerformanceInsights" }, "true"]
+    },
+    "DBSnapshotIdentifierEmpty": {
+      "Fn::Equals": [{ "Ref": "DBSnapshotIdentifier" }, ""]
+    },
+    "HighCPUUtilizationAlarmEnabled": {
+      "Fn::Equals": [{ "Ref": "HighCPUUtilizationAlarmEnabled" }, "true"]
+    },
+    "LowCPUCreditBalanceAlarmEnabled": {
+      "Fn::Equals": [{ "Ref": "LowCPUCreditBalanceAlarmEnabled" }, "true"]
+    },
+    "ReplicaLowCPUCreditBalanceAlarmEnabled": {
+      "Fn::And": [
+        { "Condition": "LowCPUCreditBalanceAlarmEnabled" },
+        { "Condition": "CreateReadOnlyReplica" }
+      ]
+    },
+    "ReplicaLowFreeStorageSpaceAlarmEnabled": {
+      "Fn::And": [
+        { "Condition": "LowFreeStorageSpaceAlarmEnabled" },
+        { "Condition": "CreateReadOnlyReplica" }
+      ]
+    },
+    "HighReplicaLagAlarmEnabled": {
+      "Fn::And": [
+        { "Condition": "CreateReadOnlyReplica" },
+        { "Fn::Equals": [{ "Ref": "HighReplicaLagAlarmEnabled" }, "true"] }
+      ]
+    },
+    "LowFreeStorageSpaceAlarmEnabled": {
+      "Fn::Equals": [{ "Ref": "LowFreeStorageSpaceAlarmEnabled" }, "true"]
+    },
+    "HighDatabaseConnectionsAlarmEnabled": {
+      "Fn::Equals": [{ "Ref": "HighDatabaseConnectionsAlarmEnabled" }, "true"]
+    },
+    "LowDatabaseConnectionsAlarmEnabled": {
+      "Fn::Equals": [{ "Ref": "LowDatabaseConnectionsAlarmEnabled" }, "true"]
+    },
+
+    "DBPubliclyAccessibleEnabled": {
+      "Fn::Equals": [{ "Ref": "DBPubliclyAccessible" }, "true"]
+    },
+
+    "DBReplicaInstanceClassEmpty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaInstanceClass" }, ""]
+    },
+    "DBReplicaPubliclyAccessibleEmpty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, ""]
+    },
+    "DBReplicaPubliclyAccessibleEnabled": {
+      "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, "true"]
+    },
+    "UseProvisionedIops": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Ref": "Iops" }, "0"]
+      }]
+    },
+    "CreateReadOnlyReplica": {
+      "Fn::Equals": [{ "Ref": "CreateReadOnlyReplica" }, "true"]
+    },
+    "EnhancedMonitoring": {
+      "Fn::Equals": [{ "Ref": "EnhancedMonitoring" }, "true"]
+    },
+    "Ephemeral": {
+      "Fn::Equals": [{ "Ref": "Ephemeral" }, "true"]
+    },
+    "MultiAZ": {
+      "Fn::Equals": [{ "Ref": "MultiAZ" }, "true"]
+    },
+
+    "DBInstanceVPCSecurityGroupId2Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId2" }, ""]
+    },
+    "DBReplicaInstanceVPCSecurityGroupId2Empty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaInstanceVPCSecurityGroupId2" }, ""]
+    },
+
+    "DBInstanceIngressSourceSecurityGroupIdEmpty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId" }, ""]
+    },
+    "DBInstanceIngressSourceSecurityGroupId2Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId2" }, ""]
+    },
+    "DBInstanceIngressSourceSecurityGroupId3Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId3" }, ""]
+    },
+    "DBInstanceIngressSourceSecurityGroupId4Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId4" }, ""]
+    },
+    "DBInstanceIngressSourceSecurityGroupId5Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId5" }, ""]
+    },
+    "pgTrackActivityQuerySizeEmpty": {
+      "Fn::Equals": [{ "Ref": "pgTrackActivityQuerySize" }, ""]
+    },
+    "pgWorkMemEmpty": {
+      "Fn::Equals": [{ "Ref": "pgWorkMem" }, ""]
+    },
+    "pgAutovacuumWorkMemEmpty": {
+      "Fn::Equals": [{ "Ref": "pgAutovacuumWorkMem" }, ""]
+    },
+    "pgMaxConnectionsEmpty": {
+      "Fn::Equals": [{ "Ref": "pgMaxConnections" }, ""]
+    },
+    "pgSharedPreloadLibrariesEmpty": {
+      "Fn::Equals": [{ "Ref": "pgSharedPreloadLibraries" }, ""]
+    },
+    "pgLogMinErrorStatementEmpty": {
+      "Fn::Equals": [{ "Ref": "pgLogMinErrorStatement" }, ""]
+    },
+    "pgForceSslEmpty": {
+      "Fn::Equals": [{ "Ref": "pgForceSsl" }, ""]
+    },
+    "pgForceSslEnabled": {
+      "Fn::Equals": [{ "Ref": "pgForceSsl" }, "true"]
+    },
+    "pgReplicaForceSslEmpty": {
+      "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, ""]
+    },
+    "pgReplicaForceSslEnabled": {
+      "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, "true"]
+    }
+  },
+  "Resources": {
+    "MyDBInstance": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy" : "Retain",
+      "DependsOn": ["MyVPCSecurityGroup", "MyDBParameterGroup"],
+      "Properties": {
+        "DBInstanceIdentifier": { "Ref": "DBInstanceIdentifier" },
+        "DBSnapshotIdentifier": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "AWS::NoValue"},
+          { "Ref": "DBSnapshotIdentifier" }
+        ]},
+        "DBName": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "DBName" },
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "AllowMajorVersionUpgrade": true,
+        "AutoMinorVersionUpgrade": false,
+        "MultiAZ": { "Ref": "MultiAZ" },
+        "AvailabilityZone": { "Fn::If": [
+          "MultiAZ",
+          { "Ref": "AWS::NoValue" },
+          { "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }
+        ]},
+        "AllocatedStorage": { "Ref": "AllocatedStorage" },
+        "DeletionProtection": { "Fn::If": [ "Ephemeral", false, true ] },
+        "DeleteAutomatedBackups": { "Fn::If": [ "Ephemeral", true, false ] },
+        "DBSubnetGroupName": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          "default",
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "DBInstanceClass": { "Ref": "DBInstanceClass" },
+        "Engine": "postgres",
+        "EngineVersion": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "EngineVersion" },
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "MasterUsername": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "MasterUsername" },
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "MasterUserPassword": { "Fn::If": [
+          "DBSnapshotIdentifierEmpty",
+          { "Ref": "MasterUserPassword" },
+          { "Ref": "AWS::NoValue"}
+        ]},
+        "KmsKeyId": "alias/aws/rds",
+        "StorageEncrypted": true,
+        "StorageType": { "Ref": "StorageType" },
+        "Iops": { "Fn::If": [
+          "UseProvisionedIops",
+          { "Ref": "Iops" },
+          { "Ref": "AWS::NoValue" }
+        ]},
+        "MonitoringInterval": { "Fn::If": [ "EnhancedMonitoring", "60", "0" ]},
+        "MonitoringRoleArn": { "Fn::If": [
+          "EnhancedMonitoring",
+          { "Fn::Join": ["", ["arn:aws:iam::", { "Ref": "AWS::AccountId" }, ":role/rds-monitoring-role"]] },
+          { "Ref": "AWS::NoValue" }
+        ]},
+        "PubliclyAccessible": { "Ref": "DBPubliclyAccessible" },
+        "PreferredMaintenanceWindow": { "Ref": "PreferredMaintenanceWindow" },
+        "PreferredBackupWindow": { "Ref": "PreferredBackupWindow" },
+        "BackupRetentionPeriod": 7,
+        "EnablePerformanceInsights": { "Ref": "EnablePerformanceInsights" },
+        "PerformanceInsightsRetentionPeriod": { "Fn::If": [
+          "EnablePerformanceInsights",
+          7,
+          { "Ref": "AWS::NoValue" }
+        ]},
+        "EnableCloudwatchLogsExports": [ "postgresql", "upgrade" ],
+        "PerformanceInsightsKMSKeyId": { "Fn::If": [
+          "EnablePerformanceInsights",
+          "alias/aws/rds",
+          { "Ref": "AWS::NoValue" }
+        ]},
+        "VPCSecurityGroups": [
+          { "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] },
+          { "Fn::If": [
+            "DBInstanceVPCSecurityGroupId2Empty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "DBInstanceVPCSecurityGroupId2" }
+          ]}
+        ],
+        "DBParameterGroupName": { "Ref": "MyDBParameterGroup" },
+        "Port": "5432"
+      }
+    },
+    "MyDBParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "DeletionPolicy" : "Retain",
+      "Properties": {
+        "Description": { "Fn::Join": [" ", ["Parameter group for", { "Ref": "DBInstanceIdentifier" }]] },
+        "Family": { "Ref": "DefaultDBParameterGroupFamily" },
+        "Parameters": {
+          "track_activity_query_size": { "Fn::If": [
+            "pgTrackActivityQuerySizeEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgTrackActivityQuerySize" }
+          ]},
+          "work_mem": { "Fn::If": [
+            "pgWorkMemEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgWorkMem" }
+          ]},
+          "autovacuum_work_mem": { "Fn::If": [
+            "pgAutovacuumWorkMemEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgAutovacuumWorkMem" }
+          ]},
+          "max_connections": { "Fn::If": [
+            "pgMaxConnectionsEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgMaxConnections" }
+          ]},
+          "shared_preload_libraries": { "Fn::If": [
+            "pgSharedPreloadLibrariesEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgSharedPreloadLibraries" }
+          ]},
+          "log_min_error_statement": { "Fn::If": [
+            "pgLogMinErrorStatementEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgLogMinErrorStatement" }
+          ]},
+          "rds.force_ssl": { "Fn::If": [
+            "pgForceSslEmpty",
+            { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
+            { "Fn::If": [ "pgForceSslEnabled", "1", "0" ]}
+          ]}
+        }
+      }
+    },
+    "MyDBReplicaInstance": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy" : "Delete",
+      "Condition": "CreateReadOnlyReplica",
+      "DependsOn": ["MyDBInstance", "MyDBReplicaParameterGroup"],
+      "Properties": {
+        "DBInstanceIdentifier": { "Fn::Join": ["", [ { "Ref": "DBInstanceIdentifier" }, "-ror" ]]},
+        "SourceDBInstanceIdentifier": { "Ref": "DBInstanceIdentifier" },
+        "AllowMajorVersionUpgrade": true,
+        "AutoMinorVersionUpgrade": false,
+        "MultiAZ": false,
+        "AllocatedStorage": { "Ref": "AllocatedStorage" },
+        "DeletionProtection": { "Fn::If": [ "Ephemeral", false, true ] },
+        "DBInstanceClass": { "Fn::If": [
+          "DBReplicaInstanceClassEmpty",
+          { "Ref": "DBInstanceClass" },
+          { "Ref": "DBReplicaInstanceClass" }
+        ]},
+        "StorageType": "gp2",
+        "PubliclyAccessible": { "Fn::If": [
+          "DBReplicaPubliclyAccessibleEmpty",
+          { "Ref": "DBPubliclyAccessible" },
+          { "Ref": "DBReplicaPubliclyAccessible" }
+        ]},
+        "PreferredMaintenanceWindow": { "Ref": "PreferredMaintenanceWindow" },
+        "BackupRetentionPeriod": 0,
+        "EnablePerformanceInsights": false,
+        "EnableCloudwatchLogsExports": [ "postgresql", "upgrade" ],
+        "VPCSecurityGroups": [
+          { "Fn::GetAtt": ["MyVPCSecurityGroup", "GroupId"] },
+          { "Fn::If": [
+            "DBReplicaInstanceVPCSecurityGroupId2Empty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "DBReplicaInstanceVPCSecurityGroupId2" }
+          ]}
+        ],
+        "DBParameterGroupName": { "Ref": "MyDBReplicaParameterGroup" },
+        "Port": "5432"
+      }
+    },
+    "MyDBReplicaParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "DeletionPolicy" : "Delete",
+      "Properties": {
+        "Description": { "Fn::Join": ["", ["Parameter group for ", { "Ref": "DBInstanceIdentifier" }, "-ror" ]] },
+        "Family": { "Ref": "DefaultDBParameterGroupFamily" },
+        "Parameters": {
+          "rds.force_ssl": { "Fn::If": [
+            "pgReplicaForceSslEmpty",
+            { "Fn::If": [
+              "DBReplicaPubliclyAccessibleEmpty",
+              { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
+              { "Fn::If": [ "DBReplicaPubliclyAccessibleEnabled", "1", "0" ]}
+            ]},
+            { "Fn::If": [ "pgReplicaForceSslEnabled", "1", "0" ]}
+          ]}
+        }
+      }
+    },
+    "MyVPCSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow access to RDS instance from selected security groups",
+        "SecurityGroupIngress": [
+          { "Fn::If": [
+            "DBInstanceIngressSourceSecurityGroupIdEmpty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourceSecurityGroupId2Empty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId2" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourceSecurityGroupId3Empty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId3" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourceSecurityGroupId4Empty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId4" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourceSecurityGroupId5Empty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId5" }
+            }
+          ]}
+        ]
+      }
+    },
+    "MyDBInstanceHighCPUUtilizationAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "HighCPUUtilizationAlarmEnabled",
+      "DependsOn": "MyDBInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " High CPU Utilization"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBInstance" }
+        }],
+        "MetricName": "CPUUtilization",
+        "Unit": "Percent",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "HighCPUUtilizationAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "HighCPUUtilizationAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBInstanceLowCPUCreditBalanceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "LowCPUCreditBalanceAlarmEnabled",
+      "DependsOn": "MyDBInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low CPU Credit Balance"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBInstance" }
+        }],
+        "MetricName": "CPUCreditBalance",
+        "Unit": "Count",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "LowCPUCreditBalanceAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "LowCPUCreditBalanceAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBReplicaInstanceLowCPUCreditBalanceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "ReplicaLowCPUCreditBalanceAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low CPU Credit Balance"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBReplicaInstance" }
+        }],
+        "MetricName": "CPUCreditBalance",
+        "Unit": "Count",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "LowCPUCreditBalanceAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "LowCPUCreditBalanceAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBReplicaInstanceHighReplicaLagAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "HighReplicaLagAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " High Replica Lag"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBReplicaInstance" }
+        }],
+        "MetricName": "ReplicaLag",
+        "Unit": "Seconds",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "HighReplicaLagAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "HighReplicaLagAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBInstanceLowFreeStorageSpaceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "LowFreeStorageSpaceAlarmEnabled",
+      "DependsOn": "MyDBInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low Free Storage Space"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBInstance" }
+        }],
+        "MetricName": "FreeStorageSpace",
+        "Unit": "Bytes",
+        "EvaluationPeriods": 10,
+        "Period": { "Ref": "LowFreeStorageSpaceAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "LowFreeStorageSpaceAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBReplicaInstanceLowFreeStorageSpaceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "ReplicaLowFreeStorageSpaceAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low Free Storage Space"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBReplicaInstance" }
+        }],
+        "MetricName": "FreeStorageSpace",
+        "Unit": "Bytes",
+        "EvaluationPeriods": 10,
+        "Period": { "Ref": "LowFreeStorageSpaceAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "LowFreeStorageSpaceAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBInstanceHighDatabaseConnectionsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "HighDatabaseConnectionsAlarmEnabled",
+      "DependsOn": "MyDBInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " High Database Connections"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBInstance" }
+        }],
+        "MetricName": "DatabaseConnections",
+        "Unit": "Count",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "HighDatabaseConnectionsAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "HighDatabaseConnectionsAlarmThreshold" },
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBInstanceLowDatabaseConnectionsAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "LowDatabaseConnectionsAlarmEnabled",
+      "DependsOn": "MyDBInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low Database Connections"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "Namespace": "AWS/RDS",
+        "Dimensions": [{
+          "Name": "DBInstanceIdentifier",
+          "Value": { "Ref": "MyDBInstance" }
+        }],
+        "MetricName": "DatabaseConnections",
+        "Unit": "Count",
+        "EvaluationPeriods": 1,
+        "Period": { "Ref": "LowDatabaseConnectionsAlarmPeriod" },
+        "Statistic": "Average",
+        "Threshold": { "Ref": "LowDatabaseConnectionsAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching"
+      }
+    }
+  },
+  "Outputs": {
+    "DBHostname": {
+      "Description": "DNS name for the DB instance",
+      "Value": { "Fn::GetAtt": ["MyDBInstance", "Endpoint.Address"] },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "DBHostname" ] ]
+        }
+      }
+    },
+    "DBReplicaHostname": {
+      "Description": "DNS name for the DB replica instance",
+      "Value": { "Fn::GetAtt": ["MyDBReplicaInstance", "Endpoint.Address"] },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "DBReplicaHostname" ] ]
+        }
+      },
+      "Condition": "CreateReadOnlyReplica"
+    }
+  }
+}
