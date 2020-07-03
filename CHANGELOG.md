@@ -1,3 +1,8 @@
+Version 0.5.1
+==============
+- `postgresql-template`
+    * New parameter `DBInstanceVPCSecurityGroupId3` to add an extra SG to an instance
+
 Version 0.5.0
 ==============
 - `postgresql-template`

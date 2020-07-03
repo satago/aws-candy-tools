@@ -131,6 +131,13 @@
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
+    "DBInstanceVPCSecurityGroupId3": {
+      "Description": "Additional VPC security group to attach to the DB instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
     "DefaultDBParameterGroupFamily": {
       "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].DBParameterGroupFamily\"",
       "Type": "String"
@@ -445,6 +452,9 @@
     "DBInstanceVPCSecurityGroupId2Empty": {
       "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId2" }, ""]
     },
+    "DBInstanceVPCSecurityGroupId3Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId3" }, ""]
+    },
     "DBReplicaInstanceVPCSecurityGroupId2Empty": {
       "Fn::Equals": [{ "Ref": "DBReplicaInstanceVPCSecurityGroupId2" }, ""]
     },
@@ -581,6 +591,11 @@
             "DBInstanceVPCSecurityGroupId2Empty",
             { "Ref": "AWS::NoValue" },
             { "Ref": "DBInstanceVPCSecurityGroupId2" }
+          ]},
+          { "Fn::If": [
+            "DBInstanceVPCSecurityGroupId3Empty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "DBInstanceVPCSecurityGroupId3" }
           ]}
         ],
         "DBParameterGroupName": { "Ref": "MyDBParameterGroup" },
