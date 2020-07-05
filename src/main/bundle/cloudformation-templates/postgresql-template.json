@@ -375,6 +375,11 @@
         ""
       ],
       "ConstraintDescription": "true, false, or blank (default, equals to DBReplicaPubliclyAccessible)"
+    },
+    "pgReplicaMaxStandbyDelay": {
+      "Description": "Value for max_standby_archive_delay and max_standby_streaming_delay; https://aws.amazon.com/ru/blogs/database/best-practices-for-amazon-rds-postgresql-replication/",
+      "Type": "String",
+      "Default": "300000"
     }
   },
   "Conditions": {
@@ -503,6 +508,9 @@
     },
     "pgReplicaForceSslEnabled": {
       "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, "true"]
+    },
+    "pgReplicaMaxStandbyDelayEmpty": {
+      "Fn::Equals": [{ "Ref": "pgReplicaMaxStandbyDelay" }, ""]
     }
   },
   "Resources": {
@@ -694,6 +702,21 @@
         "Description": { "Fn::Join": ["", ["Parameter group for ", { "Ref": "DBInstanceIdentifier" }, "-ror" ]] },
         "Family": { "Ref": "DefaultDBParameterGroupFamily" },
         "Parameters": {
+          "max_standby_archive_delay": { "Fn::If": [
+            "pgReplicaMaxStandbyDelayEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgReplicaMaxStandbyDelay" }
+          ]},
+          "max_standby_streaming_delay": { "Fn::If": [
+            "pgReplicaMaxStandbyDelayEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgReplicaMaxStandbyDelay" }
+          ]},
+          "log_min_error_statement": { "Fn::If": [
+            "pgLogMinErrorStatementEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgLogMinErrorStatement" }
+          ]},
           "rds.force_ssl": { "Fn::If": [
             "pgReplicaForceSslEmpty",
             { "Fn::If": [

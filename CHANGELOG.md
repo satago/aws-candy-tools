@@ -1,3 +1,8 @@
+Version 0.5.2
+==============
+- `postgresql-template`
+    * New parameter `pgReplicaMaxStandbyDelay` to support long-running queries on replicas
+
 Version 0.5.1
 ==============
 - `postgresql-template`
