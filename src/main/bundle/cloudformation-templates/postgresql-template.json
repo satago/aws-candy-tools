@@ -131,6 +131,13 @@
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
+    "DBInstanceVPCSecurityGroupId3": {
+      "Description": "Additional VPC security group to attach to the DB instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
+    },
     "DefaultDBParameterGroupFamily": {
       "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].DBParameterGroupFamily\"",
       "Type": "String"
@@ -368,6 +375,11 @@
         ""
       ],
       "ConstraintDescription": "true, false, or blank (default, equals to DBReplicaPubliclyAccessible)"
+    },
+    "pgReplicaMaxStandbyDelay": {
+      "Description": "Value for max_standby_archive_delay and max_standby_streaming_delay; https://aws.amazon.com/ru/blogs/database/best-practices-for-amazon-rds-postgresql-replication/",
+      "Type": "String",
+      "Default": "300000"
     }
   },
   "Conditions": {
@@ -445,6 +457,9 @@
     "DBInstanceVPCSecurityGroupId2Empty": {
       "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId2" }, ""]
     },
+    "DBInstanceVPCSecurityGroupId3Empty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId3" }, ""]
+    },
     "DBReplicaInstanceVPCSecurityGroupId2Empty": {
       "Fn::Equals": [{ "Ref": "DBReplicaInstanceVPCSecurityGroupId2" }, ""]
     },
@@ -493,6 +508,9 @@
     },
     "pgReplicaForceSslEnabled": {
       "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, "true"]
+    },
+    "pgReplicaMaxStandbyDelayEmpty": {
+      "Fn::Equals": [{ "Ref": "pgReplicaMaxStandbyDelay" }, ""]
     }
   },
   "Resources": {
@@ -581,6 +599,11 @@
             "DBInstanceVPCSecurityGroupId2Empty",
             { "Ref": "AWS::NoValue" },
             { "Ref": "DBInstanceVPCSecurityGroupId2" }
+          ]},
+          { "Fn::If": [
+            "DBInstanceVPCSecurityGroupId3Empty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "DBInstanceVPCSecurityGroupId3" }
           ]}
         ],
         "DBParameterGroupName": { "Ref": "MyDBParameterGroup" },
@@ -679,6 +702,21 @@
         "Description": { "Fn::Join": ["", ["Parameter group for ", { "Ref": "DBInstanceIdentifier" }, "-ror" ]] },
         "Family": { "Ref": "DefaultDBParameterGroupFamily" },
         "Parameters": {
+          "max_standby_archive_delay": { "Fn::If": [
+            "pgReplicaMaxStandbyDelayEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgReplicaMaxStandbyDelay" }
+          ]},
+          "max_standby_streaming_delay": { "Fn::If": [
+            "pgReplicaMaxStandbyDelayEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgReplicaMaxStandbyDelay" }
+          ]},
+          "log_min_error_statement": { "Fn::If": [
+            "pgLogMinErrorStatementEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgLogMinErrorStatement" }
+          ]},
           "rds.force_ssl": { "Fn::If": [
             "pgReplicaForceSslEmpty",
             { "Fn::If": [
