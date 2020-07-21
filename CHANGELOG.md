@@ -1,3 +1,8 @@
+Version 0.5.3
+==============
+- `pre-hooks.bash`
+    * Fix a bug that prevented running multiple pre-hook scripts
+
 Version 0.5.2
 ==============
 - `postgresql-template`
