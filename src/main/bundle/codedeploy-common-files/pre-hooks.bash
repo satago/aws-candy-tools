@@ -9,5 +9,5 @@ echo "Finding pre-${LIFECYCLE_EVENT} hooks..."
 for file in $(find ./data -name "*pre-${LIFECYCLE_EVENT}*")
 do
     echo "Executing ${file}..."
-    exec "${file}"
+    "${file}"
 done
