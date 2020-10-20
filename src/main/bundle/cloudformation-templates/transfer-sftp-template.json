@@ -1,0 +1,209 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create predefined set of managed policies for an S3 bucket",
+  "Parameters": {
+    "S3BucketName": {
+      "Type": "String",
+      "Description": "Name of S3 bucket"
+    },
+    "SFTPUserName": {
+      "Type": "String",
+      "Description": "Username of SFTP user"
+    },
+    "SFTPPublicKey": {
+      "Type": "String",
+      "Description": "RSA Public key"
+    },
+    "SFTPElasticIP": {
+      "Type": "String",
+      "Description": "Elastic IP for SFTP inbound connections"
+    },
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "SubnetId": {
+      "Type": "AWS::EC2::Subnet::Id"
+    }
+  },
+  "Resources": {
+    "MyServer": {
+      "Type": "AWS::Transfer::Server",
+      "Properties": {
+        "EndpointDetails": {
+          "AddressAllocationIds": [ { "Ref": "SFTPElasticIP" } ],
+          "SubnetIds": [
+            {
+              "Ref": "SubnetId"
+            }
+          ],
+          "VpcId": {
+            "Ref": "VpcId"
+          }
+        },
+        "EndpointType": "VPC",
+        "IdentityProviderType": "SERVICE_MANAGED",
+        "LoggingRole": {
+          "Fn::GetAtt" : ["MyLoggingRole", "Arn"]
+        },
+        "Protocols": [
+          "SFTP"
+        ]
+      }
+    },
+    "MyUser": {
+      "Type": "AWS::Transfer::User",
+      "Properties": {
+        "HomeDirectory": {
+          "Fn::Join": [
+            "",
+            [
+              "/",
+              {
+                "Ref": "S3BucketName"
+              },
+              "/data"
+            ]
+          ]
+        },
+        "HomeDirectoryType": "PATH",
+        "Role": {
+          "Fn::GetAtt": [
+            "MyUserRole",
+            "Arn"
+          ]
+        },
+        "ServerId": {
+          "Fn::GetAtt" : ["MyServer", "ServerId"]
+        },
+        "SshPublicKeys": [
+          {
+            "Ref": "SFTPPublicKey"
+          }
+        ],
+        "UserName": {
+          "Ref": "SFTPUserName"
+        }
+      }
+    },
+    "MyLoggingRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess" ],
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                "transfer.amazonaws.com"
+              ]
+            },
+            "Action": [
+              "sts:AssumeRole"
+            ]
+          }]
+        }
+      }
+    },
+    "MyUserRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": [ {
+          "Ref": "MyS3BucketProductionReadWritePolicy"
+        } ],
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                "transfer.amazonaws.com"
+              ]
+            },
+            "Action": [
+              "sts:AssumeRole"
+            ]
+          }]
+        }
+      }
+    },
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "KMSMasterKeyID": "alias/aws/s3",
+                "SSEAlgorithm": "aws:kms"
+              }
+            }
+          ]
+        },
+        "BucketName": {
+          "Ref": "S3BucketName"
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName": {
+            "Ref": "S3BucketName"
+          },
+          "LogFilePrefix": "logs/sftp-"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "AccessControl": "LogDeliveryWrite"
+      }
+    },
+    "MyS3BucketProductionReadWritePolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion",
+                "s3:GetObject*",
+                "s3:ListBucket",
+                "s3:PutObject*",
+                "s3:RestoreObject"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "S3BucketName"
+                      },
+                      "/data/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "S3BucketName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
