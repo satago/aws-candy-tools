@@ -117,7 +117,7 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "ManagedPolicyArns": [ {
-          "Ref": "MyS3BucketProductionReadWritePolicy"
+          "Ref": "MyS3BucketExternalUserReadWritePolicy"
         } ],
         "AssumeRolePolicyDocument": {
           "Statement": [{
@@ -168,7 +168,7 @@
         "AccessControl": "LogDeliveryWrite"
       }
     },
-    "MyS3BucketProductionReadWritePolicy": {
+    "MyS3BucketExternalUserReadWritePolicy": {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
         "PolicyDocument": {
