@@ -57,19 +57,24 @@
     "MyUser": {
       "Type": "AWS::Transfer::User",
       "Properties": {
-        "HomeDirectory": {
-          "Fn::Join": [
-            "",
-            [
-              "/",
-              {
-                "Ref": "S3BucketName"
-              },
-              "/data"
-            ]
-          ]
-        },
-        "HomeDirectoryType": "PATH",
+        "HomeDirectoryType": "LOGICAL",
+        "HomeDirectoryMappings": [
+          {
+            "Entry": "/",
+            "Target": {
+              "Fn::Join": [
+                "",
+                [
+                  "/",
+                  {
+                    "Ref": "S3BucketName"
+                  },
+                  "/data"
+                ]
+              ]
+            }
+          }
+        ],
         "Role": {
           "Fn::GetAtt": [
             "MyUserRole",
@@ -152,10 +157,10 @@
           "LogFilePrefix": "logs/sftp-"
         },
         "PublicAccessBlockConfiguration": {
-          "BlockPublicAcls": false,
-          "BlockPublicPolicy": false,
-          "IgnorePublicAcls": false,
-          "RestrictPublicBuckets": false
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
         },
         "VersioningConfiguration": {
           "Status": "Enabled"
@@ -170,9 +175,45 @@
           "Version": "2012-10-17",
           "Statement": [
             {
+              "Sid": "AllowListingOfHomeFolder",
+              "Action": [
+                "s3:ListBucket"
+              ],
               "Effect": "Allow",
-              "Action": "s3:*",
-              "Resource": "*"
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "S3BucketName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Sid": "HomeFolderAccess",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3BucketName"
+                    },
+                    "/data/*"
+                  ]
+                ]
+              }
             }
           ]
         }
