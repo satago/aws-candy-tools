@@ -1,0 +1,271 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create predefined set of managed policies for an S3 bucket",
+  "Parameters": {
+    "S3BucketName": {
+      "Type": "String",
+      "Description": "Name of S3 bucket"
+    },
+    "SFTPUserName": {
+      "Type": "String",
+      "Description": "Username of SFTP user"
+    },
+    "SFTPPublicKey": {
+      "Type": "String",
+      "Description": "RSA Public key"
+    },
+    "SFTPTestUserName": {
+      "Type": "String",
+      "Description": "Username of test SFTP user",
+      "Default": ""
+    },
+    "SFTPTestPublicKey": {
+      "Type": "String",
+      "Description": "RSA Public key of test user",
+      "Default": ""
+    },
+    "SFTPElasticIP": {
+      "Type": "String",
+      "Description": "Elastic IP for SFTP inbound connections"
+    },
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "SubnetId": {
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "SecurityGroupIds": {
+      "Type": "String"
+    }
+  },
+  "Conditions": {
+    "CreateTestUser": { "Fn::Not": [{"Fn::Equals": [{ "Ref": "SFTPTestUserName" }, ""] }] }
+  },
+  "Resources": {
+    "MyServer": {
+      "Type": "AWS::Transfer::Server",
+      "Properties": {
+        "EndpointDetails": {
+          "AddressAllocationIds": [ { "Ref": "SFTPElasticIP" } ],
+          "SecurityGroupIds" : { "Fn::Split" : [ ",", { "Ref": "SecurityGroupIds" } ] },
+          "SubnetIds": [
+            {
+              "Ref": "SubnetId"
+            }
+          ],
+          "VpcId": {
+            "Ref": "VpcId"
+          }
+        },
+        "EndpointType": "VPC",
+        "IdentityProviderType": "SERVICE_MANAGED",
+        "LoggingRole": {
+          "Fn::GetAtt" : ["MyLoggingRole", "Arn"]
+        },
+        "Protocols": [
+          "SFTP"
+        ]
+      }
+    },
+    "MyUser": {
+      "Type": "AWS::Transfer::User",
+      "Properties": {
+        "HomeDirectoryType": "LOGICAL",
+        "HomeDirectoryMappings": [
+          {
+            "Entry": "/",
+            "Target": {
+              "Fn::Join": [
+                "",
+                [
+                  "/",
+                  {
+                    "Ref": "S3BucketName"
+                  },
+                  "/data"
+                ]
+              ]
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "MyUserRole",
+            "Arn"
+          ]
+        },
+        "ServerId": {
+          "Fn::GetAtt" : ["MyServer", "ServerId"]
+        },
+        "SshPublicKeys": [
+          {
+            "Ref": "SFTPPublicKey"
+          }
+        ],
+        "UserName": {
+          "Ref": "SFTPUserName"
+        }
+      }
+    },
+    "MyTestUser": {
+      "Type": "AWS::Transfer::User",
+      "Condition": "CreateTestUser",
+      "Properties": {
+        "HomeDirectoryType": "LOGICAL",
+        "HomeDirectoryMappings": [
+          {
+            "Entry": "/",
+            "Target": {
+              "Fn::Join": [
+                "",
+                [
+                  "/",
+                  {
+                    "Ref": "S3BucketName"
+                  },
+                  "/data"
+                ]
+              ]
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "MyUserRole",
+            "Arn"
+          ]
+        },
+        "ServerId": {
+          "Fn::GetAtt" : ["MyServer", "ServerId"]
+        },
+        "SshPublicKeys": [
+          {
+            "Ref": "SFTPTestPublicKey"
+          }
+        ],
+        "UserName": {
+          "Ref": "SFTPTestUserName"
+        }
+      }
+    },
+    "MyLoggingRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess" ],
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                "transfer.amazonaws.com"
+              ]
+            },
+            "Action": [
+              "sts:AssumeRole"
+            ]
+          }]
+        }
+      }
+    },
+    "MyUserRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "ManagedPolicyArns": [ {
+          "Ref": "MyS3BucketExternalUserReadWritePolicy"
+        } ],
+        "AssumeRolePolicyDocument": {
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [
+                "transfer.amazonaws.com"
+              ]
+            },
+            "Action": [
+              "sts:AssumeRole"
+            ]
+          }]
+        }
+      }
+    },
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "KMSMasterKeyID": "alias/aws/s3",
+                "SSEAlgorithm": "aws:kms"
+              }
+            }
+          ]
+        },
+        "BucketName": {
+          "Ref": "S3BucketName"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "AccessControl": "LogDeliveryWrite"
+      }
+    },
+    "MyS3BucketExternalUserReadWritePolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowListingOfHomeFolder",
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "S3BucketName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Sid": "HomeFolderAccess",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3BucketName"
+                    },
+                    "/data/*"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
