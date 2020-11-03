@@ -14,6 +14,16 @@
       "Type": "String",
       "Description": "RSA Public key"
     },
+    "SFTPTestUserName": {
+      "Type": "String",
+      "Description": "Username of test SFTP user",
+      "Default": ""
+    },
+    "SFTPTestPublicKey": {
+      "Type": "String",
+      "Description": "RSA Public key of test user",
+      "Default": ""
+    },
     "SFTPElasticIP": {
       "Type": "String",
       "Description": "Elastic IP for SFTP inbound connections"
@@ -27,6 +37,9 @@
     "SecurityGroupIds": {
       "Type": "String"
     }
+  },
+  "Conditions": {
+    "CreateTestUser": { "Fn::Not": [{"Fn::Equals": [{ "Ref": "SFTPTestUserName" }, ""] }] }
   },
   "Resources": {
     "MyServer": {
@@ -94,6 +107,47 @@
         }
       }
     },
+    "MyTestUser": {
+      "Type": "AWS::Transfer::User",
+      "Condition": "CreateTestUser",
+      "Properties": {
+        "HomeDirectoryType": "LOGICAL",
+        "HomeDirectoryMappings": [
+          {
+            "Entry": "/",
+            "Target": {
+              "Fn::Join": [
+                "",
+                [
+                  "/",
+                  {
+                    "Ref": "S3BucketName"
+                  },
+                  "/data"
+                ]
+              ]
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "MyUserRole",
+            "Arn"
+          ]
+        },
+        "ServerId": {
+          "Fn::GetAtt" : ["MyServer", "ServerId"]
+        },
+        "SshPublicKeys": [
+          {
+            "Ref": "SFTPTestPublicKey"
+          }
+        ],
+        "UserName": {
+          "Ref": "SFTPTestUserName"
+        }
+      }
+    },
     "MyLoggingRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -149,12 +203,6 @@
         },
         "BucketName": {
           "Ref": "S3BucketName"
-        },
-        "LoggingConfiguration": {
-          "DestinationBucketName": {
-            "Ref": "S3BucketName"
-          },
-          "LogFilePrefix": "logs/sftp-"
         },
         "PublicAccessBlockConfiguration": {
           "BlockPublicAcls": true,
