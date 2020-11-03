@@ -1,3 +1,8 @@
+Version 0.5.4
+==============
+- `transfer-sftp-template`
+    * New CloudFormation template for creating an SFTP file server using AWS Transfer Family
+
 Version 0.5.3
 ==============
 - `pre-hooks.bash`
