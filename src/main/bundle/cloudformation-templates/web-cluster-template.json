@@ -257,6 +257,11 @@
       "Description": "Swap metrics collection interval in seconds",
       "Type": "Number",
       "Default": "300"
+    },
+    "VolumeSize": {
+      "Description": "Instance volume size (in GB), 0 means AWS default",
+      "Type": "Number",
+      "Default": "0"
     }
   },
   "Conditions": {
@@ -337,6 +342,11 @@
     },
     "InstanceSecurityGroupsEmpty": {
       "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }, ""]
+    },
+    "VolumeSizeDefined": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Ref": "VolumeSize" }, "0"]
+      }]
     }
   },
   "Mappings": {
@@ -705,6 +715,9 @@
                 "content": {
                   "Fn::Join": ["\n", [
                     "{",
+                    "  \"agent\": {",
+                    "    \"run_as_user\": \"cwagent\"",
+                    "  },",
                     "  \"metrics\": {",
                     "    \"append_dimensions\": {",
                     "      \"AutoScalingGroupName\": \"${aws:AutoScalingGroupName}\",",
@@ -833,6 +846,17 @@
                   ]]
                 },
                 "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/systemd/system/amazon-cloudwatch-agent.service.d/override.conf": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "[Service]\n",
+                    "Restart=always\n"
+                  ]]
+                },
+                "mode": "000644",
                 "owner": "root",
                 "group": "root"
               }
@@ -1109,6 +1133,19 @@
           ]
         },
         "InstanceType": { "Ref": "InstanceType" },
+        "BlockDeviceMappings" : {
+          "Fn::If": [
+            "VolumeSizeDefined",
+            [{
+              "DeviceName":"/dev/xvda",
+              "Ebs": {
+                "VolumeSize": { "Ref": "VolumeSize" },
+                "VolumeType":"gp2"
+              }
+            }],
+            []
+          ]
+        },
         "KeyName": { "Ref": "KeyName" },
         "SecurityGroups": { "Fn::Split": [",",
           { "Fn::Join": [ ",", [
