@@ -715,6 +715,9 @@
                 "content": {
                   "Fn::Join": ["\n", [
                     "{",
+                    "  \"agent\": {",
+                    "    \"run_as_user\": \"cwagent\"",
+                    "  },",
                     "  \"metrics\": {",
                     "    \"append_dimensions\": {",
                     "      \"AutoScalingGroupName\": \"${aws:AutoScalingGroupName}\",",

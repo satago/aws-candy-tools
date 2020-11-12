@@ -3,6 +3,7 @@ Version 0.5.5
 - `web-cluster-template`
     * new parameter `VolumeSize` to controll size of the instance volume. (in gigabytes)
     * creating file `/etc/systemd/system/amazon-cloudwatch-agent.service.d/override.conf` to change the service `Restart` parameter `Always`
+    * `amazon-cloudwatch-agent` sevice will run as `cwagent` user
 
 Version 0.5.4
 ==============
