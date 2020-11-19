@@ -716,7 +716,7 @@
                   "Fn::Join": ["\n", [
                     "{",
                     "  \"agent\": {",
-                    "    \"run_as_user\": \"cwagent\"",
+                    "    \"run_as_user\": \"root\"",
                     "  },",
                     "  \"metrics\": {",
                     "    \"append_dimensions\": {",
