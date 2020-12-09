@@ -1,3 +1,8 @@
+Version 0.5.7
+==============
+- `transfer-sftp-template`
+    * Parameter named `SubnetId` changed from single item to List `SubnetIds`
+
 Version 0.5.6
 ==============
 - `web-cluster-template`
@@ -6,7 +11,7 @@ Version 0.5.6
 Version 0.5.5
 ==============
 - `web-cluster-template`
-    * new parameter `VolumeSize` to controll size of the instance volume. (in gigabytes)
+    * new parameter `VolumeSize` to control size of the instance volume. (in gigabytes)
     * creating file `/etc/systemd/system/amazon-cloudwatch-agent.service.d/override.conf` to change the service `Restart` parameter `Always`
     * `amazon-cloudwatch-agent` service will run as `cwagent` user
 

@@ -31,8 +31,8 @@
     "VpcId": {
       "Type": "AWS::EC2::VPC::Id"
     },
-    "SubnetId": {
-      "Type": "AWS::EC2::Subnet::Id"
+    "SubnetIds": {
+      "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "SecurityGroupIds": {
       "Type": "String"
@@ -48,11 +48,7 @@
         "EndpointDetails": {
           "AddressAllocationIds": [ { "Ref": "SFTPElasticIP" } ],
           "SecurityGroupIds" : { "Fn::Split" : [ ",", { "Ref": "SecurityGroupIds" } ] },
-          "SubnetIds": [
-            {
-              "Ref": "SubnetId"
-            }
-          ],
+          "SubnetIds":  { "Ref": "SubnetIds" },
           "VpcId": {
             "Ref": "VpcId"
           }
