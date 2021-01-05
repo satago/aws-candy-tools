@@ -257,26 +257,47 @@ case "$CMD" in
             ;;
 
         wait-for-elb-instances)
-            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            # need to support both classic ELBs (pre 0.6.0) and ALBs (0.6.0+) so we do not end up with infinite loops during deployment
             ELB_NAME=$(physical_resource_id_by_logical_id ${STACK} MyELB)
+            ALB_TARGET_GROUP_ARN=$(physical_resource_id_by_logical_id ${STACK} MyALBTargetGroup)
 
+            if [[ -z ${ELB_NAME} ]] && [[ -z ${ALB_TARGET_GROUP_ARN} ]]; then
+                printf "$(date +%H:%M:%S) ${STACK} neither has ELB (Classic) nor ALB (ELBv2) defined\n"
+                exit 1
+
+            elif [[ -n ${ALB_TARGET_GROUP_ARN} ]]; then
+                IN_SERVICE_COUNT_CHECK_DESTINATION="ALB (ELBv2) target group"
+                function IN_SERVICE_COUNT_FUNCTION {
+                  echo $(aws elbv2 describe-target-health \
+                   --target-group-arn ${ALB_TARGET_GROUP_ARN} \
+                   --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id)")
+                }
+
+            elif [[ -n ${ELB_NAME} ]]; then
+                IN_SERVICE_COUNT_CHECK_DESTINATION="ELB (Classic)"
+                function IN_SERVICE_COUNT_FUNCTION {
+                    echo $(aws elb describe-instance-health \
+                        --load-balancer-name ${ELB_NAME} \
+                        --query "length(InstanceStates[?State=='InService'].InstanceId)")
+                }
+            fi
+
+            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
             DESIRED_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
                 --auto-scaling-group-name ${ASG_NAME} \
                 --query 'AutoScalingGroups[0].DesiredCapacity' \
                 --output text)
 
-            printf "$(date +%H:%M:%S) Waiting for ${STACK} ELB to have ${DESIRED_CAPACITY} healthy instance(s) to match its ASG\n"
+            printf "$(date +%H:%M:%S) Waiting for ${STACK} ${IN_SERVICE_COUNT_CHECK_DESTINATION} to have ${DESIRED_CAPACITY} healthy instance(s) to match its ASG\n"
 
             PREV_STATUS=
             while true
             do
                 set +e
-                IN_SERVICE_COUNT=$(aws elb describe-instance-health \
-                  --load-balancer-name ${ELB_NAME} \
-                  --query "length(InstanceStates[?State=='InService'].InstanceId)")
+                IN_SERVICE_COUNT=$(IN_SERVICE_COUNT_FUNCTION)
                 set -e
 
-                STATUS="${STACK} ELB has ${IN_SERVICE_COUNT} healthy instance(s)"
+                STATUS="${STACK} ${IN_SERVICE_COUNT_CHECK_DESTINATION} has ${IN_SERVICE_COUNT} healthy instance(s)"
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
 
                 if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then

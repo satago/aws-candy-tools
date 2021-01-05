@@ -147,9 +147,11 @@ case "$CMD" in
             $0 wait ${DEPLOYMENT_ID}
 
             if ${AUTO_SCALING}; then
-                echo Changing desired capacity of ${STACK} ASG back to ${ORIGINAL_CAPACITY}
+                if [[ ${ORIGINAL_CAPACITY} -lt 2 ]]; then
+                    echo Changing desired capacity of ${STACK} ASG back to ${ORIGINAL_CAPACITY}
 
-                ${STACK_CMD} set-desired-capacity ${STACK} ${ORIGINAL_CAPACITY}
+                    ${STACK_CMD} set-desired-capacity ${STACK} ${ORIGINAL_CAPACITY}
+                fi
             fi
             ;;
 
