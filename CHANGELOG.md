@@ -2,6 +2,8 @@ Version 0.6.0
 ==============
 - `web-cluster-template`
   * Classic ELBs replaces with Application Load Balancers (ELBv2)
+  * Amazon Linux AMIs updated to version 2.0.20201111.0
+  * AWS CLI updated to 1.18.210
   * Dropped the ELB latency alarm - it wasn't used and there isn't direct mapping to ALB
   * Added required `VpcId` parameter
   * Added required `SubnetIds` paramters

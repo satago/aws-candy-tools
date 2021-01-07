@@ -66,7 +66,7 @@
     "AWSCLIVersion": {
       "Description": "Version of AWS CLI tools",
       "Type": "String",
-      "Default": "1.18.68"
+      "Default": "1.18.210"
     },
     "ManagedPolicyArns": {
       "Description": "List of IAM policy names that will be granted to the instance role",
@@ -322,9 +322,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-0a02ee601d742e89f", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-0ea3405d2d2522162", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-032598fcc7e9d1c7a", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-05d403b512bf100eb", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-06cd7f9c4486344a5", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-01ac84be28584498d", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
