@@ -1,4 +1,4 @@
-# For help completing this file, see the "AppSpec File Reference" in the  
+# For help completing this file, see the "AppSpec File Reference" in the
 #   "AWS CodeDeploy User Guide" at
 #   http://docs.aws.amazon.com/codedeploy/latest/userguide/app-spec-ref.html
 version: 0.0
@@ -8,8 +8,6 @@ os: linux
 hooks:
   ApplicationStop:
     - location: pre-hooks.bash
-      timeout: 3600
-    - location: elb/deregister_from_elb.sh
       timeout: 3600
     - location: stop.bash
       timeout: 3600
@@ -30,13 +28,9 @@ hooks:
     - location: up.bash
       timeout: 3600
   ValidateService:
-    - location: pre-hooks.bash
-      timeout: 3600
-    - location: elb/register_with_elb.sh
-      timeout: 3600
     - location: validate.bash
       timeout: 3600
-    - location: elb/wait_for_elb.sh
+    - location: pre-hooks.bash
       timeout: 3600
     - location: cfn-success.bash
       timeout: 3600

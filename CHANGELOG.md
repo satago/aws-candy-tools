@@ -1,3 +1,22 @@
+Version 0.6.0
+==============
+- `web-cluster-template`
+  * Classic ELBs replaces with Application Load Balancers (ELBv2)
+  * Amazon Linux AMIs updated to version 2.0.20201111.0
+  * AWS CLI updated to 1.18.210
+  * Dropped the ELB latency alarm - it wasn't used and there isn't direct mapping to ALB
+  * Added required `VpcId` parameter
+  * Added required `SubnetIds` paramters
+  * Added optional `HealthCheckPath` parameter
+  * Dropped the `InternalELBSubnets` parameter (migrated to `SubnetIds`, now required for all stacks)
+  * Dropped the `HealthCheckTarget` paramters (replaces with `HealthCheckPath` containing the path only, protocol and port same as for normal request handling)
+  * Instance de-registration/registration from load balancer has been moved to CodeDeploy (dropped calling of `elb/*` scripts from appspec)
+
+**NOTE:** Breaking changes. After the upgrade to 0.6.0 the stack's `ApplicationURL` output has a new value (for newly created ALB). Please make sure to update all references (e.g. DNS aliases).
+
+- `bin/stack`
+  * `wait-for-elb-instances <stack-name>` now checks both instance health status in both classic ELBs (created in aws-candy-tools pre 0.6.0) and Applicatiowait-for-elb-instances <stack-name>n Load Balancers (created in aws-candy-tools 0.6.0+) to simplify migration
+
 Version 0.5.7
 ==============
 - `transfer-sftp-template`

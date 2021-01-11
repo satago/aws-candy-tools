@@ -311,9 +311,6 @@ class CandyPlugin implements Plugin<Project> {
                     sync.from project.file("${extractedBundleDirPath}/bin/decrypt")
                     sync.from project.file("${extractedBundleDirPath}/bin/decrypt-file.py")
                     sync.from project.file("${extractedBundleDirPath}/bin/replace.py")
-                    sync.from("${extractedBundleDirPath}/awslabs") { it ->
-                        it.include 'elb/'
-                    }
                     sync.from("${extractedBundleDirPath}/codedeploy-common-files/compose.env") { it ->
                         it.filter(DeferredReplaceTokens, tokenGenerator: {
                             [

@@ -1,13 +1,12 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "AutoScaling Group of Docker & CodeDeploy powered instances behind an ELB",
+  "Description": "AutoScaling Group of Docker & CodeDeploy powered instances behind an Application Load Balancer (ALB)",
   "Parameters": {
     "InstanceType" : {
       "Description" : "Type of EC2 instance in the cluster",
       "Type": "String",
       "Default": "t2.nano"
     },
-
     "CustomImageId": {
       "Description": "(Optional) Custom image ID for EC2 instance",
       "Type": "String",
@@ -15,19 +14,21 @@
       "ConstraintDescription": "must be ID of AMI (ami-xxxxxxxx) or empty for default AMI for current region",
       "Default": ""
     },
-
     "MinSize": {
       "Description": "Minimum size of AutoScaling Group",
       "Type": "String",
       "Default": 1
     },
-
+    "MaxSize": {
+      "Description": "Maximum size of AutoScaling Group",
+      "Type": "String",
+      "Default": 4
+    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
       "ConstraintDescription" : "must be the name of an existing EC2 KeyPair"
     },
-
     "SSHSecurityGroupId": {
       "Description": "(Optional) ID of ingress security group to allow SSH access to EC2 instances",
       "Type": "AWS::EC2::SecurityGroup::Id",
@@ -49,35 +50,29 @@
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-
     "InstanceSecurityGroups": {
       "Description": "Additional SecurityGroups for EC2 instances",
       "Type": "CommaDelimitedList",
       "Default": ""
     },
-
     "DockerVersion": {
       "Description": "Version of Docker, i.e. '19.03.6ce'",
       "Type": "String"
     },
-
     "DockerComposeVersion": {
       "Description": "Version of Docker Compose, i.e. '1.25.5'",
       "Type": "String"
     },
-
     "AWSCLIVersion": {
       "Description": "Version of AWS CLI tools",
       "Type": "String",
-      "Default": "1.18.68"
+      "Default": "1.18.210"
     },
-
     "ManagedPolicyArns": {
       "Description": "List of IAM policy names that will be granted to the instance role",
       "Type": "CommaDelimitedList",
       "Default": ""
     },
-
     "CreateELB": {
       "Description": "Create ELB and associate with this AutoScaling Group",
       "Type": "String",
@@ -85,11 +80,21 @@
       "ConstraintDescription": "true (default) or false"
     },
     "InternalELB": {
-      "Description": "Create internal ELB",
+      "Description": "Whether the created Load Balancer should only be available internally within the VPC or public",
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
+    },
+    "VpcId" : {
+      "Description" : "VpcId of your existing Virtual Private Cloud (VPC)",
+      "Type" : "AWS::EC2::VPC::Id",
+      "ConstraintDescription" : "must be the VPC Id of an existing Virtual Private Cloud."
+    },
+    "SubnetIds" : {
+      "Description" : "The list of SubnetIds in your Virtual Private Cloud (VPC)",
+      "Type" : "List<AWS::EC2::Subnet::Id>",
+      "ConstraintDescription" : "must be a list of at least two existing subnets associated with at least two different availability zones. They should be residing in the selected VPC."
     },
     "MultiAZ": {
       "Description": "Create EC2 instances in different availability zones",
@@ -103,10 +108,6 @@
       "Type": "Number",
       "Default": "0"
     },
-    "InternalELBSubnets": {
-      "Description": "List of VPC subnets for internal ELB",
-      "Type": "List<AWS::EC2::Subnet::Id>"
-    },
     "ELBReferenceSecurityPolicy": {
       "Description": "Name of Reference-Security-Policy to apply to the ELB, http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html",
       "Type": "String",
@@ -117,10 +118,10 @@
       "Type": "String",
       "Default": ""
     },
-    "HealthCheckTarget": {
-      "Description": "ELB HealthCheck target",
+    "HealthCheckPath": {
+      "Description": "The destination for health checks on the Application Load Balancer targets",
       "Type": "String",
-      "Default": "HTTP:8080/"
+      "Default": "/"
     },
     "UseCookieStickinessPolicy": {
       "Description": "Enable ELB sticky sessions based on cookies",
@@ -129,6 +130,11 @@
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
+    "LoadBalancerDeregistrationDelay": {
+      "Description": "The amount of time, in seconds, for Elastic Load Balancing to wait before changing the state of a deregistering target from 'draining' to 'unused'",
+      "Type": "Number",
+      "Default": "60"
+    },
     "EnableELBAccessLogging": {
       "Description": "Write ELB access logs to S3LoggingBucket",
       "Type": "String",
@@ -136,7 +142,6 @@
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-
     "HealthCheckType": {
       "Description": "The service to use for the health checks of ASG instances",
       "Type": "String",
@@ -149,21 +154,18 @@
       "Type": "Number",
       "Default": "300"
     },
-
     "TerminationPolicies": {
       "Description": "A policy or a list of policies that are used to select the instances to terminate",
       "Type": "CommaDelimitedList",
       "Default": "Default",
       "ConstraintDescription": "See https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-instance-termination.html"
     },
-
     "AlarmActions": {
       "Description": "List of actions that will receive updates on alarms from this stack",
       "Type": "CommaDelimitedList",
       "Default": "",
       "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
     },
-
     "ELBHealthyHostCountAlarmEnabled": {
       "Description": "Create CloudWatch alarm for the healthy host count ELB metric",
       "Type": "String",
@@ -171,37 +173,11 @@
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-
-    "ELBLatencyAlarmEnabled": {
-      "Description": "Create CloudWatch alarm for the latency ELB metric",
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": ["true", "false"],
-      "ConstraintDescription": "true or false (default)"
-    },
-    "ELBLatencyAlarmPeriod": {
-      "Description": "Evaluation period for this alarm in seconds",
-      "Type": "Number",
-      "Default": "60"
-    },
-    "ELBLatencyAlarmStatistic": {
-      "Description": "Threshold for ELB latency in seconds, value above the threshold triggers an alarm",
-      "Type": "String",
-      "Default": "Average",
-      "AllowedValues": [ "SampleCount", "Average", "Sum", "Minimum", "Maximum" ]
-    },
-    "ELBLatencyAlarmThreshold": {
-      "Description": "Threshold for ELB latency in seconds, value equals to or above the threshold triggers an alarm",
-      "Type": "Number",
-      "Default": "10"
-    },
-
     "ELBSecurityGroups": {
       "Description": "Additional SecurityGroups for ELB",
       "Type": "CommaDelimitedList",
       "Default": ""
     },
-
     "GracefulShutdownEnabled": {
       "Description": "Call graceful shutdown of application when ASG scales down",
       "Type": "String",
@@ -209,13 +185,11 @@
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-
     "GracefulShutdownTimeout": {
       "Description": "Timeout in seconds of waiting till instance confirms it has shut down. When passed termination of the instance will be abandonded",
       "Type": "Number",
       "Default": "600"
     },
-
     "DiskMetrics": {
       "Description": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html#linux-metrics-enabled-by-CloudWatch-agent",
       "Type": "CommaDelimitedList",
@@ -267,9 +241,6 @@
   "Conditions": {
     "CreateAlarmForELBHealthyHostCount": {
       "Fn::Equals": [{ "Ref": "ELBHealthyHostCountAlarmEnabled" }, "true"]
-    },
-    "CreateAlarmForELBLatency": {
-      "Fn::Equals": [{ "Ref": "ELBLatencyAlarmEnabled" }, "true"]
     },
     "CreateAlarmForDiskUsedPercent": {
       "Fn::Equals": [{ "Ref": "DiskUsedPercentAlarmEnabled" }, "true"]
@@ -351,9 +322,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-0a02ee601d742e89f", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-0ea3405d2d2522162", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-032598fcc7e9d1c7a", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-05d403b512bf100eb", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-06cd7f9c4486344a5", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-01ac84be28584498d", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -419,11 +390,11 @@
         "HealthCheckType": { "Ref": "HealthCheckType" },
         "TerminationPolicies": { "Ref": "TerminationPolicies" },
         "MinSize": { "Ref": "MinSize" },
-        "MaxSize": "4",
-        "LoadBalancerNames": [{
+        "MaxSize": { "Ref": "MaxSize" },
+        "TargetGroupARNs": [{
           "Fn::If": [
             "CreateELB",
-            { "Ref": "MyELB" },
+            { "Ref": "MyALBTargetGroup" },
             { "Ref": "AWS::NoValue" }
           ]
         }],
@@ -463,100 +434,85 @@
         }
       }
     },
-    "MyELB": {
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+    "MyALBTargetGroup": {
+      "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
       "Condition": "CreateELB",
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": "true",
-          "Timeout": "300"
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "60"
-        },
-        "CrossZone": "true",
-        "Scheme": {
-          "Fn::If": ["InternalELB", "internal", { "Ref": "AWS::NoValue" }]
-        },
-        "AvailabilityZones": {
-          "Fn::If": [
-            "InternalELB",
-            { "Ref": "AWS::NoValue" },
-            { "Fn::If": [
-              "MultiAZ",
-              { "Fn::GetAZs": "" },
-              [{ "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }]
-            ]}
-        ]},
-        "Subnets": {
-          "Fn::If": ["InternalELB", { "Ref": "InternalELBSubnets" }, { "Ref": "AWS::NoValue" }]
-        },
-        "SecurityGroups": { "Fn::Split": [",",
-          { "Fn::Join": [ ",", [
-            { "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] },
-            { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
-          ]]}
-        ]},
-        "LBCookieStickinessPolicy": [{
-          "PolicyName": "CookieBasedPolicy",
-          "CookieExpirationPeriod": "10"
-        }],
-        "Listeners": [{
-          "LoadBalancerPort": "80",
-          "InstancePort": "8080",
-          "Protocol": "HTTP",
-          "PolicyNames": [{
-            "Fn::If": [
-              "UseCookieStickinessPolicy",
-              "CookieBasedPolicy",
-              { "Ref": "AWS::NoValue" }
-            ]
-          }]
-        }, {
-          "LoadBalancerPort": "443",
-          "InstancePort": "8080",
-          "Protocol": "HTTPS",
-          "PolicyNames": [{
-              "Fn::If": [
-                "UseCookieStickinessPolicy",
-                "CookieBasedPolicy",
-                { "Ref": "AWS::NoValue" }
-              ]
-            },
-            "MySSLNegotiationPolicy"
-          ],
-          "SSLCertificateId": { "Ref": "SSLCertificateId" }
-        }],
-        "HealthCheck": {
-          "Target": { "Ref": "HealthCheckTarget" },
-          "HealthyThreshold": "2",
-          "UnhealthyThreshold": "5",
-          "Interval": "10",
-          "Timeout": "5"
-        },
-        "AccessLoggingPolicy": {
-          "S3BucketName": {
-            "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
-          },
-          "S3BucketPrefix": "ELBLogs",
-          "Enabled": { "Ref": "EnableELBAccessLogging" },
-          "EmitInterval" : "5"
-        },
-        "Policies": [
-          {
-            "PolicyName": "MySSLNegotiationPolicy",
-            "PolicyType": "SSLNegotiationPolicyType",
-            "Attributes": [
-              {
-                "Name": "Reference-Security-Policy",
-                "Value": { "Ref": "ELBReferenceSecurityPolicy" }
-              }
-            ]
-          }
+      "Properties" : {
+        "Name": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, "-TG"] ] },
+        "Protocol": "HTTP",
+        "Port": 8080,
+        "VpcId": { "Ref": "VpcId" },
+        "HealthCheckEnabled": true,
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckPort": "8080",
+        "HealthCheckPath": { "Ref": "HealthCheckPath" },
+        "HealthCheckIntervalSeconds" : 10,
+        "HealthCheckTimeoutSeconds" : 5,
+        "HealthyThresholdCount" : 2,
+        "UnhealthyThresholdCount" : 5,
+        "TargetGroupAttributes" : [
+          { "Key": "stickiness.enabled", "Value" : { "Ref": "UseCookieStickinessPolicy" } },
+          { "Key": "stickiness.type", "Value": "lb_cookie" },
+          { "Key": "stickiness.lb_cookie.duration_seconds", "Value": "10" },
+          { "Key": "deregistration_delay.timeout_seconds", "Value": { "Ref": "LoadBalancerDeregistrationDelay" } }
         ]
       }
     },
-    "MyELBSecurityGroup": {
+    "MyALB" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Condition": "CreateELB",
+      "Properties" : {
+        "Name": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, "-ALB"] ] },
+        "LoadBalancerAttributes": [
+          { "Key": "access_logs.s3.enabled", "Value":  { "Ref": "EnableELBAccessLogging" }},
+          { "Key": "access_logs.s3.bucket", "Value":  {
+            "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
+          }},
+          { "Key": "access_logs.s3.prefix", "Value": "ELBLogs" }
+        ],
+        "Scheme": {
+          "Fn::If": ["InternalELB", "internal", { "Ref": "AWS::NoValue" }]
+        },
+        "SecurityGroups": { "Fn::Split": [",",
+          { "Fn::Join": [ ",", [
+            { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] },
+            { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
+          ]]}
+        ]},
+        "Subnets": { "Ref": "SubnetIds" }
+      }
+    },
+    "MyALBListenerHTTP" : {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "CreateELB",
+      "Properties": {
+        "DefaultActions": [{
+          "Type" : "forward",
+          "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
+        }],
+        "LoadBalancerArn": { "Ref": "MyALB" },
+        "Port": "80",
+        "Protocol": "HTTP"
+      }
+    },
+    "MyALBListenerHTTPS" : {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "CreateELB",
+      "Properties": {
+        "DefaultActions": [{
+          "Type": "forward",
+          "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
+        }],
+        "LoadBalancerArn": { "Ref": "MyALB" },
+        "Port": "443",
+        "Protocol": "HTTPS",
+        "Certificates": [
+          { "CertificateArn": { "Ref": "SSLCertificateId" } }
+        ],
+        "SslPolicy": { "Ref": "ELBReferenceSecurityPolicy" }
+      }
+    },
+    "MyALBSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allow HTTP & HTTPS to ELB",
@@ -1212,7 +1168,7 @@
           "IpProtocol": "tcp",
           "FromPort": "8080",
           "ToPort": "8080",
-          "SourceSecurityGroupId": { "Fn::GetAtt": ["MyELBSecurityGroup", "GroupId"] }
+          "SourceSecurityGroupId": { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] }
         }, { "Fn::If": [
           "Ingress8080SecurityGroupIdEmpty",
           { "Ref": "AWS::NoValue" },
@@ -1258,8 +1214,19 @@
       "Type": "AWS::CodeDeploy::DeploymentGroup",
       "Properties": {
         "ApplicationName": { "Ref": "MyApplication" },
-        "DeploymentConfigName": "CodeDeployDefault.OneAtATime",
         "AutoScalingGroups": [{ "Ref": "MyASG" }],
+        "DeploymentConfigName": "CodeDeployDefault.OneAtATime",
+        "DeploymentStyle": {
+          "DeploymentOption": "WITH_TRAFFIC_CONTROL",
+          "DeploymentType": "IN_PLACE"
+        },
+        "LoadBalancerInfo": {
+          "TargetGroupInfoList": [
+            {
+              "Name": { "Fn::GetAtt": ["MyALBTargetGroup", "TargetGroupName"] }
+            }
+          ]
+        },
         "ServiceRoleArn": { "Fn::GetAtt" : ["CodeDeployServiceRole", "Arn"] }
       }
     },
@@ -1309,7 +1276,11 @@
               "autoscaling:DescribeLifecycleHooks",
               "autoscaling:DescribeAutoScalingGroups",
               "autoscaling:PutLifecycleHook",
-              "autoscaling:RecordLifecycleActionHeartbeat"
+              "autoscaling:RecordLifecycleActionHeartbeat",
+
+              "elasticloadbalancing:Describe*",
+              "elasticloadbalancing:DeregisterTargets",
+              "elasticloadbalancing:RegisterTargets"
             ]
           }]
         },
@@ -1360,9 +1331,9 @@
           "Statement": [{
             "Effect": "Allow",
             "Action": [
-              "autoscaling:Describe*",
               "cloudformation:Describe*",
               "cloudformation:GetTemplate",
+
               "s3:Get*",
               "s3:List*",
 
@@ -1376,9 +1347,6 @@
 
               "kms:Decrypt",
 
-              "elasticloadbalancing:Describe*",
-              "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-              "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
               "autoscaling:Describe*",
               "autoscaling:CompleteLifecycleAction",
               "autoscaling:EnterStandby",
@@ -1387,7 +1355,12 @@
               "autoscaling:SuspendProcesses",
               "autoscaling:ResumeProcesses",
 
+              "elasticloadbalancing:Describe*",
+              "elasticloadbalancing:DeregisterTargets",
+              "elasticloadbalancing:RegisterTargets",
+
               "ec2messages:*",
+
               "ssm:UpdateInstanceInformation",
 
               "codedeploy:List*",
@@ -1414,20 +1387,26 @@
         }]
       }
     },
-    "MyELBHealthyHostCountAlarm": {
+    "MyALBTargetGroupHealthyHostCountAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Condition": "CreateAlarmForELBHealthyHostCount",
       "Properties": {
-        "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " ELB Healthy Host Count"]] },
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " Application ELB Target Group Healthy Host Count"]] },
         "ActionsEnabled": true,
         "AlarmActions": { "Ref": "AlarmActions" },
         "InsufficientDataActions": { "Ref": "AlarmActions" },
         "OKActions": { "Ref": "AlarmActions" },
-        "Namespace": "AWS/ELB",
-        "Dimensions": [{
-          "Name": "LoadBalancerName",
-          "Value": { "Ref": "MyELB" }
-        }],
+        "Namespace": "AWS/ApplicationELB",
+        "Dimensions": [
+          {
+            "Name": "LoadBalancer",
+            "Value": { "Ref": "MyALB" }
+          },
+          {
+            "Name": "TargetGroup",
+            "Value": { "Ref": "MyALBTargetGroup" }
+          }
+        ],
         "MetricName": "HealthyHostCount",
         "Unit": "Count",
         "EvaluationPeriods": 1,
@@ -1435,30 +1414,6 @@
         "Statistic": "Minimum",
         "Threshold": 1,
         "ComparisonOperator": "LessThanThreshold",
-        "TreatMissingData": "breaching"
-      }
-    },
-    "MyELBLatencyAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Condition": "CreateAlarmForELBLatency",
-      "Properties": {
-        "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " ELB Latency"]] },
-        "ActionsEnabled": true,
-        "AlarmActions": { "Ref": "AlarmActions" },
-        "InsufficientDataActions": { "Ref": "AlarmActions" },
-        "OKActions": { "Ref": "AlarmActions" },
-        "Namespace": "AWS/ELB",
-        "Dimensions": [{
-          "Name": "LoadBalancerName",
-          "Value": { "Ref": "MyELB" }
-        }],
-        "MetricName": "Latency",
-        "Unit": "Seconds",
-        "EvaluationPeriods": 1,
-        "Period": { "Ref": "ELBLatencyAlarmPeriod" },
-        "Statistic": { "Ref": "ELBLatencyAlarmStatistic" },
-        "Threshold": { "Ref": "ELBLatencyAlarmThreshold" },
-        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
       }
     },
@@ -1493,7 +1448,7 @@
       "Value": {
         "Fn::Join": ["", [
           "http://",
-          { "Fn::GetAtt": ["MyELB", "DNSName"] }
+          { "Fn::GetAtt": ["MyALB", "DNSName"] }
         ]]
       },
       "Export" : {
