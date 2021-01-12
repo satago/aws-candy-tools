@@ -279,7 +279,7 @@
     "CreateELB": {
       "Fn::Equals": [{ "Ref": "CreateELB" }, "true"]
     },
-    "CreateLoggingBucketPolicy": {
+    "EnableELBAccessLogging": {
       "Fn::And": [
         { "Fn::Equals": [{ "Ref": "EnableELBAccessLogging" }, "true"] },
         { "Condition": "CreateELB" }
@@ -463,13 +463,18 @@
       "Condition": "CreateELB",
       "Properties" : {
         "Name": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, "-ALB"] ] },
-        "LoadBalancerAttributes": [
-          { "Key": "access_logs.s3.enabled", "Value":  { "Ref": "EnableELBAccessLogging" }},
-          { "Key": "access_logs.s3.bucket", "Value":  {
-            "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
-          }},
-          { "Key": "access_logs.s3.prefix", "Value": "ELBLogs" }
-        ],
+        "LoadBalancerAttributes": {
+          "Fn::If": ["EnableELBAccessLogging",
+            [
+              { "Key": "access_logs.s3.enabled", "Value":  { "Ref": "EnableELBAccessLogging" }},
+              { "Key": "access_logs.s3.bucket", "Value":  {
+                "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
+              }},
+              { "Key": "access_logs.s3.prefix", "Value": "ELBLogs" }
+            ],
+            []
+          ]
+        },
         "Scheme": {
           "Fn::If": ["InternalELB", "internal", { "Ref": "AWS::NoValue" }]
         },
@@ -535,7 +540,7 @@
     },
     "MyS3LoggingBucketPolicy": {
       "Type": "AWS::S3::BucketPolicy",
-      "Condition": "CreateLoggingBucketPolicy",
+      "Condition": "EnableELBAccessLogging",
       "Properties": {
         "Bucket": {
           "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
