@@ -1405,11 +1405,11 @@
         "Dimensions": [
           {
             "Name": "LoadBalancer",
-            "Value": { "Ref": "MyALB" }
+            "Value": { "Fn::GetAtt": ["MyALB", "LoadBalancerFullName"] }
           },
           {
             "Name": "TargetGroup",
-            "Value": { "Ref": "MyALBTargetGroup" }
+            "Value": { "Fn::GetAtt": ["MyALBTargetGroup", "TargetGroupFullName"] }
           }
         ],
         "MetricName": "HealthyHostCount",

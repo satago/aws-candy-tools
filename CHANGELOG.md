@@ -1,6 +1,11 @@
 Version 0.6.1
 ==============
 - `web-cluster-template`
+  * Fix MyALBTargetGroupHealthyHostCountAlarm dimensions using ARNs instead of Full Names only
+
+Version 0.6.1
+==============
+- `web-cluster-template`
   * Fix issue of referencing ELBAccessLogging S3 folder even if no logging should be used 
 
 Version 0.6.0
