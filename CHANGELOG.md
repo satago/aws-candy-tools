@@ -2,6 +2,7 @@ Version 0.6.1
 ==============
 - `web-cluster-template`
   * Fix MyALBTargetGroupHealthyHostCountAlarm dimensions using ARNs instead of Full Names only
+  * Fix MyDeploymentGroup reference MyALBTargetGroup without checking the condition whether the load balancer should actually be created 
 
 Version 0.6.1
 ==============
