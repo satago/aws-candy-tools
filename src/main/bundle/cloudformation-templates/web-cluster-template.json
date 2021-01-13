@@ -114,7 +114,17 @@
       "Default": "ELBSecurityPolicy-2016-08"
     },
     "SSLCertificateId": {
-      "Description": "ARN of SSL Certificate for ELB",
+      "Description": "ARN of the default SSL Certificate for the ALB HTTPS listener; for the additional ones use SSLCertificateId2, SSLCertificateId3, ...",
+      "Type": "String",
+      "Default": ""
+    },
+    "SSLCertificateId2": {
+      "Description": "ARN of the second SSL Certificate for the default ALB HTTPS listener",
+      "Type": "String",
+      "Default": ""
+    },
+    "SSLCertificateId3": {
+      "Description": "ARN of the third SSL Certificate for the default ALB HTTPS listener",
       "Type": "String",
       "Default": ""
     },
@@ -318,6 +328,36 @@
       "Fn::Not": [{
         "Fn::Equals": [{ "Ref": "VolumeSize" }, "0"]
       }]
+    },
+    "CreateHTTPSListener": {
+      "Fn::And": [
+        { "Condition": "CreateELB" },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Ref": "SSLCertificateId" }, ""]
+          }]
+        }
+      ]
+    },
+    "CreateListenerCertificate2": {
+      "Fn::And": [
+        { "Condition": "CreateHTTPSListener" },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Ref": "SSLCertificateId2" }, ""]
+          }]
+        }
+      ]
+    },
+    "CreateListenerCertificate3": {
+      "Fn::And": [
+        { "Condition": "CreateHTTPSListener" },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Ref": "SSLCertificateId3" }, ""]
+          }]
+        }
+      ]
     }
   },
   "Mappings": {
@@ -502,7 +542,7 @@
     },
     "MyALBListenerHTTPS" : {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
-      "Condition": "CreateELB",
+      "Condition": "CreateHTTPSListener",
       "Properties": {
         "DefaultActions": [{
           "Type": "forward",
@@ -515,6 +555,26 @@
           { "CertificateArn": { "Ref": "SSLCertificateId" } }
         ],
         "SslPolicy": { "Ref": "ELBReferenceSecurityPolicy" }
+      }
+    },
+    "MyALBListenerHTTPSCertificate2": {
+      "Type" : "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+      "Condition": "CreateListenerCertificate2",
+      "Properties" : {
+        "Certificates" : [
+          { "CertificateArn": { "Ref": "SSLCertificateId2" } }
+        ],
+        "ListenerArn" : { "Fn::GetAtt" : ["MyALBListenerHTTPS", "ListenerArn"] }
+      }
+    },
+    "MyALBListenerHTTPSCertificate3": {
+      "Type" : "AWS::ElasticLoadBalancingV2::ListenerCertificate",
+      "Condition": "CreateListenerCertificate3",
+      "Properties" : {
+        "Certificates" : [
+          { "CertificateArn": { "Ref": "SSLCertificateId3" } }
+        ],
+        "ListenerArn" : { "Fn::GetAtt" : ["MyALBListenerHTTPS", "ListenerArn"] }
       }
     },
     "MyALBSecurityGroup": {

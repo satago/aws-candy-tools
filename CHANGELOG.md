@@ -1,6 +1,7 @@
 Version 0.6.1
 ==============
 - `web-cluster-template`
+  * Add support for additional (up to 2) SSL certificates on the ALB HTTPS listener
   * Fix MyALBTargetGroupHealthyHostCountAlarm dimensions using ARNs instead of Full Names only
   * Fix MyDeploymentGroup reference MyALBTargetGroup without checking the condition whether the load balancer should actually be created 
 
