@@ -891,7 +891,7 @@
           "install-pip": {
             "commands": {
               "pip": {
-                "command": "command -v pip || (curl -O https://bootstrap.pypa.io/get-pip.py ; python get-pip.py)"
+                "command": "command -v pip || (curl -O https://bootstrap.pypa.io/2.7/get-pip.py ; python get-pip.py)"
               }
             }
           },

@@ -1,3 +1,8 @@
+Version 0.6.4
+=============
+- `web-cluster-template`
+  * Fix `install-pip` task in cfn-init to use version for Python 2.7
+
 Version 0.6.1
 ==============
 - `web-cluster-template`
