@@ -1,3 +1,12 @@
+Version 0.6.5
+=============
+- `web-cluster-template`
+  * Automatically create the S3 bucket for access logs, if enabled. When updating existing stacks, and the bucket already exists,
+    need to use the `Import resources into stack` option
+
+- `bin/stack`
+  * dropped `create-access-logs-bucket` command - access log buckets are created by the stacks
+
 Version 0.6.4
 =============
 - `web-cluster-template`

@@ -598,6 +598,35 @@
         }]
       }
     },
+    "MyS3LoggingBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Condition": "EnableELBAccessLogging",
+      "DeletionPolicy" : "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "BucketName": {
+          "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "AccessControl": "LogDeliveryWrite"
+      }
+    },
     "MyS3LoggingBucketPolicy": {
       "Type": "AWS::S3::BucketPolicy",
       "Condition": "EnableELBAccessLogging",

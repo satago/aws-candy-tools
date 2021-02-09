@@ -80,13 +80,6 @@ case "$CMD" in
                 --output table
             ;;
 
-        create-access-logs-bucket)
-            ACCOUNT_ID=$(aws_account_id)
-
-            BUCKET="${ACCOUNT_ID}-${STACK}"
-            aws s3 mb s3://${BUCKET}
-            ;;
-
         create-cloudformation-bucket)
             BUCKET=$(bucket_name)
             aws s3 mb s3://${BUCKET}
@@ -352,7 +345,6 @@ case "$CMD" in
             echo $"Usage $0 <command> <args>
 
   $0 create <stack-name>
-  $0 create-access-logs-bucket <stack-name>
   $0 create-cloudformation-bucket
   $0 create-change-set <stack-name>
   $0 describe-change-set <stack-name> <change-set-name>
