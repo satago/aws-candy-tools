@@ -1,6 +1,12 @@
 Version 0.6.5
 =============
 - `web-cluster-template`
+  * changed URL for downloading `get-pip.py` script
+
+
+Version 0.6.5
+=============
+- `web-cluster-template`
   * Automatically create the S3 bucket for access logs, if enabled. When updating existing stacks, and the bucket already exists,
     need to use the `Import resources into stack` option
 
