@@ -1,3 +1,9 @@
+Version 0.6.6
+=============
+- `web-cluster-template`
+  * changed URL for downloading `get-pip.py` script
+
+
 Version 0.6.5
 =============
 - `web-cluster-template`
