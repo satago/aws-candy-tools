@@ -2,6 +2,11 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Elasticsearch cluster",
   "Parameters": {
+    "ElasticsearchVersion": {
+      "Description": "Version of elasticsearch",
+      "Type": "String",
+      "Default": "6.8"
+    },
     "InstanceType": {
       "Description": "InstanceType for Elasticsearch nodes",
       "Type": "String"
@@ -45,7 +50,7 @@
           "DedicatedMasterEnabled": false,
           "ZoneAwarenessEnabled": { "Ref": "ZoneAwarenessEnabled" }
         },
-        "ElasticsearchVersion": "5.1",
+        "ElasticsearchVersion": { "Ref": "ElasticsearchVersion" },
         "SnapshotOptions": {
           "AutomatedSnapshotStartHour": { "Ref": "AutomatedSnapshotStartHour" }
         }
