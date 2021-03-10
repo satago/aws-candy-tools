@@ -4,8 +4,7 @@
   "Parameters": {
     "ElasticsearchVersion": {
       "Description": "Version of elasticsearch",
-      "Type": "String",
-      "Default": "6.8"
+      "Type": "String"
     },
     "InstanceType": {
       "Description": "InstanceType for Elasticsearch nodes",
