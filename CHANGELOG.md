@@ -1,3 +1,8 @@
+Version 0.6.7
+=============
+- `web-cluster-template`
+  * elasticsearch cluster version as parameter
+
 Version 0.6.6
 =============
 - `web-cluster-template`
