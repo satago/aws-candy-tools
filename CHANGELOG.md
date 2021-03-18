@@ -1,3 +1,9 @@
+Version 0.6.8
+=============
+- `web-cluster-template`
+  * do not add empty security groups to ALB
+
+
 Version 0.6.7
 =============
 - `web-cluster-template`

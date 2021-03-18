@@ -324,6 +324,9 @@
     "InstanceSecurityGroupsEmpty": {
       "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }, ""]
     },
+    "ELBSecurityGroupsEmpty": {
+      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }, ""]
+    },
     "VolumeSizeDefined": {
       "Fn::Not": [{
         "Fn::Equals": [{ "Ref": "VolumeSize" }, "0"]
@@ -521,7 +524,11 @@
         "SecurityGroups": { "Fn::Split": [",",
           { "Fn::Join": [ ",", [
             { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] },
-            { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
+            { "Fn::If": [
+              "ELBSecurityGroupsEmpty",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
+            ]}
           ]]}
         ]},
         "Subnets": { "Ref": "SubnetIds" }
