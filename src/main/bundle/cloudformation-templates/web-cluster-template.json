@@ -246,6 +246,31 @@
       "Description": "Instance volume size (in GB), 0 means AWS default",
       "Type": "Number",
       "Default": "0"
+    },
+    "CognitoAuthUserPoolArn": {
+      "Description": "The Id of the Amazon Cognito user pool",
+      "Type": "String",
+      "Default": ""
+    },
+    "CognitoAuthUserPoolClientId": {
+      "Description": "The ARN of the Amazon Cognito user pool client",
+      "Type": "String",
+      "Default": ""
+    },
+    "CognitoAuthUserPoolDomain": {
+      "Description": "The domain prefix or fully-qualified domain name of the Amazon Cognito user pool",
+      "Type": "String",
+      "Default": ""
+    },
+    "CognitoAuthRequiredPathPatterns": {
+      "Description": "The comma-delimited list of path patters Cognito Auth is required for.",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "CognitoAuthBypassPathPatterns": {
+      "Description": "The comma-delimited list of path patterns Cognito Auth should be bypassed. To by used then Cognito auth is required by default, but some content, e.g. health-checks or static resources should be excluded",
+      "Type": "CommaDelimitedList",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -358,6 +383,27 @@
         {
           "Fn::Not": [{
             "Fn::Equals": [{ "Ref": "SSLCertificateId3" }, ""]
+          }]
+        }
+      ]
+    },
+    "CreateListenerRuleCognitoAuthRequired": {
+      "Fn::And": [
+        { "Condition": "CreateHTTPSListener" },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "CognitoAuthRequiredPathPatterns" }] }, ""]
+          }]
+        }
+      ]
+    },
+    "CreateListenerRuleCognitoAuthBypass": {
+      "Fn::And": [
+        { "Condition": "CreateHTTPSListener" },
+        { "Condition": "CreateListenerRuleCognitoAuthRequired" },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "CognitoAuthBypassPathPatterns" }] }, ""]
           }]
         }
       ]
@@ -562,6 +608,55 @@
           { "CertificateArn": { "Ref": "SSLCertificateId" } }
         ],
         "SslPolicy": { "Ref": "ELBReferenceSecurityPolicy" }
+      }
+    },
+    "MyALBListenerHTTPSRuleCognitoAuthBypass": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Condition": "CreateListenerRuleCognitoAuthBypass",
+      "Properties": {
+        "Actions" : [{
+          "Type": "forward",
+          "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
+        }],
+        "Conditions" : [{
+          "Field": "path-pattern",
+          "PathPatternConfig": {
+            "Values": { "Ref": "CognitoAuthBypassPathPatterns" }
+          }
+        }],
+        "ListenerArn" : { "Fn::GetAtt" : ["MyALBListenerHTTPS", "ListenerArn"] },
+        "Priority" : 100
+      }
+    },
+    "MyALBListenerHTTPSRuleCognitoAuthRequired": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Condition": "CreateListenerRuleCognitoAuthRequired",
+      "Properties": {
+        "Actions" : [{
+          "Type": "authenticate-cognito",
+          "AuthenticateCognitoConfig": {
+            "UserPoolArn": { "Ref": "CognitoAuthUserPoolArn" },
+            "UserPoolClientId": { "Ref": "CognitoAuthUserPoolClientId" },
+            "UserPoolDomain": { "Ref": "CognitoAuthUserPoolDomain" },
+            "SessionCookieName": "AWSELBAuthSessionCookie",
+            "Scope": "openid",
+            "SessionTimeout": 604800,
+            "OnUnauthenticatedRequest": "authenticate"
+          },
+          "Order": 1
+        },{
+          "Type": "forward",
+          "TargetGroupArn": { "Ref": "MyALBTargetGroup" },
+          "Order": 2
+        }],
+        "Conditions" : [{
+          "Field": "path-pattern",
+          "PathPatternConfig": {
+            "Values": { "Ref": "CognitoAuthRequiredPathPatterns" }
+          }
+        }],
+        "ListenerArn" : { "Fn::GetAtt" : ["MyALBListenerHTTPS", "ListenerArn"] },
+        "Priority" : 200
       }
     },
     "MyALBListenerHTTPSCertificate2": {
