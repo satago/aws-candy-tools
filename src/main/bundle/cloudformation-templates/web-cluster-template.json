@@ -263,7 +263,7 @@
       "Default": ""
     },
     "CognitoAuthRequiredPathPatterns": {
-      "Description": "The comma-delimited list of path patters Cognito Auth is required for.",
+      "Description": "The comma-delimited list of path patterns Cognito Auth is required for",
       "Type": "CommaDelimitedList",
       "Default": ""
     },
