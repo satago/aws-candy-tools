@@ -150,8 +150,7 @@ case "$CMD" in
             # deployment configuration descriptions from https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html;
             # ensure all instances were successfully registered in the ELB, so we do not decrease the ASG size if not all instances are able to
             # handle the requests
-            ${STACK_CMD} set-desired-capacity ${STACK} 3
-            if ! timeout 5 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
+            if ! timeout 60 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
                 echo -e "*\n* ERROR CodeDeploy deployment for ${STACK} succeeded, but not all instances successfully registered in ELB. Please verify. *\n*"
                 exit 1
             fi
