@@ -146,6 +146,18 @@ case "$CMD" in
 
             $0 wait ${DEPLOYMENT_ID}
 
+            # rare scenario, but CodeDeploy could mark the whole deployment as successful even if deployment to at least one instance failed, see
+            # deployment configuration descriptions from https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html;
+            # ensure all instances were successfully registered in the ELB, so we do not decrease the ASG size if not all instances are able to
+            # handle the requests
+            set +e
+            timeout 30 ${STACK_CMD} wait-for-elb-instances ${STACK}
+            if [[ $? -ne 0 ]]; then
+                echo "ERROR CodeDeploy deployment for ${STACK} succeeded, but not all instances successfully registered in ELB. Please verify."
+                exit 1
+            fi
+            set -e
+
             if ${AUTO_SCALING}; then
                 if [[ ${ORIGINAL_CAPACITY} -lt 2 ]]; then
                     echo Changing desired capacity of ${STACK} ASG back to ${ORIGINAL_CAPACITY}

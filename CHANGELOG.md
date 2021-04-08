@@ -1,3 +1,8 @@
+Version 0.6.9
+=============
+- `bin/deploy`
+  * ensure after the deployment with --auto-scaling enabled we decrease the ASG size only is all instances are successfully registered in ELB (to avoid issues when deployment to the last instance fails, but CodeDeploy marks the whole deployment as successful)
+
 Version 0.6.8
 =============
 - `web-cluster-template`
