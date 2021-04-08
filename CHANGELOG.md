@@ -1,3 +1,8 @@
+Version 0.6.10
+=============
+- `bin/deploy`
+  * ensure changes introduced in 0.6.10 check the sub-command return code properly on all environments  
+
 Version 0.6.9
 =============
 - `bin/deploy`
