@@ -1,17 +1,14 @@
-plugins {
-    id "com.jfrog.bintray" version "1.8.4"
-}
-
 apply plugin: 'groovy'
 apply plugin: 'java-library'
-apply plugin: 'maven-publish'
+apply plugin: 'maven'
 apply plugin: 'java-gradle-plugin'
 
 group = 'net.satago.gradle'
+archivesBaseName = 'aws-candy-tools'
 version = file('./src/main/bundle/version').text
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -40,50 +37,48 @@ artifacts {
     archives javadocJar
 }
 
-def pomFragments = {
-    developers {
-        developer {
-            id "dmitrygusev"
-            name "Dmitry Gusev"
-            email "dmitry@anjlab.com"
-        }
-    }
-}
+uploadArchives {
+    repositories {
+        mavenDeployer {
 
-publishing {
-    publications {
-        pluginMaven(MavenPublication) {
-            artifact sourcesJar
-            artifact javadocJar
+            repository(url: nexusRepositoryUrl) {
+                authentication(userName: nexusUsername, password: nexusPassword)
+            }
 
-            pom.withXml {
-                def root = asNode()
+            snapshotRepository(url: nexusSnapshotRepositoryUrl) {
+                authentication(userName: nexusUsername, password: nexusPassword)
+            }
 
-                root.appendNode('description', project.description)
+            pom.project {
+                name 'AWS Candy Tools'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                description 'AWS Candy Tools'
+                url 'https://github.com/satago/aws-candy-tools'
 
-                def license = root.appendNode('licenses').appendNode('license')
-                license.appendNode("name", "The Apache Software License, Version 2.0")
-                license.appendNode("url", "http://www.apache.org/licenses/LICENSE-2.0.txt")
-                license.appendNode("distribution", "repo")
+                scm {
+                    connection 'git@github.com:satago/aws-candy-tools.git'
+                    developerConnection 'git@github.com:satago/aws-candy-tools.git'
+                    url 'https://github.com/satago/aws-candy-tools'
+                }
 
-                root.children().last() + pomFragments
+                licenses {
+                    license {
+                        name 'The Apache License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id "dmitrygusev"
+                        name "Dmitry Gusev"
+                        email "dmitry@anjlab.com"
+                    }
+                }
             }
         }
     }
-}
-
-bintray {
-    user = "$bintray_user"
-    key = "$bintray_api_key"
-    publications = ['pluginMaven']
-    pkg {
-        repo = 'maven'
-        name = 'aws-candy-tools'
-        userOrg = 'satago' // an optional organization name when the repo belongs to one of the user's orgs
-        licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/satago/aws-candy-tools.git'
-    }
-    dryRun = false // whether to run this as dry-run, without deploying
 }
 
 task tarBundle(type: Tar) {

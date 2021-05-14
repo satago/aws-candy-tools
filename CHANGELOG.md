@@ -1,3 +1,8 @@
+Version 0.6.11
+=============
+- `build.gradle`
+  * due to the deprecation of JCenter bintray, we now publish to a general maven repository. New properties are required in your `gradle.properties` file for `nexusSnapshotRepositoryUrl`, `nexusRepositoryUrl`, as well as `nexusUsername` and `nexusPassword`
+    
 Version 0.6.10
 =============
 - `bin/deploy`
