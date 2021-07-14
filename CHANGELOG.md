@@ -1,3 +1,8 @@
+Version 0.6.12
+=============
+- `postgresql-template`
+  * allow using io1 storage by ror db
+
 Version 0.6.11
 =============
 - `build.gradle`
