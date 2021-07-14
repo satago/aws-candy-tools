@@ -159,6 +159,22 @@
       "Type": "String",
       "Default": ""
     },
+    "DBReplicaStorageType": {
+      "Description": "Storage type to be associated with the DB replica instance. If you specify io1, you must also include a value for the DBReplicaIops parameter.",
+      "Type": "String",
+      "Default": "gp2",
+      "AllowedValues": [
+        "standard",
+        "gp2",
+        "io1"
+      ],
+      "ConstraintDescription": "standard, gp2 (default), io1"
+    },
+    "DBReplicaIops": {
+      "Description": "The number of I/O operations per second (IOPS) that the replica database provisions. The value must be equal to or greater than 1000.",
+      "Type": "Number",
+      "Default": "0"
+    },
     "DBReplicaPubliclyAccessible": {
       "Description": "Indicates whether the DB replica instance is an internet-facing instance.",
       "Type": "String",
@@ -430,6 +446,11 @@
     "DBReplicaInstanceClassEmpty": {
       "Fn::Equals": [{ "Ref": "DBReplicaInstanceClass" }, ""]
     },
+    "DBReplicaUseProvisionedIops": {
+      "Fn::Not": [{
+        "Fn::Equals": [{ "Ref": "DBReplicaIops" }, "0"]
+      }]
+    },
     "DBReplicaPubliclyAccessibleEmpty": {
       "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, ""]
     },
@@ -673,7 +694,12 @@
           { "Ref": "DBInstanceClass" },
           { "Ref": "DBReplicaInstanceClass" }
         ]},
-        "StorageType": "gp2",
+        "StorageType": { "Ref": "DBReplicaStorageType" },
+        "Iops": { "Fn::If": [
+          "DBReplicaUseProvisionedIops",
+          { "Ref": "DBReplicaIops" },
+          { "Ref": "AWS::NoValue" }
+        ]},
         "PubliclyAccessible": { "Fn::If": [
           "DBReplicaPubliclyAccessibleEmpty",
           { "Ref": "DBPubliclyAccessible" },
