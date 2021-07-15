@@ -1,0 +1,254 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "PostgreSQL Parameter Group",
+  "Parameters": {
+    "DBParameterGroupFamily": {
+      "Description": "aws rds describe-db-engine-versions --query \"DBEngineVersions[?Engine=='postgres'].DBParameterGroupFamily\"",
+      "Type": "String"
+    },
+
+    "CreateReadOnlyReplica": {
+      "Description": "Create read replica DB for this instance",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "DBPubliclyAccessible": {
+      "Description": "Indicates whether the DB instance is an internet-facing instance.",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+
+    "DBReplicaPubliclyAccessible": {
+      "Description": "Indicates whether the DB replica instance is an internet-facing instance.",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, to inherit same value as source database instance)"
+    },
+
+    "pgTrackActivityQuerySize": {
+      "Description": "Sets the size reserved for pg_stat_activity.current_query, in bytes.",
+      "Type": "String",
+      "Default": "32768"
+    },
+    "pgWorkMem": {
+      "Description": "(kB) Sets the maximum memory to be used for query workspaces.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgAutovacuumWorkMem": {
+      "Description": "(kB) Sets the maximum memory to be used by each autovacuum worker process.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgMaxConnections": {
+      "Description": "Sets the maximum number of concurrent connections.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgSharedPreloadLibraries": {
+      "Description": "Lists shared libraries to preload into server.",
+      "Type": "String",
+      "Default": "pg_stat_statements,auto_explain"
+    },
+    "pgLogMinErrorStatement": {
+      "Description": "Causes all statements generating error at or above this level to be logged.",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgForceSsl": {
+      "Description": "Allow only SSL connections to the database instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, equals to DBPubliclyAccessible)"
+    },
+    "pgReplicaForceSsl": {
+      "Description": "Allow only SSL connections to the database replica instance",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": [
+        "true",
+        "false",
+        ""
+      ],
+      "ConstraintDescription": "true, false, or blank (default, equals to DBReplicaPubliclyAccessible)"
+    },
+    "pgReplicaMaxStandbyDelay": {
+      "Description": "Value for max_standby_archive_delay and max_standby_streaming_delay; https://aws.amazon.com/ru/blogs/database/best-practices-for-amazon-rds-postgresql-replication/",
+      "Type": "String",
+      "Default": "300000"
+    }
+  },
+  "Conditions": {
+    "CreateReadOnlyReplica": {
+      "Fn::Equals": [{ "Ref": "CreateReadOnlyReplica" }, "true"]
+    },
+
+    "DBPubliclyAccessibleEnabled": {
+      "Fn::Equals": [{ "Ref": "DBPubliclyAccessible" }, "true"]
+    },
+    "DBReplicaPubliclyAccessibleEnabled": {
+      "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, "true"]
+    },
+    "DBReplicaPubliclyAccessibleEmpty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaPubliclyAccessible" }, ""]
+    },
+
+    "pgTrackActivityQuerySizeEmpty": {
+      "Fn::Equals": [{ "Ref": "pgTrackActivityQuerySize" }, ""]
+    },
+    "pgWorkMemEmpty": {
+      "Fn::Equals": [{ "Ref": "pgWorkMem" }, ""]
+    },
+    "pgAutovacuumWorkMemEmpty": {
+      "Fn::Equals": [{ "Ref": "pgAutovacuumWorkMem" }, ""]
+    },
+    "pgMaxConnectionsEmpty": {
+      "Fn::Equals": [{ "Ref": "pgMaxConnections" }, ""]
+    },
+    "pgSharedPreloadLibrariesEmpty": {
+      "Fn::Equals": [{ "Ref": "pgSharedPreloadLibraries" }, ""]
+    },
+    "pgLogMinErrorStatementEmpty": {
+      "Fn::Equals": [{ "Ref": "pgLogMinErrorStatement" }, ""]
+    },
+    "pgForceSslEmpty": {
+      "Fn::Equals": [{ "Ref": "pgForceSsl" }, ""]
+    },
+    "pgForceSslEnabled": {
+      "Fn::Equals": [{ "Ref": "pgForceSsl" }, "true"]
+    },
+    "pgReplicaForceSslEmpty": {
+      "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, ""]
+    },
+    "pgReplicaForceSslEnabled": {
+      "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, "true"]
+    },
+    "pgReplicaMaxStandbyDelayEmpty": {
+      "Fn::Equals": [{ "Ref": "pgReplicaMaxStandbyDelay" }, ""]
+    }
+  },
+  "Resources": {
+    "MyDBParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "DeletionPolicy" : "Retain",
+      "Properties": {
+        "Description": { "Fn::Join": [" ", ["Parameter group for", { "Ref": "AWS::StackName" }]] },
+        "Family": { "Ref": "DBParameterGroupFamily" },
+        "Parameters": {
+          "track_activity_query_size": { "Fn::If": [
+            "pgTrackActivityQuerySizeEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgTrackActivityQuerySize" }
+          ]},
+          "work_mem": { "Fn::If": [
+            "pgWorkMemEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgWorkMem" }
+          ]},
+          "autovacuum_work_mem": { "Fn::If": [
+            "pgAutovacuumWorkMemEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgAutovacuumWorkMem" }
+          ]},
+          "max_connections": { "Fn::If": [
+            "pgMaxConnectionsEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgMaxConnections" }
+          ]},
+          "shared_preload_libraries": { "Fn::If": [
+            "pgSharedPreloadLibrariesEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgSharedPreloadLibraries" }
+          ]},
+          "log_min_error_statement": { "Fn::If": [
+            "pgLogMinErrorStatementEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgLogMinErrorStatement" }
+          ]},
+          "rds.force_ssl": { "Fn::If": [
+            "pgForceSslEmpty",
+            { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
+            { "Fn::If": [ "pgForceSslEnabled", "1", "0" ]}
+          ]}
+        }
+      }
+    },
+
+    "MyDBReplicaParameterGroup": {
+      "Type": "AWS::RDS::DBParameterGroup",
+      "DeletionPolicy" : "Delete",
+      "Properties": {
+        "Description": { "Fn::Join": ["", ["Parameter group for ", { "Ref": "AWS::StackName" }, "-ror" ]] },
+        "Family": { "Ref": "DBParameterGroupFamily" },
+        "Parameters": {
+          "max_standby_archive_delay": { "Fn::If": [
+            "pgReplicaMaxStandbyDelayEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgReplicaMaxStandbyDelay" }
+          ]},
+          "max_standby_streaming_delay": { "Fn::If": [
+            "pgReplicaMaxStandbyDelayEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgReplicaMaxStandbyDelay" }
+          ]},
+          "log_min_error_statement": { "Fn::If": [
+            "pgLogMinErrorStatementEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgLogMinErrorStatement" }
+          ]},
+          "rds.force_ssl": { "Fn::If": [
+            "pgReplicaForceSslEmpty",
+            { "Fn::If": [
+              "DBReplicaPubliclyAccessibleEmpty",
+              { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
+              { "Fn::If": [ "DBReplicaPubliclyAccessibleEnabled", "1", "0" ]}
+            ]},
+            { "Fn::If": [ "pgReplicaForceSslEnabled", "1", "0" ]}
+          ]}
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "DBParameterGroupName": {
+      "Description": "DB parameter group name",
+      "Value": { "Ref": "MyDBParameterGroup" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "DBParameterGroupName" ] ]
+        }
+      }
+    },
+    "DBReplicaParameterGroupName": {
+      "Description": "DB replica parameter group name",
+      "Value": { "Ref": "MyDBReplicaParameterGroup" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "DBReplicaParameterGroupName" ] ]
+        }
+      },
+      "Condition": "CreateReadOnlyReplica"
+    }
+  }
+}
