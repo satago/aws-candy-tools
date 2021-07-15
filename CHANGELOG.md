@@ -1,7 +1,6 @@
 Version 0.6.13
 ==============
 - `postgresql-template`
-- `postgresql-template`
   * Use `EngineVersion` parameter to override value from `DBSnapshotIdentifier` if provided
   * New parameters `DBParameterGroupName` and `DBReplicaParameterGroupName`
   * All parameters that were defining parameter group values moved to own template
