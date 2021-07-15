@@ -345,6 +345,11 @@
       "Description": "",
       "Type": "String",
       "Default": "22:00-22:30"
+    },
+    "BackupRetentionPeriod": {
+      "Description": "",
+      "Type": "Number",
+      "Default": "7"
     }
   },
   "Conditions": {
@@ -522,7 +527,7 @@
         "PubliclyAccessible": { "Ref": "DBPubliclyAccessible" },
         "PreferredMaintenanceWindow": { "Ref": "PreferredMaintenanceWindow" },
         "PreferredBackupWindow": { "Ref": "PreferredBackupWindow" },
-        "BackupRetentionPeriod": 7,
+        "BackupRetentionPeriod": { "Ref":  "BackupRetentionPeriod" },
         "EnablePerformanceInsights": { "Ref": "EnablePerformanceInsights" },
         "PerformanceInsightsRetentionPeriod": { "Fn::If": [
           "EnablePerformanceInsights",

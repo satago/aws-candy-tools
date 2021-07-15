@@ -1,3 +1,8 @@
+Version 0.6.14
+==============
+- `postgresql-template`
+  * New parameter `BackupRetentionPeriod` with default value of 7 days
+
 Version 0.6.13
 ==============
 - `postgresql-template`
