@@ -1,6 +1,7 @@
 apply plugin: 'groovy'
 apply plugin: 'java-library'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'java-gradle-plugin'
 
 group = 'net.satago.gradle'

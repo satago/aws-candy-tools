@@ -1,3 +1,14 @@
+Version 0.6.13
+==============
+- `postgresql-template`
+- `postgresql-template`
+  * Use `EngineVersion` parameter to override value from `DBSnapshotIdentifier` if provided
+  * New parameters `DBParameterGroupName` and `DBReplicaParameterGroupName`
+  * All parameters that were defining parameter group values moved to own template
+
+- `postgresql-parameter-group-template`
+  * New stack extracted from `postgresql-template` to manage DB parameter groups separately from DB instances. The reason for this is CloudFormation cannot change the `family` property of parameter group (which includes engine version) once it was created, and will not try to re-create the resource also. So each DB version upgrade requires new parameter group created before DB engine can be upgraded, this cannot happen on the same CloudFormation stack.
+
 Version 0.6.12
 =============
 - `postgresql-template`
@@ -7,7 +18,7 @@ Version 0.6.11
 =============
 - `build.gradle`
   * due to the deprecation of JCenter bintray, we now publish to a general maven repository. New properties are required in your `gradle.properties` file for `nexusSnapshotRepositoryUrl`, `nexusRepositoryUrl`, as well as `nexusUsername` and `nexusPassword`
-    
+
 Version 0.6.10
 =============
 - `bin/deploy`
