@@ -1,3 +1,9 @@
+Version 0.6.15
+==============
+- `postgresql-parameter-group-template`
+  * Create replica parameters group only on condition CreateReadOnlyReplica=true
+
+
 Version 0.6.14
 ==============
 - `postgresql-template`

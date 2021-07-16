@@ -197,6 +197,7 @@
 
     "MyDBReplicaParameterGroup": {
       "Type": "AWS::RDS::DBParameterGroup",
+      "Condition": "CreateReadOnlyReplica",
       "DeletionPolicy" : "Delete",
       "Properties": {
         "Description": { "Fn::Join": ["", ["Parameter group for ", { "Ref": "AWS::StackName" }, "-ror" ]] },
