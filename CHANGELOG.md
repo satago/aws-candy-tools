@@ -1,3 +1,8 @@
+Version 0.6.17
+==============
+- `web-cluster-template`
+  * Actually use new parameters from previous release in the template
+
 Version 0.6.16
 ==============
 - `web-cluster-template`
