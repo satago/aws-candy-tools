@@ -133,6 +133,38 @@
       "Type": "String",
       "Default": "/"
     },
+    "HealthCheckType": {
+      "Description": "The service to use for the health checks of ASG instances",
+      "Type": "String",
+      "Default": "EC2",
+      "AllowedValues": ["EC2", "ELB"],
+      "ConstraintDescription": "EC2 (default) or ELB"
+    },
+    "HealthCheckGracePeriod": {
+      "Description": "The amount of time, in seconds, that ASG waits before checking the health status of an EC2 instance that has come into service",
+      "Type": "Number",
+      "Default": "300"
+    },
+    "HealthCheckIntervalSeconds" : {
+      "Description": "The approximate amount of time, in seconds, between health checks of an individual target",
+      "Type": "Number",
+      "Default": "10"
+    },
+    "HealthCheckTimeoutSeconds" : {
+      "Description": "The amount of time, in seconds, during which no response from a target means a failed health check",
+      "Type": "Number",
+      "Default": "5"
+    },
+    "HealthyThresholdCount" : {
+      "Description": "The number of consecutive health checks successes required before considering an unhealthy target healthy",
+      "Type": "Number",
+      "Default": "2"
+    },
+    "UnhealthyThresholdCount" : {
+      "Description": "The number of consecutive health check failures required before considering a target unhealthy",
+      "Type": "Number",
+      "Default": "5"
+    },
     "UseCookieStickinessPolicy": {
       "Description": "Enable ELB sticky sessions based on cookies",
       "Type": "String",
@@ -151,18 +183,6 @@
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
-    },
-    "HealthCheckType": {
-      "Description": "The service to use for the health checks of ASG instances",
-      "Type": "String",
-      "Default": "EC2",
-      "AllowedValues": ["EC2", "ELB"],
-      "ConstraintDescription": "EC2 (default) or ELB"
-    },
-    "HealthCheckGracePeriod": {
-      "Description": "The amount of time, in seconds, that ASG waits before checking the health status of an EC2 instance that has come into service",
-      "Type": "Number",
-      "Default": "300"
     },
     "TerminationPolicies": {
       "Description": "A policy or a list of policies that are used to select the instances to terminate",

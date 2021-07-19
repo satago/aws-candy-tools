@@ -1,8 +1,16 @@
+Version 0.6.16
+==============
+- `web-cluster-template`
+  * Expose parameters responsible for controlling ELB HealthCheck behaviour:
+    - `HealthCheckIntervalSeconds` default 10 seconds
+    - `HealthCheckTimeoutSeconds` default 5 seconds
+    - `HealthyThresholdCount` default 2 times
+    - `UnhealthyThresholdCount` default 5 times
+
 Version 0.6.15
 ==============
 - `postgresql-parameter-group-template`
   * Create replica parameters group only on condition CreateReadOnlyReplica=true
-
 
 Version 0.6.14
 ==============
