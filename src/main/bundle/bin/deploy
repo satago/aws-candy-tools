@@ -157,7 +157,7 @@ case "$CMD" in
 
             if ${AUTO_SCALING}; then
                 MIN_SIZE=$(${STACK_CMD} get-min-size ${STACK})
-                echo Changing desired capacity of ${STACK} ASG back to minimum (${MIN_SIZE})
+                echo "Changing desired capacity of ${STACK} ASG back to minimum (${MIN_SIZE})"
                 ${STACK_CMD} set-desired-capacity ${STACK} ${MIN_SIZE}
             fi
             ;;

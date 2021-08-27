@@ -1,3 +1,8 @@
+Version 0.6.19
+==============
+- `bin/deploy`
+  * fix syntax error in `codedeploy-push-and-wait` 
+
 Version 0.6.18
 ==============
 - `bin/stack`:
