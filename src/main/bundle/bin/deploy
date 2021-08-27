@@ -130,10 +130,10 @@ case "$CMD" in
             STACK_CMD="${SCRIPT_PATH}/stack"
 
             if ${AUTO_SCALING}; then
-                ORIGINAL_CAPACITY=$(${STACK_CMD} get-desired-capacity ${STACK})
+                ORIGINAL_DESIRED_CAPACITY=$(${STACK_CMD} get-desired-capacity ${STACK})
 
-                if [[ ${ORIGINAL_CAPACITY} -lt 2 ]]; then
-                   echo -e "*\n* Desired capacity of ${STACK} ASG is ${ORIGINAL_CAPACITY}, temporarily making it 2\n*"
+                if [[ ${ORIGINAL_DESIRED_CAPACITY} -lt 2 ]]; then
+                   echo -e "*\n* Desired capacity of ${STACK} ASG is ${ORIGINAL_DESIRED_CAPACITY}, temporarily making it 2\n*"
 
                    ${STACK_CMD} set-desired-capacity ${STACK} 2
                    timeout 900 ${STACK_CMD} wait-for-elb-instances ${STACK}
@@ -156,11 +156,9 @@ case "$CMD" in
             fi
 
             if ${AUTO_SCALING}; then
-                if [[ ${ORIGINAL_CAPACITY} -lt 2 ]]; then
-                    echo Changing desired capacity of ${STACK} ASG back to ${ORIGINAL_CAPACITY}
-
-                    ${STACK_CMD} set-desired-capacity ${STACK} ${ORIGINAL_CAPACITY}
-                fi
+                MIN_SIZE=$(${STACK_CMD} get-min-size ${STACK})
+                echo Changing desired capacity of ${STACK} ASG back to minimum (${MIN_SIZE})
+                ${STACK_CMD} set-desired-capacity ${STACK} ${MIN_SIZE}
             fi
             ;;
 

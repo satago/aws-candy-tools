@@ -431,9 +431,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-05d403b512bf100eb", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-06cd7f9c4486344a5", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-01ac84be28584498d", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-0453cb7b5f2b7fca2", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-02b4e72b17337d6c1", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-0d26eb3972b7f8c96", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -535,7 +535,7 @@
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MinInstancesInService": "1",
+          "MinInstancesInService": { "Ref": "MinSize" },
           "MaxBatchSize": "1",
           "PauseTime": "PT15M",
           "WaitOnResourceSignals": "true",
