@@ -1,3 +1,30 @@
+Version 0.6.19
+==============
+- `bin/deploy`
+  * fix syntax error in `codedeploy-push-and-wait` 
+
+Version 0.6.18
+==============
+- `bin/stack`:
+  * new command `get-min-size` returning `MinSize` of the stack's auto-scaling group
+- `bin/deploy`
+  * deploying with `--auto-scaling` now changes desired capacity back to `MinSize`
+    instead of original desired capacity after successful deployment;
+    this is to avoid over-provisioned ASGs if one of the previous deployments failed
+    leaving ASG with capacity bigger than required minimum
+- `web-cluster-template`
+  * udpated default AMI versions to latest
+  * Change ASG's `UpdatePolicy.AutoScalingRollingUpdate.MinInstancesInService`
+    from `1` to `MinSize` of auto-scaling group itself,
+    so that we always have required minimum in service,
+    even during CloudFormation updates.
+
+    So now with `MinSize=2` instead of bringing one instance
+    out of service and running updates on it,
+    CloudFormation will have to create a new instance,
+    perform updates on it, and only after that replace old instance with new,
+    healthy one.
+
 Version 0.6.17
 ==============
 - `web-cluster-template`

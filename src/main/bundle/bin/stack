@@ -231,6 +231,15 @@ case "$CMD" in
                 ${OUTPUT}
             ;;
 
+        get-min-size)
+            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            MIN_SIZE=$(aws autoscaling describe-auto-scaling-groups \
+                --auto-scaling-group-name ${ASG_NAME} \
+                --query 'AutoScalingGroups[0].MinSize' \
+                --output text)
+            printf ${MIN_SIZE}
+            ;;
+
         get-desired-capacity)
             ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
             CURRENT_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
@@ -353,6 +362,7 @@ case "$CMD" in
   $0 events <stack-name> [max-events]
   $0 execute-change-set <stack-name> <change-set-name>
   $0 get-desired-capacity <stack-name>
+  $0 get-min-size <stack-name>
   $0 id <stack-name>
   $0 list-arns <stack-name>
   $0 list-exports
