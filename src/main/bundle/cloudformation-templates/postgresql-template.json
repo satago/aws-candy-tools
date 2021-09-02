@@ -155,12 +155,16 @@
       "ConstraintDescription": "true or false (default)"
     },
 
+    "DBReplicaInstanceIdentifier": {
+      "Description": "A name for the DB replica instance. AWS CloudFormation converts it to lowercase.",
+      "Type": "String",
+      "Default": ""
+    },
     "DBReplicaParameterGroupName": {
       "Description": "Name of parameter group for DB replica instance",
       "Type": "String",
       "Default": ""
     },
-
     "DBReplicaInstanceClass": {
       "Description": "The compute and memory capacity of the DB instance.",
       "Type": "String",
@@ -400,6 +404,9 @@
       "Fn::Equals": [{ "Ref": "DBPubliclyAccessible" }, "true"]
     },
 
+    "DBReplicaInstanceIdentifierEmpty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaInstanceIdentifier" }, ""]
+    },
     "DBReplicaInstanceClassEmpty": {
       "Fn::Equals": [{ "Ref": "DBReplicaInstanceClass" }, ""]
     },
@@ -559,11 +566,15 @@
     },
     "MyDBReplicaInstance": {
       "Type": "AWS::RDS::DBInstance",
-      "DeletionPolicy" : "Delete",
+      "DeletionPolicy" : "Retain",
       "Condition": "CreateReadOnlyReplica",
       "DependsOn": ["MyDBInstance"],
       "Properties": {
-        "DBInstanceIdentifier": { "Fn::Join": ["", [ { "Ref": "DBInstanceIdentifier" }, "-ror" ]]},
+        "DBInstanceIdentifier": { "Fn::If":  [
+          "DBReplicaInstanceIdentifierEmpty",
+          { "Fn::Join": ["", [ { "Ref": "DBInstanceIdentifier" }, "-ror" ]]},
+          { "Ref": "DBReplicaInstanceIdentifier" }
+        ]},
         "SourceDBInstanceIdentifier": { "Ref": "DBInstanceIdentifier" },
         "AllowMajorVersionUpgrade": true,
         "AutoMinorVersionUpgrade": false,

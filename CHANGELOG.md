@@ -1,3 +1,9 @@
+Version 0.6.20
+==============
+- `postgresql-template`
+  * Optional new parameter `DBReplicaInstanceIdentifier`
+  * Changing `MyDBReplicaInstance.DeletionPolicy` to `Retain`
+
 Version 0.6.19
 ==============
 - `bin/deploy`
