@@ -1,3 +1,12 @@
+Version 0.6.21
+==============
+- `postgresql-template`
+  * New parameters to create CloudWatch Alarm for low MIN(BurstBalance, EBSIOBalance%, EBSByteBalance%)
+    - `LowIOBalanceAlarmEnabled` (default true)
+    - `LowIOBalanceAlarmPeriod` (default 900 seconds)
+    - `LowIOBalanceAlarmThreshold` (default 50%)
+- Upgrade `aws-candy-tools` itself to use Gradle 7.2
+
 Version 0.6.20
 ==============
 - `postgresql-template`

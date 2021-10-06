@@ -268,12 +268,30 @@
       "Default": "50"
     },
 
+    "LowIOBalanceAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for low MIN(BurstBalance, EBSIOBalance%, EBSByteBalance%)",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true (default) or false"
+    },
+    "LowIOBalanceAlarmPeriod": {
+      "Description": "Evaluation period for this alarm in seconds",
+      "Type": "Number",
+      "Default": "900"
+    },
+    "LowIOBalanceAlarmThreshold": {
+      "Description": "Value of the computed metric lower than or equal to the threshold triggers an alarm",
+      "Type": "Number",
+      "Default": "50"
+    },
+
     "HighReplicaLagAlarmEnabled": {
       "Description": "Create CloudWatch alarm for high replica lag",
       "Type": "String",
       "Default": "true",
       "AllowedValues": ["true", "false"],
-      "ConstraintDescription": "true or false (default)"
+      "ConstraintDescription": "true (default) or false"
     },
     "HighReplicaLagAlarmPeriod": {
       "Description": "Evaluation period for this alarm in seconds",
@@ -368,6 +386,15 @@
     },
     "HighCPUUtilizationAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "HighCPUUtilizationAlarmEnabled" }, "true"]
+    },
+    "LowIOBalanceAlarmEnabled": {
+      "Fn::Equals": [{ "Ref": "LowIOBalanceAlarmEnabled" }, "true"]
+    },
+    "ReplicaLowIOBalanceAlarmEnabled": {
+      "Fn::And": [
+        { "Condition": "LowIOBalanceAlarmEnabled" },
+        { "Condition": "CreateReadOnlyReplica" }
+      ]
     },
     "LowCPUCreditBalanceAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "LowCPUCreditBalanceAlarmEnabled" }, "true"]
@@ -694,6 +721,164 @@
         "Threshold": { "Ref": "HighCPUUtilizationAlarmThreshold" },
         "ComparisonOperator": "GreaterThanOrEqualToThreshold",
         "TreatMissingData": "breaching"
+      }
+    },
+    "MyDBInstanceLowIOBalanceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "LowIOBalanceAlarmEnabled",
+      "DependsOn": "MyDBInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBInstance" }, " Low IO Balance"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "EvaluationPeriods": 1,
+        "Threshold": { "Ref": "LowCPUCreditBalanceAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "Metrics": [
+          {
+            "Id": "minIOBalance",
+            "Label": "MIN(BurstBalance, EBSIOBalance%, EBSByteBalance%)",
+            "Expression": "MIN(METRICS())",
+            "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+            "ReturnData": true
+          },
+          {
+            "Id": "burstBalance",
+            "Label": "AVG(BurstBalance)",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/RDS",
+                "Dimensions": [{
+                  "Name": "DBInstanceIdentifier",
+                  "Value": { "Ref": "MyDBInstance" }
+                }],
+                "MetricName": "BurstBalance"
+              },
+              "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+              "Stat": "Average",
+              "Unit": "Percent"
+            },
+            "ReturnData": false
+          },
+          {
+            "Id": "ebsIOBalancePercent",
+            "Label": "AVG(EBSIOBalance%)",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/RDS",
+                "Dimensions": [{
+                  "Name": "DBInstanceIdentifier",
+                  "Value": { "Ref": "MyDBInstance" }
+                }],
+                "MetricName": "EBSIOBalance%"
+              },
+              "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+              "Stat": "Average",
+              "Unit": "Percent"
+            },
+            "ReturnData": false
+          },
+          {
+            "Id": "ebsByteBalancePercent",
+            "Label": "AVG(EBSByteBalance%)",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/RDS",
+                "Dimensions": [{
+                  "Name": "DBInstanceIdentifier",
+                  "Value": { "Ref": "MyDBInstance" }
+                }],
+                "MetricName": "EBSByteBalance%"
+              },
+              "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+              "Stat": "Average",
+              "Unit": "Percent"
+            },
+            "ReturnData": false
+          }
+        ]
+      }
+    },
+    "MyDBReplicaInstanceLowIOBalanceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition": "ReplicaLowIOBalanceAlarmEnabled",
+      "DependsOn": "MyDBReplicaInstance",
+      "Properties": {
+        "AlarmName": { "Fn::Join": ["", [{ "Ref": "MyDBReplicaInstance" }, " Low IO Balance"]] },
+        "ActionsEnabled": true,
+        "AlarmActions": { "Ref": "AlarmActions" },
+        "InsufficientDataActions": { "Ref": "AlarmActions" },
+        "OKActions": { "Ref": "AlarmActions" },
+        "EvaluationPeriods": 1,
+        "Threshold": { "Ref": "LowCPUCreditBalanceAlarmThreshold" },
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "TreatMissingData": "breaching",
+        "Metrics": [
+          {
+            "Id": "minIOBalance",
+            "Label": "MIN(BurstBalance, EBSIOBalance%, EBSByteBalance%)",
+            "Expression": "MIN([burstBalance, ebsIOBalancePercent, ebsByteBalancePercent])",
+            "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+            "ReturnData": true
+          },
+          {
+            "Id": "burstBalance",
+            "Label": "AVG(BurstBalance)",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/RDS",
+                "Dimensions": [{
+                  "Name": "DBInstanceIdentifier",
+                  "Value": { "Ref": "MyDBReplicaInstance" }
+                }],
+                "MetricName": "BurstBalance"
+              },
+              "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+              "Stat": "Average",
+              "Unit": "Percent"
+            },
+            "ReturnData": false
+          },
+          {
+            "Id": "ebsIOBalancePercent",
+            "Label": "AVG(EBSIOBalance%)",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/RDS",
+                "Dimensions": [{
+                  "Name": "DBInstanceIdentifier",
+                  "Value": { "Ref": "MyDBReplicaInstance" }
+                }],
+                "MetricName": "EBSIOBalance%"
+              },
+              "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+              "Stat": "Average",
+              "Unit": "Percent"
+            },
+            "ReturnData": false
+          },
+          {
+            "Id": "ebsByteBalancePercent",
+            "Label": "AVG(EBSByteBalance%)",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/RDS",
+                "Dimensions": [{
+                  "Name": "DBInstanceIdentifier",
+                  "Value": { "Ref": "MyDBReplicaInstance" }
+                }],
+                "MetricName": "EBSByteBalance%"
+              },
+              "Period": { "Ref": "LowIOBalanceAlarmPeriod" },
+              "Stat": "Average",
+              "Unit": "Percent"
+            },
+            "ReturnData": false
+          }
+        ]
       }
     },
     "MyDBInstanceLowCPUCreditBalanceAlarm": {
