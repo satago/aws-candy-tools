@@ -78,7 +78,7 @@
     "AZIndex": {
       "Description": "Zero-based index of availability zone for non-MultiAZ cluster",
       "Type": "Number",
-      "Default": "0"
+      "Default": "-1"
     },
     "DBPubliclyAccessible": {
       "Description": "Indicates whether the DB instance is an internet-facing instance.",
@@ -375,6 +375,9 @@
     }
   },
   "Conditions": {
+    "DefaultAZIndex": {
+      "Fn::Equals": [{ "Ref": "AZIndex" }, "-1"]
+    },
     "EnablePerformanceInsights": {
       "Fn::Equals": [{ "Ref": "EnablePerformanceInsights" }, "true"]
     },
@@ -515,7 +518,11 @@
         "AvailabilityZone": { "Fn::If": [
           "MultiAZ",
           { "Ref": "AWS::NoValue" },
-          { "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }
+          { "Fn::If": [
+            "DefaultAZIndex",
+            { "Ref": "AWS::NoValue" },
+            { "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }
+          ]}
         ]},
         "AllocatedStorage": { "Ref": "AllocatedStorage" },
         "DeletionProtection": { "Fn::If": [ "Ephemeral", false, true ] },

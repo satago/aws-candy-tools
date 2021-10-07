@@ -1,3 +1,9 @@
+Version 0.6.22
+==============
+- `postgresql-template`
+  * Make `AZIndex` parameter optional by setting it to `-1` (default now);
+    this is to support updates from Multi-AZ to Single-AZ.
+
 Version 0.6.21
 ==============
 - `postgresql-template`
