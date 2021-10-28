@@ -1,3 +1,12 @@
+Version 0.7.0
+==============
+- `decrypt-properties.bash`
+  * Encrypted properties are now expected to live inside an `encrypted` folder and are decrypted 
+    to the parent directory without the previous `.decrypted` extension.
+    This is so that any inner references to other properties files inside a properties file are preserved
+    between the encrypted and decrypted versions, while at the same time keeping both encrypted and decrypted
+    `.properties` file extension name for ide introspection and Spring validation. 
+
 Version 0.6.22
 ==============
 - `postgresql-template`
