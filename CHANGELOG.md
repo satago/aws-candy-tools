@@ -1,3 +1,9 @@
+Version 0.8.0
+==============
+- `decrypt-properties.bash`
+  * Instead of expecting encrypted properties on a specific `encrypted` folder we expect them where they belong
+    and instead rename them to *.properties.encrypted and decrypt to *.properties in the same folder.
+
 Version 0.7.0
 ==============
 - `decrypt-properties.bash`
