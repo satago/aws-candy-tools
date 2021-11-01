@@ -6,6 +6,9 @@ cd ${SCRIPT_PATH}
 
 for file in $(find ./data -name '*.properties')
 do
-  mv ${file} ${file}.encrypted
-  cat ${file}.encrypted | python decrypt-file.py > ${file}
+  if [ ! -f ${file}.encrypted ]; then
+    cat ${file} | python decrypt-file.py > ${file}.decrypted
+    mv ${file} ${file}.encrypted
+    mv ${file}.decrypted ${file}
+  fi
 done
