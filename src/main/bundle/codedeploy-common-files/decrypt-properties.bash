@@ -4,10 +4,11 @@ SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
 cd ${SCRIPT_PATH}
 
-for encrypted_dir in $(find ./data -name 'encrypted' -type d)
+for file in $(find ./data -name '*.properties')
 do
-    for file in $(find ${encrypted_dir} -name '*.properties' -type f)
-    do
-        cat ${file} | python decrypt-file.py > ${encrypted_dir}/../$(basename ${file})
-   done
+  if [ ! -f ${file}.encrypted ]; then
+    cat ${file} | python decrypt-file.py > ${file}.decrypted
+    mv ${file} ${file}.encrypted
+    mv ${file}.decrypted ${file}
+  fi
 done
