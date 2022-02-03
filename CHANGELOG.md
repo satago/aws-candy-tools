@@ -1,3 +1,8 @@
+Version 0.8.1
+==============
+- `postgresql-parameter-group-template`
+  * New parameter `pgRandomPageCost` to allow setting of postgresql parameter `random_page_cost`
+
 Version 0.8.0
 ==============
 - `decrypt-properties.bash`
