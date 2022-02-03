@@ -1,7 +1,22 @@
-Version 0.6.23
+Version 0.8.1
 ==============
 - `postgresql-parameter-group-template`
   * New parameter `pgRandomPageCost` to allow setting of postgresql parameter `random-page-cost`
+
+Version 0.8.0
+==============
+- `decrypt-properties.bash`
+  * Instead of expecting encrypted properties on a specific `encrypted` folder we expect them where they belong
+    and instead rename them to *.properties.encrypted and decrypt to *.properties in the same folder.
+
+Version 0.7.0
+==============
+- `decrypt-properties.bash`
+  * Encrypted properties are now expected to live inside an `encrypted` folder and are decrypted 
+    to the parent directory without the previous `.decrypted` extension.
+    This is so that any inner references to other properties files inside a properties file are preserved
+    between the encrypted and decrypted versions, while at the same time keeping both encrypted and decrypted
+    `.properties` file extension name for ide introspection and Spring validation. 
 
 Version 0.6.22
 ==============
