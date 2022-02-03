@@ -82,6 +82,11 @@
       ],
       "ConstraintDescription": "true, false, or blank (default, equals to DBPubliclyAccessible)"
     },
+    "pgRandomPageCost": {
+      "Description": "Sets the planner's estimate of the cost of a nonsequentially fetched disk page",
+      "Type": "String",
+      "Default": ""
+    },
     "pgReplicaForceSsl": {
       "Description": "Allow only SSL connections to the database replica instance",
       "Type": "String",
@@ -138,6 +143,9 @@
     "pgForceSslEnabled": {
       "Fn::Equals": [{ "Ref": "pgForceSsl" }, "true"]
     },
+    "pgRandomPageCostEmpty": {
+      "Fn::Equals": [{ "Ref": "pgRandomPageCost" }, ""]
+    },
     "pgReplicaForceSslEmpty": {
       "Fn::Equals": [{ "Ref": "pgReplicaForceSsl" }, ""]
     },
@@ -190,6 +198,11 @@
             "pgForceSslEmpty",
             { "Fn::If": [ "DBPubliclyAccessibleEnabled", "1", "0" ]},
             { "Fn::If": [ "pgForceSslEnabled", "1", "0" ]}
+          ]},
+          "random_page_cost": { "Fn::If": [
+            "pgRandomPageCostEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgRandomPageCost" }
           ]}
         }
       }
@@ -226,6 +239,11 @@
               { "Fn::If": [ "DBReplicaPubliclyAccessibleEnabled", "1", "0" ]}
             ]},
             { "Fn::If": [ "pgReplicaForceSslEnabled", "1", "0" ]}
+          ]},
+          "random_page_cost": { "Fn::If": [
+            "pgRandomPageCostEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgRandomPageCost" }
           ]}
         }
       }

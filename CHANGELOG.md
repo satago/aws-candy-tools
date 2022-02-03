@@ -1,3 +1,8 @@
+Version 0.6.23
+==============
+- `postgresql-parameter-group-template`
+  * New parameter `pgRandomPageCost` to allow setting of postgresql parameter `random-page-cost`
+
 Version 0.6.22
 ==============
 - `postgresql-template`
