@@ -1,3 +1,12 @@
+Version 0.8.2
+==============
+- `web-cluster-template`
+  * Hardcode a list of supported ciphers for `sshd` explicitly
+  * Fixing `DeploymentOption` for stacks without ELB
+  * Publish `/var/log/cfn-init.log` to CloudWatch
+  * Upgrade `aws-candy-tools` itself to use Gradle 7.4
+  * Upgrade `com.bmuschko:gradle-docker-plugin` in tests to latest (7.2.0)
+
 Version 0.8.1
 ==============
 - `postgresql-parameter-group-template`
