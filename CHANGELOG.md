@@ -1,3 +1,10 @@
+Version 0.8.2
+==============
+- `web-cluster-template`
+  * Hardcode a list of supported ciphers for `sshd` explicitly
+  * Fixing `DeploymentOption` for stacks without ELB
+  * Publish `/var/log/cfn-init.log` to CloudWatch
+
 Version 0.8.1
 ==============
 - `postgresql-parameter-group-template`

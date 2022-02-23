@@ -790,6 +790,7 @@
         "AWS::CloudFormation::Init": {
           "configSets" : {
             "default": [
+              "configure-sshd",
               "yum-versionlock",
               "cfn-config",
               "cloudwatch-agent",
@@ -973,6 +974,12 @@
                     "             {",
                     "                \"file_path\": \"/var/log/messages\",",
                     "                \"log_group_name\": \"/var/log/messages\",",
+                    "                \"log_stream_name\": \"{instance_id}\",",
+                    "                \"timestamp_format\": \"%b %d %H:%M:%S\"",
+                    "             },",
+                    "             {",
+                    "                \"file_path\": \"/var/log/cfn-init.log\",",
+                    "                \"log_group_name\": \"/var/log/cfn-init.log\",",
                     "                \"log_stream_name\": \"{instance_id}\",",
                     "                \"timestamp_format\": \"%b %d %H:%M:%S\"",
                     "             },",
@@ -1293,6 +1300,36 @@
                 "command": "/opt/satago/disable-services"
               }
             }
+          },
+          "configure-sshd": {
+            "files": {
+              "/opt/satago/configure-sshd": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -e\n",
+                    "file=/etc/ssh/sshd_config\n",
+                    "PARAM_NAME=Ciphers\n",
+                    "PARAM_VALUE=aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com,chacha20-poly1305@openssh.com\n",
+                    "\n",
+                    "cp ${file} /etc/ssh/sshd_config.bak.$(find '/etc/ssh/' -name 'sshd_config.bak.*' | wc -l)\n",
+                    "sed -i '/^'\"${PARAM_NAME}\"'/d' ${file}\n",
+                    "echo \"All lines beginning with '${PARAM_NAME}' were deleted from ${file}.\"\n",
+                    "echo \"${PARAM_NAME} ${PARAM_VALUE}\" >> ${file}\n",
+                    "echo \"${PARAM_NAME} ${PARAM_VALUE}\" was added to ${file}\n",
+                    "\n",
+                    "systemctl reload sshd.service\n"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "configure-sshd": {
+                "command": "/opt/satago/configure-sshd"
+              }
+            }
           }
         }
       },
@@ -1433,7 +1470,13 @@
         "AutoScalingGroups": [{ "Ref": "MyASG" }],
         "DeploymentConfigName": "CodeDeployDefault.OneAtATime",
         "DeploymentStyle": {
-          "DeploymentOption": "WITH_TRAFFIC_CONTROL",
+          "DeploymentOption": {
+            "Fn::If": [
+              "CreateELB",
+              "WITH_TRAFFIC_CONTROL",
+              "WITHOUT_TRAFFIC_CONTROL"
+            ]
+          },
           "DeploymentType": "IN_PLACE"
         },
         "LoadBalancerInfo": {
