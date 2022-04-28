@@ -1,3 +1,11 @@
+Version 0.8.3
+==============
+- `web-cluster-template`
+  * New parameter `RedirectToHTTPS` to automatically respond with HTTP 301 redirects for all HTTP to HTTPS requests on ALB level
+  * New parameter `UseHTTPSTarget` (default `false`) for sending all traffic from load balancer (including health checks) via HTTPS on port 8443 to EC2 instances
+  * New parameter `Ingress8443SecurityGroupId` (optional) allows specifying additional SecurityGroup to access port 8443 of EC2 instances
+  * Drop custom name from `MyALBTargetGroup` to allow seamless replacement
+
 Version 0.8.2
 ==============
 - `web-cluster-template`

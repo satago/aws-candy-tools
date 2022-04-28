@@ -43,6 +43,13 @@
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ELB",
       "Default": ""
     },
+    "Ingress8443SecurityGroupId": {
+      "Description": "(Optional) ID of ingress security group to allow access to port 8443 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ELB",
+      "Default": ""
+    },
     "ExposeCustomPortRange": {
       "Description": "Expose custom port range to entire VPC (from 33000 to 33100)",
       "Type": "String",
@@ -67,6 +74,20 @@
       "Description": "Version of AWS CLI tools",
       "Type": "String",
       "Default": "1.18.210"
+    },
+    "RedirectToHTTPS": {
+      "Description": "Automatically redirect HTTP to HTTPS",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "UseHTTPSTarget": {
+      "Description": "Forward load balancing traffic to EC2 instances over HTTPS/8443, instead of HTTP/8080 which is currently default",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
     },
     "ManagedPolicyArns": {
       "Description": "List of IAM policy names that will be granted to the instance role",
@@ -355,6 +376,15 @@
     "Ingress8080SecurityGroupIdEmpty": {
       "Fn::Equals": [{ "Ref":  "Ingress8080SecurityGroupId" }, ""]
     },
+    "Ingress8443SecurityGroupIdEmpty": {
+      "Fn::Equals": [{ "Ref":  "Ingress8443SecurityGroupId" }, ""]
+    },
+    "RedirectToHTTPS": {
+      "Fn::Equals": [{ "Ref":  "RedirectToHTTPS" }, "true"]
+    },
+    "UseHTTPSTarget": {
+      "Fn::Equals": [{ "Ref":  "UseHTTPSTarget" }, "true"]
+    },
     "UseManagedPolicyArns": {
       "Fn::Not": [{
         "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "ManagedPolicyArns" }] }, ""]
@@ -547,13 +577,12 @@
       "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
       "Condition": "CreateELB",
       "Properties" : {
-        "Name": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, "-TG"] ] },
-        "Protocol": "HTTP",
-        "Port": 8080,
+        "Protocol": { "Fn::If": ["UseHTTPSTarget", "HTTPS", "HTTP"] },
+        "Port": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
         "VpcId": { "Ref": "VpcId" },
         "HealthCheckEnabled": true,
-        "HealthCheckProtocol": "HTTP",
-        "HealthCheckPort": "8080",
+        "HealthCheckProtocol": { "Fn::If": ["UseHTTPSTarget", "HTTPS", "HTTP"] },
+        "HealthCheckPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
         "HealthCheckPath": { "Ref": "HealthCheckPath" },
         "HealthCheckIntervalSeconds" : { "Ref": "HealthCheckIntervalSeconds" },
         "HealthCheckTimeoutSeconds" : { "Ref":  "HealthCheckTimeoutSeconds" },
@@ -604,10 +633,24 @@
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Condition": "CreateELB",
       "Properties": {
-        "DefaultActions": [{
-          "Type" : "forward",
-          "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
-        }],
+        "DefaultActions": [{ "Fn::If": [
+          "RedirectToHTTPS",
+          {
+            "Type": "redirect",
+            "RedirectConfig": {
+              "Protocol": "HTTPS",
+              "Port": 443,
+              "Host": "#{host}",
+              "Path": "/#{path}",
+              "Query": "#{query}",
+              "StatusCode": "HTTP_301"
+            }
+          },
+          {
+            "Type" : "forward",
+            "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
+          }
+        ]}],
         "LoadBalancerArn": { "Ref": "MyALB" },
         "Port": "80",
         "Protocol": "HTTP"
@@ -1419,8 +1462,8 @@
         "GroupDescription": "SSH, HTTP for Tomcat, Ephemeral port range for Docker",
         "SecurityGroupIngress": [{
           "IpProtocol": "tcp",
-          "FromPort": "8080",
-          "ToPort": "8080",
+          "FromPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
+          "ToPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
           "SourceSecurityGroupId": { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] }
         }, { "Fn::If": [
           "Ingress8080SecurityGroupIdEmpty",
@@ -1430,6 +1473,15 @@
             "FromPort": "8080",
             "ToPort": "8080",
             "SourceSecurityGroupId": { "Ref": "Ingress8080SecurityGroupId" }
+          }
+        ]}, { "Fn::If": [
+          "Ingress8443SecurityGroupIdEmpty",
+          { "Ref": "AWS::NoValue" },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8443",
+            "ToPort": "8443",
+            "SourceSecurityGroupId": { "Ref": "Ingress8443SecurityGroupId" }
           }
         ]}, {
           "IpProtocol": "tcp",
