@@ -1,3 +1,10 @@
+Version 0.8.4
+==============
+- `postgresql-parameter-group-template`
+  * New parameter `pgLogicalReplication` to enable logical replication
+  * New parameter `pgMaxWalSenders` to set the maximum number of simultaneously running WAL sender processes
+  * New parameter `pgMaxReplicationSlots` to set the maximum number of replication slots
+
 Version 0.8.3
 ==============
 - `web-cluster-template`
