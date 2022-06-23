@@ -102,6 +102,26 @@
       "Description": "Value for max_standby_archive_delay and max_standby_streaming_delay; https://aws.amazon.com/ru/blogs/database/best-practices-for-amazon-rds-postgresql-replication/",
       "Type": "String",
       "Default": "300000"
+    },
+    "pgLogicalReplication": {
+      "Description": "Enables logical decoding",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "pgMaxWalSenders": {
+      "Description": "The maximum number of simultaneously running WAL sender processes, set it to at least the number of subscriptions that are expected + 1",
+      "Type": "String",
+      "Default": ""
+    },
+    "pgMaxReplicationSlots": {
+      "Description": "The the maximum number of replication slots, set it to at least the number of subscriptions that are expected + 1",
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -154,6 +174,15 @@
     },
     "pgReplicaMaxStandbyDelayEmpty": {
       "Fn::Equals": [{ "Ref": "pgReplicaMaxStandbyDelay" }, ""]
+    },
+    "pgLogicalReplication": {
+      "Fn::Equals": [{ "Ref": "pgLogicalReplication" }, "true"]
+    },
+    "pgMaxWalSendersEmpty": {
+      "Fn::Equals": [{ "Ref": "pgMaxWalSenders" }, ""]
+    },
+    "pgMaxReplicationSlotsEmpty": {
+      "Fn::Equals": [{ "Ref": "pgMaxReplicationSlots" }, ""]
     }
   },
   "Resources": {
@@ -203,6 +232,19 @@
             "pgRandomPageCostEmpty",
             { "Ref": "AWS::NoValue" },
             { "Ref": "pgRandomPageCost" }
+          ]},
+          "rds.logical_replication": {
+            "Fn::If": ["pgLogicalReplication", "1", "0"]
+          },
+          "max_replication_slots": { "Fn::If": [
+            "pgMaxWalSendersEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgMaxWalSenders" }
+          ]},
+          "max_wal_senders": { "Fn::If": [
+            "pgMaxReplicationSlotsEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgMaxReplicationSlots" }
           ]}
         }
       }
