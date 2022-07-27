@@ -1,3 +1,8 @@
+Version 0.8.5
+==============
+- `web-cluster-template`
+  * Fixing race condition between user-data and cloud-init both trying to run `yum update`. Attempt to run `yum update --assumeyes` up to 3 times and fail gracefully without breaking instance provisioning if none of the attempts succeeded.
+
 Version 0.8.4
 ==============
 - `postgresql-parameter-group-template`
