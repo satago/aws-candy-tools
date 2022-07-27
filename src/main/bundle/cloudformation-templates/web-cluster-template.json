@@ -856,6 +856,34 @@
           },
           "cfn-config": {
             "files": {
+              "/opt/satago/yum-update": {
+                "content": {
+                  "Fn::Join": ["", [
+                    "#!/bin/bash -e", "\n",
+
+                    "MAX_ATTEMPTS=3", "\n",
+                    "DELAY_SECONDS=5", "\n",
+                    "COUNTER=1", "\n",
+
+                    "until yum update --assumeyes", "\n",
+                    "do", "\n",
+                    "  if [[ ${COUNTER} -ge ${MAX_ATTEMPTS} ]]; then", "\n",
+                    "    echo \"Giving up after ${COUNTER} attempts\"", "\n",
+                    "    break", "\n",
+                    "  else", "\n",
+                    "    echo \"Yum update failed, attempt ${COUNTER} of ${MAX_ATTEMPTS}.\\", "\n",
+                    "     Sleeping for ${DELAY_SECONDS} seconds before trying again...\"", "\n",
+
+                    "    sleep ${DELAY_SECONDS}", "\n",
+                    "  fi", "\n",
+                    "  ((COUNTER+=1))", "\n",
+                    "done"
+                  ]]
+                },
+                "mode": "000555",
+                "owner": "root",
+                "group": "root"
+              },
               "/opt/satago/cfn-error": {
                 "content": {
                   "Fn::Join": ["", [
@@ -1417,7 +1445,7 @@
 
               "exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1\n",
 
-              "yum update -y\n",
+              "/opt/satago/yum-update\n",
 
               "/opt/aws/bin/cfn-init --verbose --configsets default",
               " --stack ", { "Ref": "AWS::StackId" },
