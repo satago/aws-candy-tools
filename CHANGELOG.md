@@ -1,3 +1,8 @@
+Version 0.8.6
+==============
+- `web-cluster-template`
+  * New parameter `ELBAccessLoggingS3BucketName` to specify custom name for the S3 bucket
+
 Version 0.8.5
 ==============
 - `web-cluster-template`
