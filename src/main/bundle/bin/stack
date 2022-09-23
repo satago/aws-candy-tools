@@ -1,15 +1,62 @@
 #!/usr/bin/env bash
 set -e
 
-SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+SCRIPT_PATH=$( cd "$(dirname "$0")" ; pwd -P )
 
-source ${SCRIPT_PATH}/set-aws-profile
-source ${SCRIPT_PATH}/_common-functions.bash
+source "${SCRIPT_PATH}/_common-functions.bash"
 
 STACKS_DIR=${SCRIPT_PATH}/../cloudformation-stacks
 
+NAMESPACE=""
+
+function parse_stack_options {
+  while getopts ":n:" opt; do
+    case $opt in
+      n)
+        NAMESPACE=${OPTARG}
+        ;;
+      \?)
+        echo "Invalid option: -${OPTARG}" >&2
+        exit 1
+        ;;
+      :)
+        echo "Option -${OPTARG} requires an argument." >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+parse_stack_options "${@}"
+shift $((OPTIND-1))
+
 CMD=$1
 STACK=$2
+STACK_NAMESPACE=$(extract_namespace_from_fqn "${STACK}")
+
+if [[ -z "${NAMESPACE}" ]]; then
+    NAMESPACE=${STACK_NAMESPACE}
+elif [[ -n ${STACK_NAMESPACE} ]]; then
+    if [[ ${STACK_NAMESPACE} != "${NAMESPACE}" ]]; then
+      echo "Explicit (${NAMESPACE}) and implicit (${STACK_NAMESPACE}) namespaces must match"
+      exit 1
+    fi
+fi
+
+if [[ -z "${NAMESPACE}" ]]
+then
+  source "${SCRIPT_PATH}/set-aws-profile"
+  STACK_NAME=${STACK}
+else
+  # shellcheck disable=SC1090
+  source "${SCRIPT_PATH}/set-aws-profile-${NAMESPACE}"
+  STACK_NAME=$(safe_fq_name "${NAMESPACE}/$(extract_name_from_fqn "${STACK}")")
+fi
+
+SELF_OPTS=""
+if [[ -n ${NAMESPACE} ]]; then
+  SELF_OPTS="-n ${NAMESPACE}"
+fi
 
 function template_path {
     # Search in user templates first
@@ -18,7 +65,7 @@ function template_path {
         # If not found, try a built-in template
         TEMPLATE_PATH=${SCRIPT_PATH}/../build/tmp/aws-candy-tools/bundle/cloudformation-templates/$1-template.json
     fi
-    echo ${TEMPLATE_PATH}
+    echo "${TEMPLATE_PATH}"
 }
 
 function stack_policy_path {
@@ -28,34 +75,39 @@ function stack_policy_path {
         # If not found, try a built-in policy
         STACK_POLICY_PATH=${SCRIPT_PATH}/../build/tmp/aws-candy-tools/bundle/cloudformation-templates/$1-stack-policy.json
     fi
-    echo ${STACK_POLICY_PATH}
+    echo "${STACK_POLICY_PATH}"
 }
 
 function template_name {
     # Take name of the template from parameters file,
     # each stack has exactly one parameters file
-    echo $(ls ${STACKS_DIR}/${STACK}/*-parameters.json) \
+    find "${STACKS_DIR}/${STACK}" -name "*-parameters.json" \
         | sed 's/.*\/\(.*\)-parameters.json/\1/'
 }
 
 function bucket_name {
-    ALIAS=$(aws iam list-account-aliases --query 'AccountAliases[0]' --output text)
-    echo "cloudformation-$ALIAS"
+    echo "$(aws_account_id)-cloudformation"
 }
 
 function physical_resource_id_by_logical_id {
-    echo $(aws cloudformation list-stack-resources \
-            --stack-name $1 \
+    aws cloudformation list-stack-resources \
+            --stack-name "$1" \
             --query "StackResourceSummaries[?LogicalResourceId==\`$2\`].PhysicalResourceId" \
-            --output text)
+            --output text
 }
 
 function configure_bastion_ssh {
-    source ${SCRIPT_PATH}/set-bastion-ssh
+    if [[ -z "${NAMESPACE}" ]]
+    then
+      source "${SCRIPT_PATH}/set-bastion-ssh"
+    else
+      # shellcheck disable=SC1090
+      source "${SCRIPT_PATH}/set-bastion-ssh-${NAMESPACE}"
+    fi
 
     # Configure port, username and other settings via `~/.ssh/config`
     SSH_BASTION_HOST="ssh -t ${BASTION_HOST}"
-    if [[ $(hostname) == ${BASTION_HOST} ]]; then
+    if [[ $(hostname) == "${BASTION_HOST}" ]]; then
       # No need to use self as jump host
       SSH_BASTION_HOST=
     fi
@@ -65,12 +117,17 @@ function configure_bastion_ssh {
 
 case "$CMD" in
         list)
-            ls -1 ${STACKS_DIR}
+          # shellcheck disable=SC2038
+          find "${STACKS_DIR}" -name '*-parameters.json' \
+              -exec realpath --relative-to "${STACKS_DIR}" {} \; \
+              | xargs -n 1 dirname \
+              | sort \
+              | uniq
             ;;
 
         list-arns)
             ACCOUNT_ID=$(aws_account_id)
-            INSTANCE_ROLE_ID=$(physical_resource_id_by_logical_id ${STACK} MyInstanceRole)
+            INSTANCE_ROLE_ID=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyInstanceRole)
             echo "arn:aws:iam::${ACCOUNT_ID}:role/${INSTANCE_ROLE_ID}"
             ;;
 
@@ -82,85 +139,120 @@ case "$CMD" in
 
         create-cloudformation-bucket)
             BUCKET=$(bucket_name)
-            aws s3 mb s3://${BUCKET}
-            aws s3api put-bucket-versioning --bucket ${BUCKET} \
+            aws s3 mb "s3://${BUCKET}"
+            aws s3api put-bucket-versioning --bucket "${BUCKET}" \
                 --versioning-configuration Status=Enabled
+            aws s3api put-bucket-encryption --bucket "${BUCKET}" \
+                --server-side-encryption-configuration '{
+                   "Rules": [
+                           {
+                               "ApplyServerSideEncryptionByDefault": {
+                                   "SSEAlgorithm": "aws:kms",
+                                   "KMSMasterKeyID": "alias/aws/s3"
+                               },
+                               "BucketKeyEnabled": true
+                           }
+                       ]
+                   }'
+            aws s3api put-public-access-block --bucket "${BUCKET}" \
+                --public-access-block-configuration \
+                  'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
             ;;
 
         id)
-            aws cloudformation describe-stacks --stack-name ${STACK} \
+            aws cloudformation describe-stacks --stack-name "${STACK_NAME}" \
                 --query 'Stacks[0].StackId' --output text
             ;;
 
         create)
             TEMPLATE=$(template_name)
-            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
-            STACK_POLICY_FILE=$(stack_policy_path ${TEMPLATE})
+            aws s3 cp "$(template_path "${TEMPLATE}")" "s3://$(bucket_name)/${STACK_NAME}-template.json"
+            STACK_POLICY_FILE=$(stack_policy_path "${TEMPLATE}")
 
             STACK_POLICY_OPTS=
             if [[ -f ${STACK_POLICY_FILE} ]]; then
-              aws s3 cp $(stack_policy_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-stack-policy.json
-              STACK_POLICY_OPTS="--stack-policy-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-stack-policy.json"
+              aws s3 cp "$(stack_policy_path "${TEMPLATE}")" "s3://$(bucket_name)/${STACK_NAME}-stack-policy.json"
+              STACK_POLICY_OPTS="--stack-policy-url https://s3.amazonaws.com/$(bucket_name)/${STACK_NAME}-stack-policy.json"
             fi
 
+            # shellcheck disable=SC2086
             aws cloudformation create-stack \
-                --stack-name ${STACK} \
-                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
-                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
+                --stack-name "${STACK_NAME}" \
+                --template-url "https://s3.amazonaws.com/$(bucket_name)/${STACK_NAME}-template.json" \
+                --parameters "file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json" \
                 ${STACK_POLICY_OPTS} \
                 --disable-rollback \
                 --capabilities CAPABILITY_IAM
             ;;
 
+        set-stack-policy)
+            TEMPLATE=$(template_name)
+            STACK_POLICY_FILE=$(stack_policy_path "${TEMPLATE}")
+            if [[ -f ${STACK_POLICY_FILE} ]]; then
+              aws s3 cp "$(stack_policy_path "${TEMPLATE}")" "s3://$(bucket_name)/${STACK_NAME}-stack-policy.json"
+
+              aws cloudformation set-stack-policy \
+                  --stack-name "${STACK_NAME}" \
+                  --stack-policy-url "https://s3.amazonaws.com/$(bucket_name)/${STACK_NAME}-stack-policy.json"
+            else
+                echo "Policy file not found: ${STACK_POLICY_FILE}"
+                exit 1
+            fi
+            ;;
+
         update)
             TEMPLATE=$(template_name)
-            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
+            aws s3 cp "$(template_path "${TEMPLATE}")" "s3://$(bucket_name)/${STACK_NAME}-template.json"
             aws cloudformation update-stack \
-                --stack-name ${STACK} \
-                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
-                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
+                --stack-name "${STACK_NAME}" \
+                --template-url "https://s3.amazonaws.com/$(bucket_name)/${STACK_NAME}-template.json" \
+                --parameters "file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json" \
                 --capabilities CAPABILITY_IAM
             ;;
 
         create-change-set)
             TEMPLATE=$(template_name)
-            CHANGESET_NAME=change$(date -u +%Y%m%dT%H%M%S%Z)
-            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
+            CHANGE_SET_NAME=change$(date -u +%Y%m%dT%H%M%S%Z)
+            aws s3 cp "$(template_path "${TEMPLATE}")" "s3://$(bucket_name)/${STACK_NAME}-template.json"
             aws cloudformation create-change-set \
                 --capabilities CAPABILITY_IAM \
-                --stack-name ${STACK} \
-                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
-                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json \
-                --change-set-name ${CHANGESET_NAME} \
-            && echo ${CHANGESET_NAME} \
-            && echo $0 describe-change-set ${STACK} ${CHANGESET_NAME}
+                --stack-name "${STACK_NAME}" \
+                --template-url "https://s3.amazonaws.com/$(bucket_name)/${STACK_NAME}-template.json" \
+                --parameters "file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json" \
+                --change-set-name "${CHANGE_SET_NAME}" \
+            && echo "${CHANGE_SET_NAME}" \
+            && echo "$0 ${SELF_OPTS} describe-change-set ${STACK} ${CHANGE_SET_NAME}"
             ;;
 
         describe-change-set)
-            CHANGESET_NAME=$3
-            aws cloudformation describe-change-set --stack-name ${STACK} --change-set-name ${CHANGESET_NAME} \
-            && echo $0 execute-change-set ${STACK} ${CHANGESET_NAME}
+            CHANGE_SET_NAME=$3
+            aws cloudformation describe-change-set \
+                --stack-name "${STACK_NAME}" \
+                --change-set-name "${CHANGE_SET_NAME}" \
+            && echo "$0 ${SELF_OPTS} execute-change-set ${STACK} ${CHANGE_SET_NAME}"
             ;;
 
         execute-change-set)
-            CHANGESET_NAME=$3
-            aws cloudformation execute-change-set --stack-name ${STACK} --change-set-name ${CHANGESET_NAME} \
-            && echo $0 wait ${STACK}
+            CHANGE_SET_NAME=$3
+            aws cloudformation execute-change-set \
+                --stack-name "${STACK_NAME}" \
+                --change-set-name "${CHANGE_SET_NAME}" \
+            && echo "$0 ${SELF_OPTS} wait ${STACK}"
             ;;
 
         wait)
-            printf "$(date +%H:%M:%S) Waiting for stack update\n"
+            printf '%s Waiting for stack update\n' "$(date +%H:%M:%S)"
 
             PREV_STATUS=
             while true
             do
-                STATUS=`$0 status ${STACK}`
+                STATUS=$($0 ${SELF_OPTS} status "${STACK}")
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
 
-                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
-                    printf "\r${STATUS_LINE}"
+                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == "${STATUS}" ]] ); then
+                    printf '\r%s' "${STATUS_LINE}"
                 else
-                    printf "\n${STATUS_LINE}"
+                    printf '\n%s' "${STATUS_LINE}"
                 fi
 
                 # Wait for one of the terminal statuses
@@ -185,20 +277,20 @@ case "$CMD" in
             ;;
 
         status)
-            aws cloudformation describe-stacks --stack-name ${STACK} \
+            aws cloudformation describe-stacks --stack-name "${STACK_NAME}" \
                 --query 'Stacks[0].StackStatus' --output text
             ;;
 
         estimate-template-cost)
             TEMPLATE=$(template_name)
-            aws s3 cp $(template_path ${TEMPLATE}) s3://$(bucket_name)/${STACK}-template.json
+            aws s3 cp "$(template_path "${TEMPLATE}")" "s3://$(bucket_name)/${STACK_NAME}-template.json"
             aws cloudformation estimate-template-cost \
-                --template-url https://s3.amazonaws.com/$(bucket_name)/${STACK}-template.json \
-                --parameters file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json
+                --template-url "https://s3.amazonaws.com/$(bucket_name)/${STACK_NAME}-template.json" \
+                --parameters "file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json"
             ;;
 
         resources)
-            aws cloudformation describe-stack-resources --stack-name ${STACK} \
+            aws cloudformation describe-stack-resources --stack-name "${STACK_NAME}" \
                 --query 'StackResources[*].[Timestamp,ResourceStatus,PhysicalResourceId,LogicalResourceId]' \
                 --output table
             ;;
@@ -206,14 +298,14 @@ case "$CMD" in
         events)
             [[ -z $3 ]] && MAX_ITEMS=10 || MAX_ITEMS=$3
 
-            aws cloudformation describe-stack-events --stack-name ${STACK} \
+            aws cloudformation describe-stack-events --stack-name "${STACK_NAME}" \
                 --query 'StackEvents[*].[Timestamp,ResourceStatus,LogicalResourceId,ResourceStatusReason]' \
                 --output table \
-                --max-items ${MAX_ITEMS}
+                --max-items "${MAX_ITEMS}"
             ;;
 
         ec2-instances)
-            STACK_ID=$($0 id ${STACK})
+            STACK_ID=$($0 ${SELF_OPTS} id "${STACK}")
             ATTRS=$3
             OUTPUT="--output text"
 
@@ -226,71 +318,74 @@ case "$CMD" in
                 ATTRS=".[${ATTRS}]"
             fi
 
+            # shellcheck disable=SC2086
             aws ec2 describe-instances \
-                --query "Reservations[*].Instances[?Tags[?Value==\`${STACK_ID}\`]]${ATTRS}" \
+                --query "Reservations[*].Instances[?Tags[?Value==\`${STACK_ID}\`]] \
+                         | [*][?State.Name=='running']${ATTRS}" \
                 ${OUTPUT}
             ;;
 
         get-min-size)
-            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            ASG_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyASG)
             MIN_SIZE=$(aws autoscaling describe-auto-scaling-groups \
-                --auto-scaling-group-name ${ASG_NAME} \
+                --auto-scaling-group-name "${ASG_NAME}" \
                 --query 'AutoScalingGroups[0].MinSize' \
                 --output text)
-            printf ${MIN_SIZE}
+            printf '%s' "${MIN_SIZE}"
             ;;
 
         get-desired-capacity)
-            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            ASG_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyASG)
             CURRENT_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
-                --auto-scaling-group-name ${ASG_NAME} \
+                --auto-scaling-group-name "${ASG_NAME}" \
                 --query 'AutoScalingGroups[0].DesiredCapacity' \
                 --output text)
-            printf ${CURRENT_CAPACITY}
+            printf '%s' "${CURRENT_CAPACITY}"
             ;;
 
         set-desired-capacity)
             DESIRED_CAPACITY=$3
-            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            ASG_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyASG)
 
             aws autoscaling set-desired-capacity \
-                --auto-scaling-group-name ${ASG_NAME} \
-                --desired-capacity ${DESIRED_CAPACITY}
+                --auto-scaling-group-name "${ASG_NAME}" \
+                --desired-capacity "${DESIRED_CAPACITY}"
             ;;
 
         wait-for-elb-instances)
             # need to support both classic ELBs (pre 0.6.0) and ALBs (0.6.0+) so we do not end up with infinite loops during deployment
-            ELB_NAME=$(physical_resource_id_by_logical_id ${STACK} MyELB)
-            ALB_TARGET_GROUP_ARN=$(physical_resource_id_by_logical_id ${STACK} MyALBTargetGroup)
+            ELB_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyELB)
+            ALB_TARGET_GROUP_ARN=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyALBTargetGroup)
 
             if [[ -z ${ELB_NAME} ]] && [[ -z ${ALB_TARGET_GROUP_ARN} ]]; then
-                printf "$(date +%H:%M:%S) ${STACK} neither has ELB (Classic) nor ALB (ELBv2) defined\n"
+                printf '%s %s neither has ELB (Classic) nor ALB (ELBv2) defined\n' "$(date +%H:%M:%S)" "${STACK}"
                 exit 1
 
             elif [[ -n ${ALB_TARGET_GROUP_ARN} ]]; then
                 IN_SERVICE_COUNT_CHECK_DESTINATION="ALB (ELBv2) target group"
                 function IN_SERVICE_COUNT_FUNCTION {
-                  echo $(aws elbv2 describe-target-health \
-                   --target-group-arn ${ALB_TARGET_GROUP_ARN} \
-                   --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id)")
+                  aws elbv2 describe-target-health \
+                       --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+                       --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id)"
                 }
 
             elif [[ -n ${ELB_NAME} ]]; then
                 IN_SERVICE_COUNT_CHECK_DESTINATION="ELB (Classic)"
                 function IN_SERVICE_COUNT_FUNCTION {
-                    echo $(aws elb describe-instance-health \
-                        --load-balancer-name ${ELB_NAME} \
-                        --query "length(InstanceStates[?State=='InService'].InstanceId)")
+                    aws elb describe-instance-health \
+                        --load-balancer-name "${ELB_NAME}" \
+                        --query "length(InstanceStates[?State=='InService'].InstanceId)"
                 }
             fi
 
-            ASG_NAME=$(physical_resource_id_by_logical_id ${STACK} MyASG)
+            ASG_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyASG)
             DESIRED_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
-                --auto-scaling-group-name ${ASG_NAME} \
+                --auto-scaling-group-name "${ASG_NAME}" \
                 --query 'AutoScalingGroups[0].DesiredCapacity' \
                 --output text)
 
-            printf "$(date +%H:%M:%S) Waiting for ${STACK} ${IN_SERVICE_COUNT_CHECK_DESTINATION} to have ${DESIRED_CAPACITY} healthy instance(s) to match its ASG\n"
+            printf '%s Waiting for %s %s to have %s healthy instance(s) to match its ASG\n' \
+                "$(date +%H:%M:%S)" "${STACK}" "${IN_SERVICE_COUNT_CHECK_DESTINATION}" "${DESIRED_CAPACITY}"
 
             PREV_STATUS=
             while true
@@ -302,13 +397,14 @@ case "$CMD" in
                 STATUS="${STACK} ${IN_SERVICE_COUNT_CHECK_DESTINATION} has ${IN_SERVICE_COUNT} healthy instance(s)"
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
 
-                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
-                    printf "\r${STATUS_LINE}"
+                # TODO test & update deploy if works
+                if [[ -t 1 ]] && [[ -z ${PREV_STATUS} || ${PREV_STATUS} == "${STATUS}" ]]; then
+                    printf '\r%s' "${STATUS_LINE}"
                 else
-                    printf "\n${STATUS_LINE}"
+                    printf '\n%s' "${STATUS_LINE}"
                 fi
 
-              if [[ ${IN_SERVICE_COUNT} == ${DESIRED_CAPACITY} ]]; then
+              if [[ ${IN_SERVICE_COUNT} == "${DESIRED_CAPACITY}" ]]; then
                 echo
                 exit 0
               fi
@@ -320,18 +416,29 @@ case "$CMD" in
             done
             ;;
 
+        ssm)
+            INSTANCE_ID=$($0 ${SELF_OPTS} ec2-instances "${STACK}" InstanceId | grep -v 'None' | head -n 1)
+
+            aws ssm start-session --target "${INSTANCE_ID}"
+          ;;
+
+
         ssh)
             # Take IP of the first available EC2 instance in the stack
-            PRIVATE_IP=$($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None' | head -n 1)
+            # TODO Support custom index and/or IP address
+            # shellcheck disable=SC2086
+            PRIVATE_IP=$($0 ${SELF_OPTS} ec2-instances "${STACK}" PrivateIpAddress | grep -v 'None' | head -n 1)
 
             configure_bastion_ssh
 
+            # shellcheck disable=SC2086
             ${SSH_BASTION_HOST} \
                 ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_OPTIONS} ${SSH_INSTANCE_USER}@${PRIVATE_IP}
             ;;
 
         run)
-            PRIVATE_IPS=($($0 ec2-instances ${STACK} PrivateIpAddress | grep -v 'None'))
+            # shellcheck disable=SC2086
+            PRIVATE_IPS=("$($0 ${SELF_OPTS} ec2-instances "${STACK}" PrivateIpAddress | grep -v 'None')")
 
             configure_bastion_ssh
 
@@ -339,9 +446,11 @@ case "$CMD" in
             REMOTE_COMMAND="$*"
 
             for PRIVATE_IP in "${PRIVATE_IPS[@]}"; do
+                # shellcheck disable=SC2145
                 echo -e "*\n* About to run '$@' on ${PRIVATE_IP} (${STACK})...\n*"
                 set +e
 
+                # shellcheck disable=SC2086
                 ${SSH_BASTION_HOST} \
                     ssh -i ${SSH_INSTANCE_IDENTITY_FILE} ${SSH_INSTANCE_OPTIONS} ${SSH_INSTANCE_USER}@${PRIVATE_IP} \
                         "'${REMOTE_COMMAND}'"
@@ -351,7 +460,10 @@ case "$CMD" in
             ;;
 
         *)
-            echo $"Usage $0 <command> <args>
+            echo $"Usage $0 [OPTIONS] <command> <args>
+
+  OPTIONS:
+    -n <namespace>
 
   $0 create <stack-name>
   $0 create-cloudformation-bucket
@@ -370,7 +482,9 @@ case "$CMD" in
   $0 resources <stack-name>
   $0 run <stack-name> <shell-command>
   $0 set-desired-capacity <stack-name> <desired-capacity>
+  $0 set-stack-policy <stack-name>
   $0 ssh <stack-name>
+  $0 ssm <stack-name>
   $0 status <stack-name>
   $0 update <stack-name>
   $0 wait <stack-name>

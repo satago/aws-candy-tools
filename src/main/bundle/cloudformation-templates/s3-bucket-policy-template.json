@@ -69,5 +69,23 @@
         }
       }
     }
+  },
+  "Outputs": {
+    "ProductionReadWritePolicyArn": {
+      "Value": { "Ref": "MyS3BucketProductionReadWritePolicy" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ProductionReadWritePolicyArn" ] ]
+        }
+      }
+    },
+    "DevelopmentReadWritePolicyArn": {
+      "Value": { "Ref": "MyS3BucketDevelopmentReadWritePolicy" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "DevelopmentReadWritePolicyArn" ] ]
+        }
+      }
+    }
   }
 }

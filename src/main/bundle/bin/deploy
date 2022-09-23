@@ -1,42 +1,123 @@
 #!/usr/bin/env bash
 set -e
 
-SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+SCRIPT_PATH=$( cd "$(dirname "$0")" ; pwd -P )
 
-source ${SCRIPT_PATH}/set-aws-profile
-source ${SCRIPT_PATH}/_common-functions.bash
+source "${SCRIPT_PATH}/_common-functions.bash"
 
 GRADLE_MODULE_ROOT=${SCRIPT_PATH}/..
 REVISIONS_DIR=${GRADLE_MODULE_ROOT}/build/revisions
 CREATE_REVISION_TASK_NAME_PREFIX=createRevision
 
+NAMESPACE=""
+
+function parse_deploy_options {
+  while getopts ":n:" opt; do
+    case $opt in
+      n)
+        NAMESPACE=${OPTARG}
+        ;;
+      \?)
+        echo "Invalid option: -${OPTARG}" >&2
+        exit 1
+        ;;
+      :)
+        echo "Option -${OPTARG} requires an argument." >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+parse_deploy_options "${@}"
+shift $((OPTIND-1))
+
 CMD=$1
 
+function set_aws_profile_from_stack {
+  STACK_NAMESPACE=$(extract_namespace_from_fqn "${STACK}")
+
+  if [[ -z "${NAMESPACE}" ]]; then
+      NAMESPACE=${STACK_NAMESPACE}
+  elif [[ -n ${STACK_NAMESPACE} ]]; then
+      if [[ ${STACK_NAMESPACE} != "${NAMESPACE}" ]]; then
+        echo "Explicit (${NAMESPACE}) and implicit (${STACK_NAMESPACE}) namespaces must match"
+        exit 1
+      fi
+  fi
+
+  if [[ -z "${NAMESPACE}" ]]
+  then
+    source "${SCRIPT_PATH}/set-aws-profile"
+    STACK_NAME=${STACK}
+  else
+    # shellcheck disable=SC1090
+    source "${SCRIPT_PATH}/set-aws-profile-${NAMESPACE}"
+    STACK_NAME=$(safe_fq_name "${NAMESPACE}/$(extract_name_from_fqn "${STACK}")")
+  fi
+
+  SELF_OPTS=""
+  if [[ -n ${NAMESPACE} ]]; then
+    SELF_OPTS="-n ${NAMESPACE}"
+  fi
+}
+
+function set_aws_profile_from_namespace {
+    if [[ -z "${NAMESPACE}" ]]
+    then
+      source "${SCRIPT_PATH}/set-aws-profile"
+    else
+      # shellcheck disable=SC1090
+      source "${SCRIPT_PATH}/set-aws-profile-${NAMESPACE}"
+    fi
+
+    SELF_OPTS=""
+    if [[ -n ${NAMESPACE} ]]; then
+      SELF_OPTS="-n ${NAMESPACE}"
+    fi
+}
+
 function bucket_name {
-    ALIAS=$(aws iam list-account-aliases --query 'AccountAliases[0]' --output text)
-    echo "codedeploy-$ALIAS"
+    echo "$(aws_account_id)-codedeploy"
 }
 
 function physical_resource_id {
-    echo $(aws cloudformation list-stack-resources \
-            --stack-name $1 \
-            --query "StackResourceSummaries[?ResourceType==\`$2\`].PhysicalResourceId" \
-            --output text)
+    aws cloudformation list-stack-resources \
+        --stack-name "$1" \
+        --query "StackResourceSummaries[?ResourceType==\`$2\`].PhysicalResourceId" \
+        --output text
 }
 
 function read_output_value {
-    echo $(aws cloudformation describe-stacks \
-            --stack-name $1 \
-            --query "Stacks[*].Outputs[?OutputKey==\`$2\`].OutputValue" \
-            --output text)
+    aws cloudformation describe-stacks \
+        --stack-name "$1" \
+        --query "Stacks[*].Outputs[?OutputKey==\`$2\`].OutputValue" \
+        --output text
 }
 
 case "$CMD" in
         create-codedeploy-bucket)
+            set_aws_profile_from_namespace
+
             BUCKET=$(bucket_name)
-            aws s3 mb s3://${BUCKET}
-            aws s3api put-bucket-versioning --bucket ${BUCKET} \
+            aws s3 mb "s3://${BUCKET}"
+            aws s3api put-bucket-versioning --bucket "${BUCKET}" \
                 --versioning-configuration Status=Enabled
+            aws s3api put-bucket-encryption --bucket "${BUCKET}" \
+                --server-side-encryption-configuration '{
+                   "Rules": [
+                           {
+                               "ApplyServerSideEncryptionByDefault": {
+                                   "SSEAlgorithm": "aws:kms",
+                                   "KMSMasterKeyID": "alias/aws/s3"
+                               },
+                               "BucketKeyEnabled": true
+                           }
+                       ]
+                   }'
+            aws s3api put-public-access-block --bucket "${BUCKET}" \
+                --public-access-block-configuration \
+                  'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
             ;;
 
         push)
@@ -67,33 +148,37 @@ case "$CMD" in
                 exit 1
             fi
 
-            ${GRADLEW} -p $(dirname ${GRADLEW}) candyRunTask "-PcandyTaskName=${CREATE_REVISION_TASK_NAME_PREFIX}-${DEPLOYABLE_NAME}"
+            ${GRADLEW} -p "$(dirname "${GRADLEW}")" candyRunTask \
+              "-PcandyTaskName=${CREATE_REVISION_TASK_NAME_PREFIX}-$(safe_fq_name "${DEPLOYABLE_NAME}")"
 
             REVISION_DIR=${REVISIONS_DIR}/${DEPLOYABLE_NAME}
 
-            $0 docker-tag-and-push ${REVISION_DIR}
-
-            $0 codedeploy-push-and-wait ${STACK} ${REVISION_DIR}
+            $0 docker-tag-and-push "${REVISION_DIR}"
+            $0 codedeploy-push-and-wait "${STACK}" "${REVISION_DIR}"
             ;;
 
         docker-tag-and-push-all)
             PARALLEL_COUNT=${2:-1}
 
-            for REVISION_DIR in ${REVISIONS_DIR}/*; do
-                echo ${REVISION_DIR}
+            # shellcheck disable=SC2086
+            for REVISION_DIR in "${REVISIONS_DIR}"/*; do
+                echo "${REVISION_DIR}"
 
                 # Sleep for a bit before the next parallel run to prevent throttling errors from AWS CLI
                 # An error occurred (Throttling) when calling the DescribeStacks operation (reached max retries: 2): Rate exceeded
                 sleep 1
-            done | xargs -n 1 -I {} -P ${PARALLEL_COUNT} $0 docker-tag-and-push {}
+            done | xargs -n 1 -I {} -P "${PARALLEL_COUNT}" $0 docker-tag-and-push {}
             ;;
 
         docker-tag-and-push)
             REVISION_DIR=$2
-            REVISION_DIR_RELATIVE=$(realpath --relative-to=`pwd` ${REVISION_DIR})
+            REVISION_DIR_RELATIVE=$(realpath --relative-to="$(pwd)" "${REVISION_DIR}")
 
-            source ${REVISION_DIR}/compose.env
+            # Currently we only support ECR repositories from the main namespace
+            source "${SCRIPT_PATH}/set-aws-profile"
+            source "${REVISION_DIR}/compose.env"
 
+            # shellcheck disable=SC2153
             for SERVICE in "${SERVICES[@]}"; do
 
                 echo -e "*\n* Tagging and pushing ${SERVICE} docker image for ${REVISION_DIR_RELATIVE}\n*"
@@ -102,17 +187,17 @@ case "$CMD" in
                 IMAGE_TAG="${SERVICE}_IMAGE_TAG"
                 ECR_STACK_NAME="${SERVICE}_ECR_STACK_NAME"
 
-                TARGET_IMAGE=$(read_output_value ${!ECR_STACK_NAME} ImageURI)
+                TARGET_IMAGE=$(read_output_value "${!ECR_STACK_NAME}" ImageURI)
 
-                docker tag ${!IMAGE_ID} ${TARGET_IMAGE}:${!IMAGE_TAG}
+                docker tag "${!IMAGE_ID}" "${TARGET_IMAGE}:${!IMAGE_TAG}"
 
                 docker_login_ecr
 
-                docker push ${TARGET_IMAGE}:${!IMAGE_TAG}
+                docker push "${TARGET_IMAGE}:${!IMAGE_TAG}"
 
                 echo -e \
                     "\n# Overridden by $0 \
-                     \n${SERVICE}_IMAGE=${TARGET_IMAGE}:${!IMAGE_TAG}" >> ${REVISION_DIR}/compose.env
+                     \n${SERVICE}_IMAGE=${TARGET_IMAGE}:${!IMAGE_TAG}" >> "${REVISION_DIR}/compose.env"
             done
             ;;
 
@@ -125,40 +210,47 @@ case "$CMD" in
 
             STACK=$2
             REVISION_DIR=$3
-            REVISION_DIR_RELATIVE=$(realpath --relative-to=`pwd` ${REVISION_DIR})
+            REVISION_DIR_RELATIVE=$(realpath --relative-to="$(pwd)" "${REVISION_DIR}")
+
+            set_aws_profile_from_stack
 
             STACK_CMD="${SCRIPT_PATH}/stack"
 
             if ${AUTO_SCALING}; then
-                ORIGINAL_DESIRED_CAPACITY=$(${STACK_CMD} get-desired-capacity ${STACK})
+                ORIGINAL_DESIRED_CAPACITY=$(${STACK_CMD} get-desired-capacity "${STACK}")
 
                 if [[ ${ORIGINAL_DESIRED_CAPACITY} -lt 2 ]]; then
                    echo -e "*\n* Desired capacity of ${STACK} ASG is ${ORIGINAL_DESIRED_CAPACITY}, temporarily making it 2\n*"
 
-                   ${STACK_CMD} set-desired-capacity ${STACK} 2
-                   timeout 900 ${STACK_CMD} wait-for-elb-instances ${STACK}
+                   ${STACK_CMD} set-desired-capacity "${STACK}" 2
+                   # shellcheck disable=SC2086
+                   timeout 900 ${STACK_CMD} wait-for-elb-instances "${STACK}"
                 fi
             fi
 
             echo -e "*\n* Pushing ${REVISION_DIR_RELATIVE} to S3 and initiating CodeDeploy deployment to ${STACK}\n*"
 
-            DEPLOYMENT_ID=`eval $($0 codedeploy-push ${STACK} ${REVISION_DIR}) --output text`
+            # shellcheck disable=SC2046
+            # shellcheck disable=SC2086
+            DEPLOYMENT_ID=$(eval $($0 codedeploy-push "${STACK}" "${REVISION_DIR}") --output text)
 
-            $0 wait ${DEPLOYMENT_ID}
+            # shellcheck disable=SC2086
+            $0 ${SELF_OPTS} wait "${DEPLOYMENT_ID}"
 
             # rare scenario, but CodeDeploy could mark the whole deployment as successful even if deployment to at least one instance failed, see
             # deployment configuration descriptions from https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html;
             # ensure all instances were successfully registered in the ELB, so we do not decrease the ASG size if not all instances are able to
             # handle the requests
+            # shellcheck disable=SC2086
             if ! timeout 60 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
                 echo -e "*\n* ERROR CodeDeploy deployment for ${STACK} succeeded, but not all instances successfully registered in ELB. Please verify. *\n*"
                 exit 1
             fi
 
             if ${AUTO_SCALING}; then
-                MIN_SIZE=$(${STACK_CMD} get-min-size ${STACK})
+                MIN_SIZE=$(${STACK_CMD} get-min-size "${STACK}")
                 echo "Changing desired capacity of ${STACK} ASG back to minimum (${MIN_SIZE})"
-                ${STACK_CMD} set-desired-capacity ${STACK} ${MIN_SIZE}
+                ${STACK_CMD} set-desired-capacity "${STACK}" "${MIN_SIZE}"
             fi
             ;;
 
@@ -166,15 +258,17 @@ case "$CMD" in
             STACK=$2
             REVISION_DIR=$3
 
-            APP_NAME=$(physical_resource_id ${STACK} AWS::CodeDeploy::Application)
+            set_aws_profile_from_stack
 
-            CREATE_DEPLOYMENT=$(aws deploy push --application-name ${APP_NAME} \
-                --s3-location s3://$(bucket_name)/${STACK}.zip \
-                --source ${REVISION_DIR} \
+            APP_NAME=$(physical_resource_id "${STACK_NAME}" AWS::CodeDeploy::Application)
+
+            CREATE_DEPLOYMENT=$(aws deploy push --application-name "${APP_NAME}" \
+                --s3-location "s3://$(bucket_name)/${STACK}.zip" \
+                --source "${REVISION_DIR}" \
                 | tail -n 1)
 
-            DG_NAME=$(physical_resource_id ${STACK} AWS::CodeDeploy::DeploymentGroup)
-            DC_NAME=$(physical_resource_id ${STACK} AWS::CodeDeploy::DeploymentConfig)
+            DG_NAME=$(physical_resource_id "${STACK_NAME}" AWS::CodeDeploy::DeploymentGroup)
+            DC_NAME=$(physical_resource_id "${STACK_NAME}" AWS::CodeDeploy::DeploymentConfig)
 
             if [[ -z ${DC_NAME}  ]]; then
                 DC_NAME="CodeDeployDefault.OneAtATime"
@@ -188,37 +282,44 @@ case "$CMD" in
             CREATE_DEPLOYMENT=${CREATE_DEPLOYMENT/${DC_NAME_TEMPLATE}/${DC_NAME}}
             CREATE_DEPLOYMENT=${CREATE_DEPLOYMENT/${DESCRIPTION_TEMPLATE}/\'Deploy after push\'}
 
+            # shellcheck disable=SC2086
             echo ${CREATE_DEPLOYMENT} \
                 --auto-rollback-configuration enabled=true,events=DEPLOYMENT_FAILURE \
                 --ignore-application-stop-failures
             ;;
 
         status)
-            aws deploy get-deployment --deployment-id $2 --query 'deploymentInfo.status'
+            set_aws_profile_from_namespace
+
+            aws deploy get-deployment --deployment-id "$2" --query 'deploymentInfo.status'
             ;;
 
         wait)
             DEPLOYMENT_ID=$2
-            STACK=$(aws deploy get-deployment \
-                          --deployment-id ${DEPLOYMENT_ID} \
-                          --query=deploymentInfo.applicationName \
-                          --output text \
-                          | awk -F-MyApplication- '{print $1}')
 
-            printf "$(date +%H:%M:%S) ${STACK} deployment \"${DEPLOYMENT_ID}\"\n"
+            set_aws_profile_from_namespace
+
+            STACK=$(aws deploy get-deployment \
+                          --deployment-id "${DEPLOYMENT_ID}" \
+                          --query=deploymentInfo.revision.s3Location.key \
+                          --output text \
+                          | awk -F.zip '{print $1}')
+
+            printf '%s %s deployment "%s"\n' "$(date +%H:%M:%S)" "${STACK}" "${DEPLOYMENT_ID}"
 
             PREV_STATUS=
             while true
             do
                 set +e
-                STATUS=`$0 status ${DEPLOYMENT_ID}`
+                # shellcheck disable=SC2086
+                STATUS=$($0 ${SELF_OPTS} status "${DEPLOYMENT_ID}")
                 set -e
                 STATUS_LINE="$(date +%H:%M:%S) ${STACK} deployment ${STATUS}"
 
-                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == ${STATUS} ]] ); then
-                    printf "\r${STATUS_LINE}"
+                if [[ -t 1 ]] && ( [[ -z ${PREV_STATUS} ]] || [[ ${PREV_STATUS} == "${STATUS}" ]] ); then
+                    printf '\r%s' "${STATUS_LINE}"
                 else
-                    printf "\n${STATUS_LINE}"
+                    printf '\n%s' "${STATUS_LINE}"
                 fi
 
                 if [[ ${STATUS} == '"Succeeded"' ]]; then

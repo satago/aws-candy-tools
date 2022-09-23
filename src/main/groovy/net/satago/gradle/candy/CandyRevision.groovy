@@ -8,6 +8,8 @@ import static java.util.Collections.emptyList
 
 @ToString
 class CandyRevision {
+    String namespace
+    String localName
     Project project
     String name
     List<String> composeFiles
@@ -38,5 +40,9 @@ class CandyRevision {
 
     CopySpec getResources() {
         return resources ?: project.copySpec()
+    }
+
+    String getSafeFQName() {
+        return name.replaceAll('/', '-')
     }
 }
