@@ -1,3 +1,8 @@
+Version 0.9.1
+==============
+- `bin/deploy docker-tag-and-push-all`
+  * Fixed support for revisions with namespaces
+
 Version 0.9.0
 ==============
 Contains breaking changes, check details below.
