@@ -1,9 +1,38 @@
 #!/usr/bin/env bash
 set -e
 
-SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+SCRIPT_PATH=$( cd "$(dirname "$0")" ; pwd -P )
 
-source ${SCRIPT_PATH}/set-aws-profile
+NAMESPACE=""
+
+function parse_encrypt_options {
+  while getopts ":n:" opt; do
+    case $opt in
+      n)
+        NAMESPACE=${OPTARG}
+        ;;
+      \?)
+        echo "Invalid option: -${OPTARG}" >&2
+        exit 1
+        ;;
+      :)
+        echo "Option -${OPTARG} requires an argument." >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+parse_encrypt_options "${@}"
+shift $((OPTIND-1))
+
+if [[ -z "${NAMESPACE}" ]]
+then
+  source "${SCRIPT_PATH}/set-aws-profile"
+else
+  # shellcheck disable=SC1090
+  source "${SCRIPT_PATH}/set-aws-profile-${NAMESPACE}"
+fi
 
 KEY=$1
 PLAINTEXT=$(echo -n $2 | base64)

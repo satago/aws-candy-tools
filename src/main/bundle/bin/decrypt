@@ -1,12 +1,42 @@
 #!/usr/bin/env bash
 set -e
 
-SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+SCRIPT_PATH=$( cd "$(dirname "$0")" ; pwd -P )
+
+function parse_decrypt_options {
+  while getopts ":n:" opt; do
+    case $opt in
+      n)
+        NAMESPACE=${OPTARG}
+        ;;
+      \?)
+        echo "Invalid option: -${OPTARG}" >&2
+        exit 1
+        ;;
+      :)
+        echo "Option -${OPTARG} requires an argument." >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+parse_decrypt_options "${@}"
+shift $((OPTIND-1))
+
+if [[ -z "${NAMESPACE}" ]]
+then
+  SET_AWS_PROFILE_PATH="${SCRIPT_PATH}/set-aws-profile"
+else
+  # shellcheck disable=SC1090
+  SET_AWS_PROFILE_PATH="${SCRIPT_PATH}/set-aws-profile-${NAMESPACE}"
+fi
 
 # We don't need to set aws profile on target EC2 instance,
 # as it will use its instance profile by default
-if [ -f ${SCRIPT_PATH}/set-aws-profile ]; then
-    source ${SCRIPT_PATH}/set-aws-profile
+if [ -f "${SET_AWS_PROFILE_PATH}" ]; then
+    # shellcheck disable=SC1090
+    source "${SET_AWS_PROFILE_PATH}"
 fi
 
 CODE=$1
@@ -15,8 +45,8 @@ TEMP_FILE=$(mktemp)
 
 trap 'rm -f -- "${TEMP_FILE}"' INT TERM HUP EXIT
 
-echo ${CODE} | base64 --decode > ${TEMP_FILE}
+echo "${CODE}" | base64 --decode > "${TEMP_FILE}"
 
-OUT64=$(aws kms decrypt --query Plaintext --output text --ciphertext-blob fileb://${TEMP_FILE})
+OUT64=$(aws kms decrypt --query Plaintext --output text --ciphertext-blob "fileb://${TEMP_FILE}")
 
-echo ${OUT64} | base64 --decode
+echo "${OUT64}" | base64 --decode

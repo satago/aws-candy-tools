@@ -2,6 +2,11 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "PostgreSQL on RDS",
   "Parameters": {
+    "VpcId" : {
+      "Description" : "VpcId of your existing Virtual Private Cloud (VPC)",
+      "Type" : "AWS::EC2::VPC::Id",
+      "ConstraintDescription" : "must be the VPC Id of an existing Virtual Private Cloud."
+    },
     "Ephemeral": {
       "Description": "Whether the DB instance can safely be removed or replaced, i.e. if it's a test instance",
       "Type": "String",
@@ -20,6 +25,10 @@
       "Description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance.",
       "Type": "String",
       "Default": ""
+    },
+    "DBSubnetGroupName": {
+      "Type": "String",
+      "Default": "default"
     },
     "DBName": {
       "Description": "The name of the database to create when the DB instance is created.",
@@ -529,7 +538,7 @@
         "DeleteAutomatedBackups": { "Fn::If": [ "Ephemeral", true, false ] },
         "DBSubnetGroupName": { "Fn::If": [
           "DBSnapshotIdentifierEmpty",
-          "default",
+          { "Ref": "DBSubnetGroupName" },
           { "Ref": "AWS::NoValue"}
         ]},
         "DBInstanceClass": { "Ref": "DBInstanceClass" },
@@ -650,6 +659,7 @@
     "MyVPCSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
+        "VpcId": { "Ref": "VpcId" },
         "GroupDescription": "Allow access to RDS instance from selected security groups",
         "SecurityGroupIngress": [
           { "Fn::If": [

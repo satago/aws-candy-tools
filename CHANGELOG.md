@@ -1,3 +1,85 @@
+Version 0.9.1
+==============
+- `bin/deploy docker-tag-and-push-all`
+  * Fixed support for revisions with namespaces
+
+Version 0.9.0
+==============
+Contains breaking changes, check details below.
+
+It is now possible to organise stacks and deployable apps into sub-folders to be able to deploy to multiple AWS-accounts according to [AWS best practices](https://aws.amazon.com/organizations/getting-started/best-practices/), e.g., `cloudformation-stacks/<namespace>/my-stack` and `apps/<namespace>/my-stack`.
+
+To link a `<namespace>` with certain AWS account, create a file named `bin/set-aws-profile-<namespace>` with the same content as default `bin/set-aws-profile`, e.g., `bin/set-aws-profile-my-custom-namespace`:
+```
+#!/bin/bash
+set -e
+
+export AWS_PAGER=
+export AWS_DEFAULT_PROFILE=my-custom-namespace
+```
+and update your `~/.aws/config` to include the new profile, e.g., via `role_arn` and `source_profile`, e.g., [IAM roles in ~/.aws/config](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-role.html#cli-role-overview): 
+```
+[profile my-default-profile]
+region=eu-west-1
+cli_pager=
+
+[profile my-custom-namespace]
+region=eu-west-1
+cli_pager=
+source_profile=my-default-profile
+role_arn=arn:aws:iam::<other-account-id>:role/<your-role>
+```
+
+Although you can use `bin/set-bastion-ssh-<namespace>` with similar behaviour as above, bastion host is now optional. To SSH into target EC2 instances it is not recommended to use `Session Manager`, see `bin/stack ssm` below.
+
+Most of the `bin/*` scripts now supports optional `-n <namespace>` argument, e.g.,
+to encrypt a secret using KMS key stored in non-default AWS account you can now use `bin/encrypt -n my-custom-namespace alias/my-key secret`.
+
+Changes
+-------
+
+- `bin/set-aws-profile` and `bin/set-bastion-ssh`
+  * it's no
+- `web-cluster-template` (breaking changes)
+  * `ExposeCustomPortRange` parameter was removed with no replacement
+  * Some stack parameters were renamed for consistency:
+    * `CreateELB` to `CreateALB`
+    * `InternalELB` to `InternalALB`
+    * `ELBReferenceSecurityPolicy` to `ALBReferenceSecurityPolicy`
+    * `LoadBalancerDeregistrationDelay` to `ALBDeregistrationDelay`
+    * `EnableELBAccessLogging` to `ALBAccessLoggingEnabled`
+    * `ELBAccessLoggingS3BucketName` to `ALBAccessLoggingS3BucketName`
+    * `ELBHealthyHostCountAlarmEnabled` to `ALBHealthyHostCountAlarmEnabled`
+    * `ELBSecurityGroups` to `ALBSecurityGroups`
+  * `KeyName` parameter is now optional; it won't be possible to `ssh` to the instances as `ec2-user` if parameter value is blank
+  * `SSHSecurityGroupId` parameter is now optional; when not provided the instance's security group ingress won't allow traffic on port 22 (SSH)
+  * New required parameter `InternalALBIngressCidrIp`, which was hardcoded as `172.16.0.0/12` previously, to have better control with non-default VPC subnets
+  * `SubnetIds` parameter was split in two new parameters to support non-default VPC subnets, e.g., when we need to put EC2 instances into own private subnets:
+    * `ALBSubnetIds` list of subnets for the ALB
+    * `InstanceSubnetIds` list of subnets for the EC2 instances
+    * New outputs:
+      - `InstanceRoleArn`
+      - `InstanceSecurityGroupId`
+      - `ALBSecurityGroupId`
+  * New optional parameter `VpcIdIsDefault` (default `false`) to avoid recreation of `MyALBSecurityGroup` and `MyInstanceSecurityGroup` when `VpcId` references default VPC of the account. This option is added for backwards compatibility with web-clusters created before version 0.9.0 and should not be used with new stacks.
+- `postgresql-template`
+  * New parameter `VpcId` to support non-default VPC deployments
+  * New parameter `DBSubnetGroupName` to support deployments into custom subnets
+- `s3-bucket-policy-template`
+  * New outputs:
+    * `ProductionReadWritePolicyArn`
+    * `DevelopmentReadWritePolicyArn`
+- `elasticsearch-template`
+  * New optional parameters `SecurityGroupIds` and `SubnetIds`
+  * New outputs:
+    * `AdminPolicyArn`
+    * `PowerPolicyArn`
+    * `ReadOnlyPolicyArn`
+- `bin/stack`
+  * New command `ssm`, similarly to `stack ssh <stack-name>`, allows to start an SSM session with the first available instance of the stack. To have an interactive session a user needs to have SSM plugin installed on the client machine, see https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html#install-plugin-macos-signed
+  * New command `set-stack-policy` to set a new policy to given stack, the policy document will be taken from stack's folder `<stack-name>/stack-policy.json`
+- `bin/encrypt-file.py` and `bin/decrypt-file.py` now support optional environment variable `AWS_CANDY_TOOLS_NAMESPACE`
+
 Version 0.8.6
 ==============
 - `web-cluster-template`

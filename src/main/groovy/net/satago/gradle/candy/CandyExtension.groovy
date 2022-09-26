@@ -19,7 +19,20 @@ class CandyExtension {
                 })
         revisions = project.container(CandyRevision,
                 { String name ->
-                    new CandyRevision(name: name, project: project)
+                    def matcher = name =~ /(?<namespace>[^\\]+)\/(?<localName>.+)/
+                    String namespace
+                    String localName
+                    if (matcher.find()) {
+                        namespace = matcher.group("namespace")
+                        localName = matcher.group("localName")
+                    } else {
+                        if (name.contains("/")) {
+                            throw new IllegalStateException("Revision name didn't match expected pattern '[namespace/]name': ${name}")
+                        }
+                        namespace = ""
+                        localName = name
+                    }
+                    new CandyRevision(name: name, namespace: namespace, localName: localName, project: project)
                 })
     }
 

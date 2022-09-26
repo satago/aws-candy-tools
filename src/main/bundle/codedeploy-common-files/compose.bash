@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
-SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+SCRIPT_PATH=$( cd "$(dirname "$0")" ; pwd -P )
 
 # Path to docker-compose
 PATH=$PATH:/usr/local/bin/
 
-source ${SCRIPT_PATH}/_common-functions.bash
+source "${SCRIPT_PATH}/_common-functions.bash"
 
 # We're not using Compose's `.env` file, because it applies the same rules as per `env_file`:
 
@@ -19,15 +19,18 @@ source ${SCRIPT_PATH}/_common-functions.bash
 # instead of relying to Compose's `.env`
 
 set -a
-source ${SCRIPT_PATH}/compose.env
+source "${SCRIPT_PATH}/compose.env"
 set +a
 
 function docker_compose_files_arg {
-    local REPLACEMENT=$(echo "$1" | sed 's/\//\\\//g')
+    local REPLACEMENT
+    REPLACEMENT=$(echo "$1" | sed 's/\//\\\//g')
+    # shellcheck disable=SC2001
     echo ${DOCKER_COMPOSE_FILES} | sed "s/[^ ]* */${REPLACEMENT}&/g"
 }
 
 function compose {
+    # shellcheck disable=SC2046
     docker-compose \
         $(docker_compose_files_arg "-f ${SCRIPT_PATH}/") \
         "$@"

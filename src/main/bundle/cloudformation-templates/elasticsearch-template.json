@@ -29,6 +29,22 @@
     "AutomatedSnapshotStartHour": {
       "Description": "Start time (UTC) for a daily automated snapshot",
       "Type": "Number"
+    },
+    "SecurityGroupIds": {
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "SubnetIds" : {
+      "Type" : "CommaDelimitedList",
+      "Default": ""
+    }
+  },
+  "Conditions": {
+    "SecurityGroupIdsEmpty": {
+      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "SecurityGroupIds" }] }, ""]
+    },
+    "SubnetIdsEmpty": {
+      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "SubnetIds" }] }, ""]
     }
   },
   "Resources": {
@@ -52,6 +68,18 @@
         "ElasticsearchVersion": { "Ref": "ElasticsearchVersion" },
         "SnapshotOptions": {
           "AutomatedSnapshotStartHour": { "Ref": "AutomatedSnapshotStartHour" }
+        },
+        "VPCOptions": {
+          "SecurityGroupIds": { "Fn::If": [
+            "SecurityGroupIdsEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "SecurityGroupIds" }
+          ]},
+          "SubnetIds": { "Fn::If": [
+            "SubnetIdsEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "SubnetIds" }
+          ]}
         }
       }
     },
@@ -126,6 +154,30 @@
       "Export" : {
         "Name" : {
           "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ElasticsearchURL" ] ]
+        }
+      }
+    },
+    "AdminPolicyArn": {
+      "Value": { "Ref": "MyElasticsearchAdminPolicy" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "AdminPolicyArn" ] ]
+        }
+      }
+    },
+    "PowerPolicyArn": {
+      "Value": { "Ref": "MyElasticsearchPowerPolicy" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "PowerPolicyArn" ] ]
+        }
+      }
+    },
+    "ReadOnlyPolicyArn": {
+      "Value": { "Ref": "MyElasticsearchReadOnlyPolicy" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ReadOnlyPolicyArn" ] ]
         }
       }
     }

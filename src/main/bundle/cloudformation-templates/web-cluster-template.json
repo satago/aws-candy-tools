@@ -26,12 +26,13 @@
     },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to instances",
-      "Type": "AWS::EC2::KeyPair::KeyName",
-      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair"
+      "Type": "String",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair (default empty)",
+      "Default": ""
     },
     "SSHSecurityGroupId": {
       "Description": "(Optional) ID of ingress security group to allow SSH access to EC2 instances",
-      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Type": "String",
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for 0.0.0.0/0",
       "Default": ""
@@ -40,22 +41,15 @@
       "Description": "(Optional) ID of ingress security group to allow access to port 8080 of EC2 instances",
       "Type": "String",
       "AllowedPattern": "(|sg-[a-z0-9]+)",
-      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ELB",
+      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
     "Ingress8443SecurityGroupId": {
       "Description": "(Optional) ID of ingress security group to allow access to port 8443 of EC2 instances",
       "Type": "String",
       "AllowedPattern": "(|sg-[a-z0-9]+)",
-      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ELB",
+      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
-    },
-    "ExposeCustomPortRange": {
-      "Description": "Expose custom port range to entire VPC (from 33000 to 33100)",
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": ["true", "false"],
-      "ConstraintDescription": "true or false (default)"
     },
     "InstanceSecurityGroups": {
       "Description": "Additional SecurityGroups for EC2 instances",
@@ -94,26 +88,43 @@
       "Type": "CommaDelimitedList",
       "Default": ""
     },
-    "CreateELB": {
-      "Description": "Create ELB and associate with this AutoScaling Group",
+    "CreateALB": {
+      "Description": "Create ALB and associate with this AutoScaling Group",
       "Type": "String",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true (default) or false"
     },
-    "InternalELB": {
+    "InternalALB": {
       "Description": "Whether the created Load Balancer should only be available internally within the VPC or public",
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
+    "InternalALBIngressCidrIp": {
+      "Description": "CIDR block for ALB ingress",
+      "Type": "String",
+      "Default": ""
+    },
     "VpcId" : {
       "Description" : "VpcId of your existing Virtual Private Cloud (VPC)",
       "Type" : "AWS::EC2::VPC::Id",
       "ConstraintDescription" : "must be the VPC Id of an existing Virtual Private Cloud."
     },
-    "SubnetIds" : {
-      "Description" : "The list of SubnetIds in your Virtual Private Cloud (VPC)",
+    "VpcIdIsDefault": {
+      "Description": "Added for backwards compatibility with web-clusters created before version 0.9.0 to avoid recreation of security groups created in default VPC. Set to 'true' if VpcId parameter value is referencing the default VPC of AWS account",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
+    "ALBSubnetIds" : {
+      "Description" : "The list of subnet IDs in your VPC where load balancers should be launched",
+      "Type" : "List<AWS::EC2::Subnet::Id>",
+      "ConstraintDescription" : "must be a list of at least two existing subnets associated with at least two different availability zones. They should be residing in the selected VPC."
+    },
+    "InstanceSubnetIds" : {
+      "Description" : "The list of subnet IDs in your VPC where EC2 instances should be launched",
       "Type" : "List<AWS::EC2::Subnet::Id>",
       "ConstraintDescription" : "must be a list of at least two existing subnets associated with at least two different availability zones. They should be residing in the selected VPC."
     },
@@ -129,8 +140,8 @@
       "Type": "Number",
       "Default": "0"
     },
-    "ELBReferenceSecurityPolicy": {
-      "Description": "Name of Reference-Security-Policy to apply to the ELB, http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html",
+    "ALBReferenceSecurityPolicy": {
+      "Description": "Name of Reference-Security-Policy to apply to the ALB, https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies",
       "Type": "String",
       "Default": "ELBSecurityPolicy-2016-08"
     },
@@ -187,25 +198,25 @@
       "Default": "5"
     },
     "UseCookieStickinessPolicy": {
-      "Description": "Enable ELB sticky sessions based on cookies",
+      "Description": "Enable ALB sticky sessions based on cookies",
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-    "LoadBalancerDeregistrationDelay": {
-      "Description": "The amount of time, in seconds, for Elastic Load Balancing to wait before changing the state of a deregistering target from 'draining' to 'unused'",
+    "ALBDeregistrationDelay": {
+      "Description": "The amount of time, in seconds, for the ALB to wait before changing the state of a de-registering target from 'draining' to 'unused'",
       "Type": "Number",
       "Default": "60"
     },
-    "EnableELBAccessLogging": {
-      "Description": "Write ELB access logs to S3LoggingBucket",
+    "ALBAccessLoggingEnabled": {
+      "Description": "Write ALB access logs to S3LoggingBucket",
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-    "ELBAccessLoggingS3BucketName": {
+    "ALBAccessLoggingS3BucketName": {
       "Description": "Custom name for the S3LoggingBucket (default is `<account-id>-<stack-name>`)",
       "Type": "String",
       "Default": ""
@@ -222,15 +233,15 @@
       "Default": "",
       "ConstraintDescription": "See https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html for reference"
     },
-    "ELBHealthyHostCountAlarmEnabled": {
-      "Description": "Create CloudWatch alarm for the healthy host count ELB metric",
+    "ALBHealthyHostCountAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for the healthy host count ALB metric",
       "Type": "String",
       "Default": "false",
       "AllowedValues": ["true", "false"],
       "ConstraintDescription": "true or false (default)"
     },
-    "ELBSecurityGroups": {
-      "Description": "Additional SecurityGroups for ELB",
+    "ALBSecurityGroups": {
+      "Description": "Additional SecurityGroups for ALB",
       "Type": "CommaDelimitedList",
       "Default": ""
     },
@@ -320,8 +331,14 @@
     }
   },
   "Conditions": {
-    "CreateAlarmForELBHealthyHostCount": {
-      "Fn::Equals": [{ "Ref": "ELBHealthyHostCountAlarmEnabled" }, "true"]
+    "VpcIdIsDefault": {
+      "Fn::Equals": [{ "Ref": "VpcIdIsDefault" }, "true"]
+    },
+    "KeyNameEmpty": {
+      "Fn::Equals": [{ "Ref": "KeyName" }, ""]
+    },
+    "CreateAlarmForALBHealthyHostCount": {
+      "Fn::Equals": [{ "Ref": "ALBHealthyHostCountAlarmEnabled" }, "true"]
     },
     "CreateAlarmForDiskUsedPercent": {
       "Fn::Equals": [{ "Ref": "DiskUsedPercentAlarmEnabled" }, "true"]
@@ -357,23 +374,23 @@
         { "Condition": "CollectSwapMetrics" }
       ]
     },
-    "CreateELB": {
-      "Fn::Equals": [{ "Ref": "CreateELB" }, "true"]
+    "CreateALB": {
+      "Fn::Equals": [{ "Ref": "CreateALB" }, "true"]
     },
-    "EnableELBAccessLogging": {
+    "ALBAccessLoggingEnabled": {
       "Fn::And": [
-        { "Fn::Equals": [{ "Ref": "EnableELBAccessLogging" }, "true"] },
-        { "Condition": "CreateELB" }
+        { "Fn::Equals": [{ "Ref": "ALBAccessLoggingEnabled" }, "true"] },
+        { "Condition": "CreateALB" }
       ]
     },
     "CreateS3LoggingBucket": {
       "Fn::And": [
-        { "Condition": "EnableELBAccessLogging" },
-        { "Fn::Equals": [{ "Ref": "ELBAccessLoggingS3BucketName" }, ""] }
+        { "Condition": "ALBAccessLoggingEnabled" },
+        { "Fn::Equals": [{ "Ref": "ALBAccessLoggingS3BucketName" }, ""] }
       ]
     },
-    "InternalELB": {
-      "Fn::Equals": [{ "Ref": "InternalELB" }, "true"]
+    "InternalALB": {
+      "Fn::Equals": [{ "Ref": "InternalALB" }, "true"]
     },
     "MultiAZ": {
       "Fn::Equals": [{ "Ref": "MultiAZ" }, "true"]
@@ -401,17 +418,14 @@
         "Fn::Equals": [{ "Fn::Join": ["", { "Ref": "ManagedPolicyArns" }] }, ""]
       }]
     },
-    "EnableCustomPortRange": {
-      "Fn::Equals": [{ "Ref": "ExposeCustomPortRange" }, "true"]
-    },
     "CustomImageIdEmpty": {
       "Fn::Equals": [{ "Ref": "CustomImageId" }, ""]
     },
     "InstanceSecurityGroupsEmpty": {
       "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "InstanceSecurityGroups" }] }, ""]
     },
-    "ELBSecurityGroupsEmpty": {
-      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }, ""]
+    "ALBSecurityGroupsEmpty": {
+      "Fn::Equals": [ { "Fn::Join": [",", { "Ref": "ALBSecurityGroups" }] }, ""]
     },
     "VolumeSizeDefined": {
       "Fn::Not": [{
@@ -420,7 +434,7 @@
     },
     "CreateHTTPSListener": {
       "Fn::And": [
-        { "Condition": "CreateELB" },
+        { "Condition": "CreateALB" },
         {
           "Fn::Not": [{
             "Fn::Equals": [{ "Ref": "SSLCertificateId" }, ""]
@@ -535,6 +549,7 @@
             [{ "Fn::Select": [{ "Ref": "AZIndex" }, { "Fn::GetAZs": "" }] }]
           ]
         },
+        "VPCZoneIdentifier": { "Ref": "InstanceSubnetIds" },
         "LaunchConfigurationName": { "Ref": "MyInstanceLaunchConfig" },
         "HealthCheckGracePeriod": { "Ref": "HealthCheckGracePeriod" },
         "HealthCheckType": { "Ref": "HealthCheckType" },
@@ -543,7 +558,7 @@
         "MaxSize": { "Ref": "MaxSize" },
         "TargetGroupARNs": [{
           "Fn::If": [
-            "CreateELB",
+            "CreateALB",
             { "Ref": "MyALBTargetGroup" },
             { "Ref": "AWS::NoValue" }
           ]
@@ -586,7 +601,7 @@
     },
     "MyALBTargetGroup": {
       "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Condition": "CreateELB",
+      "Condition": "CreateALB",
       "Properties" : {
         "Protocol": { "Fn::If": ["UseHTTPSTarget", "HTTPS", "HTTP"] },
         "Port": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
@@ -603,24 +618,24 @@
           { "Key": "stickiness.enabled", "Value" : { "Ref": "UseCookieStickinessPolicy" } },
           { "Key": "stickiness.type", "Value": "lb_cookie" },
           { "Key": "stickiness.lb_cookie.duration_seconds", "Value": "10" },
-          { "Key": "deregistration_delay.timeout_seconds", "Value": { "Ref": "LoadBalancerDeregistrationDelay" } }
+          { "Key": "deregistration_delay.timeout_seconds", "Value": { "Ref": "ALBDeregistrationDelay" } }
         ]
       }
     },
     "MyALB" : {
       "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      "Condition": "CreateELB",
+      "Condition": "CreateALB",
       "Properties" : {
         "Name": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, "-ALB"] ] },
         "LoadBalancerAttributes": {
-          "Fn::If": ["EnableELBAccessLogging",
+          "Fn::If": ["ALBAccessLoggingEnabled",
             [
-              { "Key": "access_logs.s3.enabled", "Value":  { "Ref": "EnableELBAccessLogging" }},
+              { "Key": "access_logs.s3.enabled", "Value":  { "Ref": "ALBAccessLoggingEnabled" }},
               { "Key": "access_logs.s3.bucket", "Value":  {
                 "Fn::If": [
                   "CreateS3LoggingBucket",
                   { "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]] },
-                  { "Ref": "ELBAccessLoggingS3BucketName" }
+                  { "Ref": "ALBAccessLoggingS3BucketName" }
                 ]
               }},
               { "Key": "access_logs.s3.prefix", "Value": "ELBLogs" }
@@ -629,24 +644,24 @@
           ]
         },
         "Scheme": {
-          "Fn::If": ["InternalELB", "internal", { "Ref": "AWS::NoValue" }]
+          "Fn::If": ["InternalALB", "internal", { "Ref": "AWS::NoValue" }]
         },
         "SecurityGroups": { "Fn::Split": [",",
           { "Fn::Join": [ ",", [
             { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] },
             { "Fn::If": [
-              "ELBSecurityGroupsEmpty",
+              "ALBSecurityGroupsEmpty",
               { "Ref": "AWS::NoValue" },
-              { "Fn::Join": [",", { "Ref": "ELBSecurityGroups" }] }
+              { "Fn::Join": [",", { "Ref": "ALBSecurityGroups" }] }
             ]}
           ]]}
         ]},
-        "Subnets": { "Ref": "SubnetIds" }
+        "Subnets": { "Ref": "ALBSubnetIds" }
       }
     },
     "MyALBListenerHTTP" : {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
-      "Condition": "CreateELB",
+      "Condition": "CreateALB",
       "Properties": {
         "DefaultActions": [{ "Fn::If": [
           "RedirectToHTTPS",
@@ -685,7 +700,7 @@
         "Certificates": [
           { "CertificateArn": { "Ref": "SSLCertificateId" } }
         ],
-        "SslPolicy": { "Ref": "ELBReferenceSecurityPolicy" }
+        "SslPolicy": { "Ref": "ALBReferenceSecurityPolicy" }
       }
     },
     "MyALBListenerHTTPSRuleCognitoAuthBypass": {
@@ -761,19 +776,24 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allow HTTP & HTTPS to ELB",
+        "VpcId": { "Fn::If": [
+          "VpcIdIsDefault",
+          { "Ref": "AWS::NoValue" },
+          { "Ref": "VpcId" }
+        ]},
         "SecurityGroupIngress": [{
           "IpProtocol": "tcp",
           "FromPort": "80",
           "ToPort": "80",
           "CidrIp": {
-            "Fn::If": ["InternalELB", "172.16.0.0/12", "0.0.0.0/0"]
+            "Fn::If": ["InternalALB", { "Ref": "InternalALBIngressCidrIp" }, "0.0.0.0/0"]
           }
         }, {
           "IpProtocol": "tcp",
           "FromPort": "443",
           "ToPort": "443",
           "CidrIp": {
-            "Fn::If": ["InternalELB", "172.16.0.0/12", "0.0.0.0/0"]
+            "Fn::If": ["InternalALB", { "Ref": "InternalALBIngressCidrIp" }, "0.0.0.0/0"]
           }
         }]
       }
@@ -809,13 +829,13 @@
     },
     "MyS3LoggingBucketPolicy": {
       "Type": "AWS::S3::BucketPolicy",
-      "Condition": "EnableELBAccessLogging",
+      "Condition": "ALBAccessLoggingEnabled",
       "Properties": {
         "Bucket": {
           "Fn::If": [
             "CreateS3LoggingBucket",
             { "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]] },
-            { "Ref": "ELBAccessLoggingS3BucketName" }
+            { "Ref": "ALBAccessLoggingS3BucketName" }
           ]
         },
         "PolicyDocument": {
@@ -830,7 +850,7 @@
                   { "Fn::If": [
                     "CreateS3LoggingBucket",
                     { "Fn::Join": ["-", [{ "Ref": "AWS::AccountId"}, { "Ref": "AWS::StackName" }]] },
-                    { "Ref": "ELBAccessLoggingS3BucketName" }
+                    { "Ref": "ALBAccessLoggingS3BucketName" }
                   ] },
                   "/",
                   "ELBLogs",
@@ -1421,7 +1441,11 @@
             []
           ]
         },
-        "KeyName": { "Ref": "KeyName" },
+        "KeyName": { "Fn::If": [
+          "KeyNameEmpty",
+          { "Ref": "AWS::NoValue" },
+          { "Ref": "KeyName" }
+        ]},
         "SecurityGroups": { "Fn::Split": [",",
           { "Fn::Join": [ ",", [
             { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] },
@@ -1499,12 +1523,21 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "SSH, HTTP for Tomcat, Ephemeral port range for Docker",
-        "SecurityGroupIngress": [{
-          "IpProtocol": "tcp",
-          "FromPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
-          "ToPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
-          "SourceSecurityGroupId": { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] }
-        }, { "Fn::If": [
+        "VpcId": { "Fn::If": [
+          "VpcIdIsDefault",
+          { "Ref": "AWS::NoValue" },
+          { "Ref": "VpcId" }
+        ]},
+        "SecurityGroupIngress": [{ "Fn::If": [
+          "CreateALB",
+          {
+            "IpProtocol": "tcp",
+            "FromPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
+            "ToPort": { "Fn::If": ["UseHTTPSTarget", 8443, 8080] },
+            "SourceSecurityGroupId": { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] }
+          },
+          { "Ref": "AWS::NoValue" }
+        ]}, { "Fn::If": [
           "Ingress8080SecurityGroupIdEmpty",
           { "Ref": "AWS::NoValue" },
           {
@@ -1522,35 +1555,15 @@
             "ToPort": "8443",
             "SourceSecurityGroupId": { "Ref": "Ingress8443SecurityGroupId" }
           }
-        ]}, {
-          "IpProtocol": "tcp",
-          "FromPort": "22",
-          "ToPort": "22",
-          "CidrIp": {
-            "Fn::If": [
-              "SSHSecurityGroupIdEmpty",
-              "0.0.0.0/0",
-              { "Ref": "AWS::NoValue" }
-            ]
-          },
-          "SourceSecurityGroupId": {
-            "Fn::If": [
-              "SSHSecurityGroupIdEmpty",
-              { "Ref": "AWS::NoValue" },
-              { "Ref": "SSHSecurityGroupId" }
-            ]
-          }
-        }, {
-          "Fn::If": [
-            "EnableCustomPortRange",
-            {
-              "IpProtocol": "tcp",
-              "FromPort": "33000",
-              "ToPort": "33100",
-              "CidrIp": "172.16.0.0/12"
-            },
-            { "Ref": "AWS::NoValue" }
-          ]
+        ]}, { "Fn::If": [
+          "SSHSecurityGroupIdEmpty",
+          { "Ref": "AWS::NoValue" },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "SourceSecurityGroupId": { "Ref": "SSHSecurityGroupId" }
+          }]
         }]
       }
     },
@@ -1563,7 +1576,7 @@
         "DeploymentStyle": {
           "DeploymentOption": {
             "Fn::If": [
-              "CreateELB",
+              "CreateALB",
               "WITH_TRAFFIC_CONTROL",
               "WITHOUT_TRAFFIC_CONTROL"
             ]
@@ -1572,7 +1585,7 @@
         },
         "LoadBalancerInfo": {
           "Fn::If": [
-            "CreateELB",
+            "CreateALB",
             {
               "TargetGroupInfoList": [
                 {
@@ -1745,7 +1758,7 @@
     },
     "MyALBTargetGroupHealthyHostCountAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
-      "Condition": "CreateAlarmForELBHealthyHostCount",
+      "Condition": "CreateAlarmForALBHealthyHostCount",
       "Properties": {
         "AlarmName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, " Application ELB Target Group Healthy Host Count"]] },
         "ActionsEnabled": true,
@@ -1812,7 +1825,32 @@
           "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ApplicationURL" ] ]
         }
       },
-      "Condition": "CreateELB"
+      "Condition": "CreateALB"
+    },
+    "InstanceRoleArn": {
+      "Value": { "Ref": "MyInstanceRole" },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "InstanceRoleArn" ] ]
+        }
+      }
+    },
+    "InstanceSecurityGroupId": {
+      "Value": { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "InstanceSecurityGroupId" ] ]
+        }
+      }
+    },
+    "ALBSecurityGroupId": {
+      "Value": { "Fn::GetAtt": ["MyALBSecurityGroup", "GroupId"] },
+      "Export" : {
+        "Name" : {
+          "Fn::Join" : [ ":", [ { "Ref" : "AWS::StackName" }, "ALBSecurityGroupId" ] ]
+        }
+      },
+      "Condition": "CreateALB"
     }
   }
 }

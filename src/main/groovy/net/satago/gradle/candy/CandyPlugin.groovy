@@ -296,7 +296,7 @@ class CandyPlugin implements Plugin<Project> {
 
         extension.revisions.each { revision ->
 
-            def copyTask = project.task(extension.getTaskName("copy-${revision.name}"), type: Sync) {
+            def copyTask = project.task(extension.getTaskName("copy-${revision.safeFQName}"), type: Sync) {
                 Sync sync ->
                     sync.group = GRADLE_TASKS_GROUP
                     sync.description = "Copies files for CodeDeploy revision ${revision.name}"
@@ -337,7 +337,7 @@ class CandyPlugin implements Plugin<Project> {
                     sync.with revision.resources
             }
 
-            def concatTask = project.task(extension.getTaskName("concat-${revision.name}"), type: AppendFiles) {
+            def concatTask = project.task(extension.getTaskName("concat-${revision.safeFQName}"), type: AppendFiles) {
                 AppendFiles append ->
                     append.group = GRADLE_TASKS_GROUP
                     append.description = "Concatenates `compose.env` files for CodeDeploy revision ${revision.name}"
@@ -349,6 +349,7 @@ class CandyPlugin implements Plugin<Project> {
                     }
                     append.target = project.file("${project.buildDir}/revisions/${revision.name}/compose.env")
                     append.doFirst {
+                        append.target.append("\nDEPLOYABLE_NAMESPACE=${revision.namespace}")
                         append.target.append("\nDEPLOYABLE_NAME=${revision.name}")
                     }
                     append.doLast {
@@ -365,7 +366,7 @@ class CandyPlugin implements Plugin<Project> {
                     }
             }
 
-            def createRevisionTask = project.task(extension.getTaskName("createRevision-${revision.name}")) {
+            def createRevisionTask = project.task(extension.getTaskName("createRevision-${revision.safeFQName}")) {
                 Task task ->
                     task.group = GRADLE_TASKS_GROUP
                     task.description = "Creates CodeDeploy revision folder for ${revision.name}"
@@ -386,7 +387,7 @@ class CandyPlugin implements Plugin<Project> {
                 if (imageBuilder instanceof DockerComposeBuilder) {
                     //  Build image with docker-compose
 
-                    def imageNamePrefix = "${revision.name}-${imageBuilder.serviceName}"
+                    def imageNamePrefix = "${revision.safeFQName}-${imageBuilder.serviceName}"
                     def imageTag = "${project.version}"
 
                     index[service].getImageName = { "${imageNamePrefix}:${imageTag}" }
@@ -395,7 +396,7 @@ class CandyPlugin implements Plugin<Project> {
                     index[service].getImageId = index[service].getImageName
 
                     def composeBuildTask = project.task(
-                            extension.getTaskName("composeBuild-${revision.name}-${imageBuilder.serviceName}"), type: Exec) {
+                            extension.getTaskName("composeBuild-${revision.safeFQName}-${imageBuilder.serviceName}"), type: Exec) {
                         it.workingDir = "${project.buildDir}/revisions/${revision.name}"
                         it.executable = './compose.bash'
                         it.args = ['build', imageBuilder.serviceName]
