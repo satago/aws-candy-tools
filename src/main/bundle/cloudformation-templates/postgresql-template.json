@@ -391,6 +391,9 @@
     }
   },
   "Conditions": {
+    "VpcIdIsDefault": {
+      "Fn::Equals": [{ "Ref": "VpcIdIsDefault" }, "true"]
+    },
     "DefaultAZIndex": {
       "Fn::Equals": [{ "Ref": "AZIndex" }, "-1"]
     },
