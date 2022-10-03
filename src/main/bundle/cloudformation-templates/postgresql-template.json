@@ -7,6 +7,13 @@
       "Type" : "AWS::EC2::VPC::Id",
       "ConstraintDescription" : "must be the VPC Id of an existing Virtual Private Cloud."
     },
+    "VpcIdIsDefault": {
+      "Description": "Added for backwards compatibility with databases created before version 0.9.0 to avoid recreation of security groups created in default VPC. Set to 'true' if VpcId parameter value is referencing the default VPC of AWS account",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["true", "false"],
+      "ConstraintDescription": "true or false (default)"
+    },
     "Ephemeral": {
       "Description": "Whether the DB instance can safely be removed or replaced, i.e. if it's a test instance",
       "Type": "String",
@@ -384,6 +391,9 @@
     }
   },
   "Conditions": {
+    "VpcIdIsDefault": {
+      "Fn::Equals": [{ "Ref": "VpcIdIsDefault" }, "true"]
+    },
     "DefaultAZIndex": {
       "Fn::Equals": [{ "Ref": "AZIndex" }, "-1"]
     },
@@ -659,7 +669,11 @@
     "MyVPCSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "VpcId": { "Ref": "VpcId" },
+        "VpcId": { "Fn::If": [
+          "VpcIdIsDefault",
+          { "Ref": "AWS::NoValue" },
+          { "Ref": "VpcId" }
+        ]},
         "GroupDescription": "Allow access to RDS instance from selected security groups",
         "SecurityGroupIngress": [
           { "Fn::If": [
