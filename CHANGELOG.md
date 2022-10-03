@@ -1,3 +1,10 @@
+Version 0.9.2
+==============
+- `postgresql-template`
+  * New optional parameter `VpcIdIsDefault` (default `false`) to avoid recreation of `MyVPCSecurityGroup` when `VpcId` references default VPC of the account. This option is added for backwards compatibility with postgresql databases created before version 0.9.0 and should not be used with new stacks.
+- `bin/stack` and `bin/deploy`
+  * Default sleep interval in the `wait` commands were changed from 1 to 5 seconds, and a new environment variable `WAIT_SLEEP_INTERVAL` was introduced to override the default.
+
 Version 0.9.1
 ==============
 - `bin/deploy docker-tag-and-push-all`

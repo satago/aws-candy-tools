@@ -343,7 +343,7 @@ case "$CMD" in
 
                 PREV_STATUS=${STATUS}
 
-                sleep 1
+                sleep "${WAIT_SLEEP_INTERVAL:-5}"
             done
             ;;
 
