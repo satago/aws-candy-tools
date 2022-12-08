@@ -122,6 +122,11 @@
       "Description": "The the maximum number of replication slots, set it to at least the number of subscriptions that are expected + 1",
       "Type": "String",
       "Default": ""
+    },
+    "pgMaxSlotWalKeepSize": {
+      "Description": "(MB) Sets the maximum WAL size that can be reserved by replication slots. Default is unlimited",
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -183,6 +188,9 @@
     },
     "pgMaxReplicationSlotsEmpty": {
       "Fn::Equals": [{ "Ref": "pgMaxReplicationSlots" }, ""]
+    },
+    "pgMaxSlotWalKeepSizeEmpty": {
+      "Fn::Equals": [{ "Ref": "pgMaxSlotWalKeepSize" }, ""]
     }
   },
   "Resources": {
@@ -245,6 +253,11 @@
             "pgMaxReplicationSlotsEmpty",
             { "Ref": "AWS::NoValue" },
             { "Ref": "pgMaxReplicationSlots" }
+          ]},
+          "max_slot_wal_keep_size": { "Fn::If": [
+            "pgMaxSlotWalKeepSizeEmpty",
+            { "Ref": "AWS::NoValue" },
+            { "Ref": "pgMaxSlotWalKeepSize" }
           ]}
         }
       }

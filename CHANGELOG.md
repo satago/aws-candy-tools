@@ -1,3 +1,10 @@
+Version 0.9.3
+==============
+- `postgresql-parameter-group-template`
+  * New optional parameter (PostgreSQL 13+) `pgMaxSlotWalKeepSize` to specify maximum amount of disk space of WAL that replication slots are allowed to reserve: https://www.2ndquadrant.com/en/blog/pg13-slot-size-limit/
+
+    Default value is an empty string, which means "unlimited".
+
 Version 0.9.2
 ==============
 - `postgresql-template`
