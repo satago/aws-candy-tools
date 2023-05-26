@@ -1,3 +1,8 @@
+Version 0.9.4
+==============
+- `bin/stack`
+  * Added `wait-change-set-create-complete` subcommand
+
 Version 0.9.3
 ==============
 - `postgresql-parameter-group-template`
@@ -31,7 +36,7 @@ set -e
 export AWS_PAGER=
 export AWS_DEFAULT_PROFILE=my-custom-namespace
 ```
-and update your `~/.aws/config` to include the new profile, e.g., via `role_arn` and `source_profile`, e.g., [IAM roles in ~/.aws/config](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-role.html#cli-role-overview): 
+and update your `~/.aws/config` to include the new profile, e.g., via `role_arn` and `source_profile`, e.g., [IAM roles in ~/.aws/config](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-role.html#cli-role-overview):
 ```
 [profile my-default-profile]
 region=eu-west-1
@@ -142,11 +147,11 @@ Version 0.8.0
 Version 0.7.0
 ==============
 - `decrypt-properties.bash`
-  * Encrypted properties are now expected to live inside an `encrypted` folder and are decrypted 
+  * Encrypted properties are now expected to live inside an `encrypted` folder and are decrypted
     to the parent directory without the previous `.decrypted` extension.
     This is so that any inner references to other properties files inside a properties file are preserved
     between the encrypted and decrypted versions, while at the same time keeping both encrypted and decrypted
-    `.properties` file extension name for ide introspection and Spring validation. 
+    `.properties` file extension name for ide introspection and Spring validation.
 
 Version 0.6.22
 ==============
@@ -172,7 +177,7 @@ Version 0.6.20
 Version 0.6.19
 ==============
 - `bin/deploy`
-  * fix syntax error in `codedeploy-push-and-wait` 
+  * fix syntax error in `codedeploy-push-and-wait`
 
 Version 0.6.18
 ==============
@@ -243,7 +248,7 @@ Version 0.6.11
 Version 0.6.10
 =============
 - `bin/deploy`
-  * ensure changes introduced in 0.6.10 check the sub-command return code properly on all environments  
+  * ensure changes introduced in 0.6.10 check the sub-command return code properly on all environments
 
 Version 0.6.9
 =============
@@ -287,12 +292,12 @@ Version 0.6.1
 - `web-cluster-template`
   * Add support for additional (up to 2) SSL certificates on the ALB HTTPS listener
   * Fix MyALBTargetGroupHealthyHostCountAlarm dimensions using ARNs instead of Full Names only
-  * Fix MyDeploymentGroup reference MyALBTargetGroup without checking the condition whether the load balancer should actually be created 
+  * Fix MyDeploymentGroup reference MyALBTargetGroup without checking the condition whether the load balancer should actually be created
 
 Version 0.6.1
 ==============
 - `web-cluster-template`
-  * Fix issue of referencing ELBAccessLogging S3 folder even if no logging should be used 
+  * Fix issue of referencing ELBAccessLogging S3 folder even if no logging should be used
 
 Version 0.6.0
 ==============
@@ -373,7 +378,7 @@ Version 0.4.12
 - `bin/encrypt`
     * Base64-encode secrets transparently before passing them down to `aws kms`:
       https://docs.aws.amazon.com/cli/latest/userguide/cliv2-migration.html#cliv2-migration-binaryparam
-    * Drop support for AWS CLI version 1, fail with `Unknown options: --cli-binary-format, base64` 
+    * Drop support for AWS CLI version 1, fail with `Unknown options: --cli-binary-format, base64`
 
 Version 0.4.11
 ==============
@@ -407,11 +412,11 @@ Version 0.4.8
 - `codedeploy-common-file/pull.bash`
     * `ecr get-login` replaced with function `docker_login_ecr`
 - `bin/_common-functions.bash`
-    * added function `docker_login_ecr` which does secure log in to ecr using `ecr get-login-password` not `ecr get-login`   
+    * added function `docker_login_ecr` which does secure log in to ecr using `ecr get-login-password` not `ecr get-login`
     * removed functions `docker_login_options` and `check_version` - we do not support docker versions < 17.06 any longer
     * function `aws_account_id` extracted from `bin/stack`
 - `bin/stack`
-    * function `aws_account_id` extracted to `bin/_common-functions.bash`   
+    * function `aws_account_id` extracted to `bin/_common-functions.bash`
 
 Version 0.4.7
 =============
@@ -430,14 +435,14 @@ Version 0.4.5
     * move `register_with_elb.sh` call from `ApplicationStart` to `ValidateService`
       to make it possible to implement custom warm-up logic in `pre-ValidateService`
       before attaching instance back to ELB
-   
+
 Version 0.4.4
 =============
 - `bin/deploy`:
     * ignore error when getting deployment status in `wait`. Just check again.
 - `bin/stack`:
     * ignore error when getting count of instances in `wait-for-elb-instances`. Just check again.
-   
+
 
 Version 0.4.3
 =============
@@ -472,22 +477,22 @@ Version 0.3.14
        - waits for all instances to appear in ELB,
        - performs CodeDeploy push and waits for successful deployment,
        - scales instances down to original capacity
-     
+
 Version 0.3.13
 ==============
 - `aws/elb/common_function`:
     * suspending AutoScaling processes while deploying will be enabled by default now
-     
+
 Version 0.3.12
 ==============
-- `bin/stack`: 
+- `bin/stack`:
     * new command `get-desired-capacity` which returns current desired capacity of the stack auto scaling group
     * in `wait` and `wait-for-elb-instances` commands: improved new lines handling when not running from terminal
-- `bin/deploy`: 
+- `bin/deploy`:
     * in `wait` command: improved new lines handling when not running from terminal
-- `bin/httping`: 
+- `bin/httping`:
     * improved new lines handling when not running from terminal
-    
+
 
 Version 0.3.11
 ==============
@@ -660,7 +665,7 @@ Version 0.2.8
 
 Version 0.2.7
 =============
-- `yum versionlock delete docker` before installing docker of a given version, i.e. when we need to upgrade docker version, otherwise `yum` isn't able to find requested package of docker for installation. 
+- `yum versionlock delete docker` before installing docker of a given version, i.e. when we need to upgrade docker version, otherwise `yum` isn't able to find requested package of docker for installation.
 
 Version 0.2.6
 =============
