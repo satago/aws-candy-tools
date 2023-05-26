@@ -221,7 +221,14 @@ case "$CMD" in
                 --parameters "file://${STACKS_DIR}/${STACK}/${TEMPLATE}-parameters.json" \
                 --change-set-name "${CHANGE_SET_NAME}" \
             && echo "${CHANGE_SET_NAME}" \
-            && echo "$0 ${SELF_OPTS} describe-change-set ${STACK} ${CHANGE_SET_NAME}"
+            && echo "$0 ${SELF_OPTS} wait-change-set-create-complete ${STACK} ${CHANGE_SET_NAME}"
+            ;;
+
+        wait-change-set-create-complete)
+            CHANGE_SET_NAME=$3
+            aws cloudformation wait change-set-create-complete \
+                --change-set-name "${STACK_NAME}" \
+            && echo "$0 ${SELF_OPTS} cloudformation describe-change-set ${STACK} ${CHANGE_SET_NAME}"
             ;;
 
         describe-change-set)
@@ -488,6 +495,7 @@ case "$CMD" in
   $0 status <stack-name>
   $0 update <stack-name>
   $0 wait <stack-name>
+  $0 wait-change-set-create-complete <change-set-name>
   $0 wait-for-elb-instances <stack-name>"
             exit 1
             ;;
