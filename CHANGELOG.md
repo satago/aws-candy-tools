@@ -1,3 +1,8 @@
+Version 0.9.5
+==============
+- `bin/stack`
+  * Fixes
+
 Version 0.9.4
 ==============
 - `bin/stack`
