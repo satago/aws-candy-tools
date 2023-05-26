@@ -1,3 +1,8 @@
+Version 0.9.5
+==============
+- `bin/stack`
+  * Fix a bug in `wait-change-set-create-complete` subcommand
+
 Version 0.9.4
 ==============
 - `bin/stack`

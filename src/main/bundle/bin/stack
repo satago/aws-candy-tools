@@ -227,8 +227,9 @@ case "$CMD" in
         wait-change-set-create-complete)
             CHANGE_SET_NAME=$3
             aws cloudformation wait change-set-create-complete \
+                --stack-name "${STACK_NAME}" \
                 --change-set-name "${CHANGE_SET_NAME}" \
-            && echo "$0 ${SELF_OPTS} cloudformation describe-change-set ${STACK} ${CHANGE_SET_NAME}"
+            && echo "$0 ${SELF_OPTS} describe-change-set ${STACK} ${CHANGE_SET_NAME}"
             ;;
 
         describe-change-set)
