@@ -1,7 +1,7 @@
 Version 0.9.4
 ==============
 - `bin/stack`
-  * Added `change-set-create-complete` subcommand
+  * Added `wait-change-set-create-complete` subcommand
 
 Version 0.9.3
 ==============
