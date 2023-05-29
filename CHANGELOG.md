@@ -1,3 +1,8 @@
+Version 0.9.6
+==============
+- `web-cluster-template`
+  * Added an option to associate WAF WebACL
+
 Version 0.9.5
 ==============
 - `bin/stack`

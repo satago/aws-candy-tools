@@ -145,6 +145,11 @@
       "Type": "String",
       "Default": "ELBSecurityPolicy-2016-08"
     },
+    "ALBWafArn": {
+      "Description": "Arn of WAF ACL which should be attached to ALB",
+      "Type": "String",
+      "Default": ""
+    },
     "SSLCertificateId": {
       "Description": "ARN of the default SSL Certificate for the ALB HTTPS listener; for the additional ones use SSLCertificateId2, SSLCertificateId3, ...",
       "Type": "String",
@@ -482,6 +487,11 @@
           }]
         }
       ]
+    },
+    "CreateWAFAssociation": {
+      "Fn::Not": [{
+        "Fn::Equals" : [{"Ref" : "ALBWafArn"}, ""]
+      }]
     }
   },
   "Mappings": {
@@ -492,6 +502,14 @@
     }
   },
   "Resources": {
+    "WebACLAssociation": {
+      "Type": "AWS::WAFv2::WebACLAssociation",
+      "Condition" : "CreateWAFAssociation",
+      "Properties": {
+        "ResourceArn": { "Ref": "MyALB" },
+        "WebACLArn": { "Ref": "ALBWafArn" }
+      }
+    },
     "MyTerminateNotificationQueue" : {
       "Type": "AWS::SQS::Queue",
       "DependsOn": ["AutoScalingServiceRole", "AutoScalingServiceRolePolicies"],
