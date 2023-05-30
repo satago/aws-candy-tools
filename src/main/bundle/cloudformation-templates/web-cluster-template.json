@@ -489,9 +489,10 @@
       ]
     },
     "CreateWAFAssociation": {
-      "Fn::Not": [{
-        "Fn::Equals" : [{"Ref" : "ALBWafArn"}, ""]
-      }]
+      "Fn::And": [
+        { "Condition": "CreateALB" },
+        { "Fn::Not": [{ "Fn::Equals" : [{"Ref" : "ALBWafArn"}, ""]}] }
+      ]
     }
   },
   "Mappings": {
