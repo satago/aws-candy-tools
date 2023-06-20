@@ -1,0 +1,10 @@
+{
+    "workbench.startupEditor": "none",
+    "editor.tabSize": 2,
+    "editor.stickyTabStops": true,
+    "files.insertFinalNewline": false,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.minimap.enabled": false,
+    "editor.accessibilitySupport": "off"
+}
