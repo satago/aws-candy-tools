@@ -1,3 +1,10 @@
+Version 0.9.7
+==============
+- `web-cluster-template`
+  * Updated MACs with secure values for sshd
+- `.vscode`
+  * Added workspace settings
+
 Version 0.9.6
 ==============
 - `web-cluster-template`
