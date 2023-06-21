@@ -1,3 +1,8 @@
+Version 0.9.9
+==============
+- `web-cluster-template`
+  * Fixing values used in KexAlgorithms
+
 Version 0.9.8
 ==============
 - `web-cluster-template`
