@@ -1,3 +1,8 @@
+Version 0.9.8
+==============
+- `web-cluster-template`
+  * Updated KexAlgorithms with secure values for sshd
+
 Version 0.9.7
 ==============
 - `web-cluster-template`
