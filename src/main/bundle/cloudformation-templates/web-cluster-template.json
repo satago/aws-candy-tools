@@ -1429,6 +1429,13 @@
                     "echo \"${PARAM_NAME} ${PARAM_VALUE}\" >> ${file}\n",
                     "echo \"${PARAM_NAME} ${PARAM_VALUE}\" was added to ${file}\n",
                     "\n",
+                    "PARAM_NAME=KexAlgorithms\n",
+                    "PARAM_VALUE=hmac-sha1,hmac-sha1-etm@openssh.com,hmac-sha2-256,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com,umac-128@openssh.com,umac-64-etm@openssh.com,umac-64@openssh.com\n",
+                    "sed -i '/^'\"${PARAM_NAME}\"'/d' ${file}\n",
+                    "echo \"All lines beginning with '${PARAM_NAME}' were deleted from ${file}.\"\n",
+                    "echo \"${PARAM_NAME} ${PARAM_VALUE}\" >> ${file}\n",
+                    "echo \"${PARAM_NAME} ${PARAM_VALUE}\" was added to ${file}\n",
+                    "\n",
                     "systemctl reload sshd.service\n"
                   ]]
                 },
