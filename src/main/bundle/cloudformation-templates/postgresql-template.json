@@ -439,7 +439,7 @@
         { "Condition": "CreateReadOnlyReplica" },
         { "Fn::Or": [
           { "Fn::And": [
-            { "Fn::Eq": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, ""] },
+            { "Fn::Equals": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, ""] },
             { "Condition": "LowIOBalanceAlarmEnabled" }
           ]},
           { "Fn::Equals": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, "true"] }

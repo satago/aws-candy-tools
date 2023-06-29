@@ -1,9 +1,4 @@
-Version 0.9.11
-==============
-- `postgresql-template`
-  * Fixing syntax error in the template definition
-
-Version 0.9.10
+Version 0.9.12
 ==============
 - `postgresql-template`
   * New parameter `MaxAllocatedStorage` the upper limit in gibibytes (GiB) to which Amazon RDS can automatically scale the storage of the DB instance. Default `0` means no auto-scaling.
