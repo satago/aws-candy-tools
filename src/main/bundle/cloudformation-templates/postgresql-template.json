@@ -316,6 +316,13 @@
       "Type": "Number",
       "Default": "50"
     },
+    "DBReplicaLowIOBalanceAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for low MIN(BurstBalance, EBSIOBalance%, EBSByteBalance%) for replica DB",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": ["true", "false", ""],
+      "ConstraintDescription": "empty string (default), true, or false. Empty strings inherits the value from LowIOBalanceAlarmEnabled"
+    },
 
     "HighReplicaLagAlarmEnabled": {
       "Description": "Create CloudWatch alarm for high replica lag",
@@ -429,9 +436,15 @@
     },
     "ReplicaLowIOBalanceAlarmEnabled": {
       "Fn::And": [
-        { "Condition": "LowIOBalanceAlarmEnabled" },
-        { "Condition": "CreateReadOnlyReplica" }
-      ]
+        { "Condition": "CreateReadOnlyReplica" },
+        { "Fn::Or": [
+          { "Fn::And": [
+            { "Fn::Eq": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, ""] },
+            { "Condition": "LowIOBalanceAlarmEnabled" }
+          ]},
+          { "Fn::Equals": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, "true"] }
+        ]}
+      ]}
     },
     "LowCPUCreditBalanceAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "LowCPUCreditBalanceAlarmEnabled" }, "true"]
