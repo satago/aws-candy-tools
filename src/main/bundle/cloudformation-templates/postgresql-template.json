@@ -62,8 +62,13 @@
       "Type": "String"
     },
     "AllocatedStorage": {
-      "Description": "The amount of storage (in gigabytes) to be initially allocated for the database instance.",
+      "Description": "The amount of storage in gibibytes (GiB) to be initially allocated for the database instance.",
       "Type": "Number"
+    },
+    "MaxAllocatedStorage": {
+      "Description": "The upper limit in gibibytes (GiB) to which Amazon RDS can automatically scale the storage of the DB instance. Default `0` means no auto-scaling.",
+      "Type": "Number",
+      "Default": 0
     },
     "StorageType": {
       "Description": "Storage type to be associated with the DB instance. If you specify io1, you must also include a value for the Iops parameter.",
@@ -186,6 +191,16 @@
       "Type": "String",
       "Default": ""
     },
+    "DBReplicaAllocatedStorage": {
+      "Description": "The aamount of storage in gibibytes (GiB) to be initially allocated for the replica database instance. Default `0` means the same storage as in the source DB.",
+      "Type": "Number",
+      "Default": 0
+    },
+    "DBReplicaMaxAllocatedStorage": {
+      "Description": "The upper limit in gibibytes (GiB) to which Amazon RDS can automatically scale the storage of the replica DB instance. Default `0` will inherit the settings from the source DB.",
+      "Type": "Number",
+      "Default": 0
+    },
     "DBReplicaStorageType": {
       "Description": "Storage type to be associated with the DB replica instance. If you specify io1, you must also include a value for the DBReplicaIops parameter.",
       "Type": "String",
@@ -301,6 +316,13 @@
       "Type": "Number",
       "Default": "50"
     },
+    "DBReplicaLowIOBalanceAlarmEnabled": {
+      "Description": "Create CloudWatch alarm for low MIN(BurstBalance, EBSIOBalance%, EBSByteBalance%) for replica DB",
+      "Type": "String",
+      "Default": "",
+      "AllowedValues": ["true", "false", ""],
+      "ConstraintDescription": "empty string (default), true, or false. Empty strings inherits the value from LowIOBalanceAlarmEnabled"
+    },
 
     "HighReplicaLagAlarmEnabled": {
       "Description": "Create CloudWatch alarm for high replica lag",
@@ -414,10 +436,15 @@
     },
     "ReplicaLowIOBalanceAlarmEnabled": {
       "Fn::And": [
-        { "Condition": "LowIOBalanceAlarmEnabled" },
-        { "Condition": "CreateReadOnlyReplica" }
-      ]
-    },
+        { "Condition": "CreateReadOnlyReplica" },
+        { "Fn::Or": [
+          { "Fn::And": [
+            { "Fn::Equals": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, ""] },
+            { "Condition": "LowIOBalanceAlarmEnabled" }
+          ]},
+          { "Fn::Equals": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, "true"] }
+        ]}
+    ]},
     "LowCPUCreditBalanceAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "LowCPUCreditBalanceAlarmEnabled" }, "true"]
     },
@@ -512,6 +539,16 @@
     },
     "DBInstanceIngressSourceSecurityGroupId5Empty": {
       "Fn::Equals": [{ "Ref": "DBInstanceIngressSourceSecurityGroupId5" }, ""]
+    },
+
+    "DBReplicaAllocatedStorageEmpty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaAllocatedStorage" }, "0"]
+    },
+    "MaxAllocatedStorageEmpty": {
+      "Fn::Equals": [{ "Ref": "MaxAllocatedStorage" }, "0"]
+    },
+    "DBReplicaMaxAllocatedStorageEmpty": {
+      "Fn::Equals": [{ "Ref": "DBReplicaMaxAllocatedStorage" }, "0"]
     }
   },
   "Resources": {
@@ -544,6 +581,11 @@
           ]}
         ]},
         "AllocatedStorage": { "Ref": "AllocatedStorage" },
+        "MaxAllocatedStorage": { "Fn::If": [
+          "MaxAllocatedStorageEmpty",
+          { "Ref": "AWS::NoValue"},
+          { "Ref": "MaxAllocatedStorage" }
+        ]},
         "DeletionProtection": { "Fn::If": [ "Ephemeral", false, true ] },
         "DeleteAutomatedBackups": { "Fn::If": [ "Ephemeral", true, false ] },
         "DBSubnetGroupName": { "Fn::If": [
@@ -632,7 +674,20 @@
         "AllowMajorVersionUpgrade": true,
         "AutoMinorVersionUpgrade": false,
         "MultiAZ": false,
-        "AllocatedStorage": { "Ref": "AllocatedStorage" },
+        "AllocatedStorage": { "Fn::If": [
+          "DBReplicaAllocatedStorageEmpty",
+          { "Ref": "AllocatedStorage" },
+          { "Ref": "DBReplicaAllocatedStorage" }
+        ]},
+        "MaxAllocatedStorage": { "Fn::If": [
+          "DBReplicaMaxAllocatedStorageEmpty",
+          { "Fn::If": [
+            "MaxAllocatedStorageEmpty",
+            { "Ref": "AWS::NoValue"},
+            { "Ref": "MaxAllocatedStorage" }
+          ]},
+          { "Ref": "DBReplicaMaxAllocatedStorage" }
+        ]},
         "DeletionProtection": { "Fn::If": [ "Ephemeral", false, true ] },
         "DBInstanceClass": { "Fn::If": [
           "DBReplicaInstanceClassEmpty",
