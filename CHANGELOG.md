@@ -1,3 +1,8 @@
+Version 0.9.11
+==============
+- `postgresql-template`
+  * Fixing syntax error in the template definition
+
 Version 0.9.10
 ==============
 - `postgresql-template`

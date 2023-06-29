@@ -444,8 +444,7 @@
           ]},
           { "Fn::Equals": [{ "Ref": "DBReplicaLowIOBalanceAlarmEnabled" }, "true"] }
         ]}
-      ]}
-    },
+    ]},
     "LowCPUCreditBalanceAlarmEnabled": {
       "Fn::Equals": [{ "Ref": "LowCPUCreditBalanceAlarmEnabled" }, "true"]
     },
