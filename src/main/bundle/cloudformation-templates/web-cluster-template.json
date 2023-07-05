@@ -832,7 +832,7 @@
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "SourceSecurityGroupId": { "Ref": "Ingress8080SecurityGroupId" }
+            "SourceSecurityGroupId": { "Ref": "Ingress443SecurityGroupId" }
           }
         ]}]
       }
