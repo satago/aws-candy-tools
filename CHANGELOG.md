@@ -1,3 +1,8 @@
+Version 0.9.16
+==============
+- `web-cluster-template`
+  * New parameter `Ingress443PrefixListId` (optional) allows specifying additional Prefix List to access (internal) ALB on port 443
+
 Version 0.9.15
 ==============
 - `web-cluster-template`
@@ -9,7 +14,7 @@ Version 0.9.12
   * New parameter `MaxAllocatedStorage` the upper limit in gibibytes (GiB) to which Amazon RDS can automatically scale the storage of the DB instance. Default `0` means no auto-scaling.
   * New parameter `DBReplicaAllocatedStorage` for the amount of storage (in gigabytes) to be initially allocated for the replica database instance. Default `0` means the same storage as in the source DB.
   * New parameter `DBReplicaMaxAllocatedStorage` to define the upper limit in gibibytes (GiB) to which Amazon RDS can automatically scale the storage of the replica DB instance. Default `0` will inherit the settings from the source DB.
-  * New parameter `DBReplicaLowIOBalanceAlarmEnabled` to enable/disable the `LowIOBalanceAlarm` on replica independently of the source DB. Default value (empty string) will inherit the state from existing `LowIOBalanceAlarmEnabled` parameter. Other alarm settings like threshold are shared with the source DB. 
+  * New parameter `DBReplicaLowIOBalanceAlarmEnabled` to enable/disable the `LowIOBalanceAlarm` on replica independently of the source DB. Default value (empty string) will inherit the state from existing `LowIOBalanceAlarmEnabled` parameter. Other alarm settings like threshold are shared with the source DB.
 
 Version 0.9.9
 ==============

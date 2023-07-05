@@ -58,6 +58,13 @@
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
+    "Ingress8443PrefixListId": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
     "InstanceSecurityGroups": {
       "Description": "Additional SecurityGroups for EC2 instances",
       "Type": "CommaDelimitedList",
@@ -421,6 +428,9 @@
     },
     "Ingress8443SecurityGroupIdEmpty": {
       "Fn::Equals": [{ "Ref":  "Ingress8443SecurityGroupId" }, ""]
+    },
+    "Ingress8443PrefixListIdEmpty": {
+      "Fn::Equals": [{ "Ref":  "Ingress8443PrefixListId" }, ""]
     },
     "RedirectToHTTPS": {
       "Fn::Equals": [{ "Ref":  "RedirectToHTTPS" }, "true"]
@@ -1608,6 +1618,15 @@
             "ToPort": "8443",
             "SourceSecurityGroupId": { "Ref": "Ingress8443SecurityGroupId" }
           }
+        ]}, { "Fn::If": [
+            "Ingress8443PrefixListIdEmpty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "8443",
+              "ToPort": "8443",
+              "SourcePrefixListId": { "Ref": "Ingress8443PrefixListId" }
+            }
         ]}, { "Fn::If": [
           "SSHSecurityGroupIdEmpty",
           { "Ref": "AWS::NoValue" },
