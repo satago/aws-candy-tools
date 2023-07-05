@@ -832,7 +832,7 @@
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443",
-            "SourceSecurityGroupId": { "Fn::GetAtt": ["Ingress443SecurityGroupId", "GroupId"] }
+            "SourceSecurityGroupId": { "Ref": "Ingress8080SecurityGroupId" }
           }
         ]}]
       }
