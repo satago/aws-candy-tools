@@ -44,6 +44,13 @@
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
+    "Ingress443SecurityGroupId": {
+      "Description": "(Optional) ID of ingress security group to allow accessing the (internal) ALB on port 443",
+      "Type": "String",
+      "AllowedPattern":  "(|sg-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty if no additional access is needed",
+      "Default": ""
+    },
     "Ingress8443SecurityGroupId": {
       "Description": "(Optional) ID of ingress security group to allow access to port 8443 of EC2 instances",
       "Type": "String",
@@ -408,6 +415,9 @@
     },
     "Ingress8080SecurityGroupIdEmpty": {
       "Fn::Equals": [{ "Ref":  "Ingress8080SecurityGroupId" }, ""]
+    },
+    "Ingress443SecurityGroupIdEmpty": {
+      "Fn::Equals": [{ "Ref":  "Ingress443SecurityGroupId" }, ""]
     },
     "Ingress8443SecurityGroupIdEmpty": {
       "Fn::Equals": [{ "Ref":  "Ingress8443SecurityGroupId" }, ""]
@@ -814,7 +824,17 @@
           "CidrIp": {
             "Fn::If": ["InternalALB", { "Ref": "InternalALBIngressCidrIp" }, "0.0.0.0/0"]
           }
-        }]
+        },
+        { "Fn::If": [
+          "Ingress443SecurityGroupIdEmpty",
+          { "Ref": "AWS::NoValue" },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "SourceSecurityGroupId": { "Ref": "Ingress443SecurityGroupId" }
+          }
+        ]}]
       }
     },
     "MyS3LoggingBucket": {
