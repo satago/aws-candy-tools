@@ -1,7 +1,8 @@
 Version 0.9.13
 ==============
-- `web-cluster-template.json`
-  * New parameter `Ingress443SecurityGroupId` (optional) allows specifying additional SecurityGroup to access port 8443 from external ALB
+- `web-cluster-template`
+  * New parameter `Ingress443SecurityGroupId` (optional) allows specifying additional SecurityGroup to access (internal) ALB on port 443
+
 Version 0.9.12
 ==============
 - `postgresql-template`
