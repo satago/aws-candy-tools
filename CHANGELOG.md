@@ -1,7 +1,7 @@
 Version 0.9.16
 ==============
 - `web-cluster-template`
-  * New parameter `Ingress443PrefixListId` (optional) allows specifying additional Prefix List to access (internal) ALB on port 443
+  * New parameter `Ingress8443PrefixListId` (optional) allows specifying additional Prefix List to access port 8443 of EC2 instances
 
 Version 0.9.15
 ==============
