@@ -220,6 +220,13 @@ case "$CMD" in
 
             STACK_CMD="${SCRIPT_PATH}/stack"
 
+            "${STACK_CMD}" has-load-balancer "${STACK}" && HAS_LOAD_BALANCER=true || HAS_LOAD_BALANCER=false
+
+            if ${AUTO_SCALING} && ! ${HAS_LOAD_BALANCER}; then
+              echo -e "*\n* ERROR ${STACK}: '--auto-scaling' is not supported for stacks without a load balancer\n*"
+              exit 1
+            fi
+
             if ${AUTO_SCALING}; then
                 ORIGINAL_DESIRED_CAPACITY=$(${STACK_CMD} get-desired-capacity "${STACK}")
 
@@ -241,14 +248,16 @@ case "$CMD" in
             # shellcheck disable=SC2086
             $0 ${SELF_OPTS} wait "${DEPLOYMENT_ID}"
 
-            # rare scenario, but CodeDeploy could mark the whole deployment as successful even if deployment to at least one instance failed, see
-            # deployment configuration descriptions from https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html;
-            # ensure all instances were successfully registered in the ELB, so we do not decrease the ASG size if not all instances are able to
-            # handle the requests
-            # shellcheck disable=SC2086
-            if ! timeout 60 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
-                echo -e "*\n* ERROR CodeDeploy deployment for ${STACK} succeeded, but not all instances successfully registered in ELB. Please verify. *\n*"
-                exit 1
+            if ${HAS_LOAD_BALANCER}; then
+              # rare scenario, but CodeDeploy could mark the whole deployment as successful even if deployment to at least one instance failed, see
+              # deployment configuration descriptions from https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html;
+              # ensure all instances were successfully registered in the ELB, so we do not decrease the ASG size if not all instances are able to
+              # handle the requests
+              # shellcheck disable=SC2086
+              if ! timeout 60 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
+                  echo -e "*\n* ERROR CodeDeploy deployment for ${STACK} succeeded, but not all instances successfully registered in ELB. Please verify. *\n*"
+                  exit 1
+              fi
             fi
 
             if ${AUTO_SCALING}; then

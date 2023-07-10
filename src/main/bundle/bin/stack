@@ -360,29 +360,29 @@ case "$CMD" in
                 --desired-capacity "${DESIRED_CAPACITY}"
             ;;
 
-        wait-for-elb-instances)
-            # need to support both classic ELBs (pre 0.6.0) and ALBs (0.6.0+) so we do not end up with infinite loops during deployment
-            ELB_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyELB)
+        has-load-balancer)
             ALB_TARGET_GROUP_ARN=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyALBTargetGroup)
 
-            if [[ -z ${ELB_NAME} ]] && [[ -z ${ALB_TARGET_GROUP_ARN} ]]; then
-                printf '%s %s neither has ELB (Classic) nor ALB (ELBv2) defined\n' "$(date +%H:%M:%S)" "${STACK}"
-                exit 1
+            if [[ -z ${ALB_TARGET_GROUP_ARN} ]]; then
+              exit 1
+            else
+              exit 0
+            fi
 
-            elif [[ -n ${ALB_TARGET_GROUP_ARN} ]]; then
+            ;;
+
+        wait-for-elb-instances)
+            ALB_TARGET_GROUP_ARN=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyALBTargetGroup)
+
+            if [[ -z ${ALB_TARGET_GROUP_ARN} ]]; then
+                printf '%s %s does not have ALB (ELBv2) defined\n' "$(date +%H:%M:%S)" "${STACK}"
+                exit 1
+            else
                 IN_SERVICE_COUNT_CHECK_DESTINATION="ALB (ELBv2) target group"
                 function IN_SERVICE_COUNT_FUNCTION {
                   aws elbv2 describe-target-health \
                        --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
                        --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id)"
-                }
-
-            elif [[ -n ${ELB_NAME} ]]; then
-                IN_SERVICE_COUNT_CHECK_DESTINATION="ELB (Classic)"
-                function IN_SERVICE_COUNT_FUNCTION {
-                    aws elb describe-instance-health \
-                        --load-balancer-name "${ELB_NAME}" \
-                        --query "length(InstanceStates[?State=='InService'].InstanceId)"
                 }
             fi
 
@@ -483,6 +483,7 @@ case "$CMD" in
   $0 execute-change-set <stack-name> <change-set-name>
   $0 get-desired-capacity <stack-name>
   $0 get-min-size <stack-name>
+  $0 has-load-balancer <stack-name>
   $0 id <stack-name>
   $0 list-arns <stack-name>
   $0 list-exports

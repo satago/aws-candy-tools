@@ -1,3 +1,12 @@
+Version 0.9.17
+==============
+- `bin/stack`
+  * New subcommand `has-load-balancer` exit with code 0 if a stack has associated load balancer, otherwise exit with 1
+- `bin/deploy`
+  * `codedeploy-push-and-wait` subcommand
+    - bug fix: do not attempt to `wait-for-elb-instances` after deployment if stack did not have a load balancer, the check was always failing before
+    - fail explicitly if `--auto-scaling` used on a stack without a load balancer
+
 Version 0.9.16
 ==============
 - `web-cluster-template`
