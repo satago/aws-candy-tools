@@ -1,3 +1,8 @@
+Version 0.9.18
+==============
+- `web-cluster-template`
+  * Fix for `OwnershipControls` in `MyS3LoggingBucket` after AWS changed their defaults https://aws.amazon.com/about-aws/whats-new/2022/12/amazon-s3-automatically-enable-block-public-access-disable-access-control-lists-buckets-april-2023/
+
 Version 0.9.17
 ==============
 - `bin/stack`

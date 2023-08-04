@@ -873,6 +873,13 @@
         "VersioningConfiguration": {
           "Status": "Enabled"
         },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerPreferred"
+            }
+          ]
+        },
         "AccessControl": "LogDeliveryWrite"
       }
     },
