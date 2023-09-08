@@ -1,3 +1,7 @@
+Version 0.9.19
+==============
+- Fixing Java 17 incompatibility in DeferredReplaceTokens (Caused by: groovy.lang.MissingPropertyException: No such property: in for class: net.satago.gradle.common.DeferredReplaceTokens)
+
 Version 0.9.18
 ==============
 - `web-cluster-template`

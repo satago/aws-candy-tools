@@ -18,8 +18,11 @@ class DeferredReplaceTokens extends FilterReader {
     def tokenGenerator
     FilterReader actualReader
 
+    Reader internalReader
+
     public DeferredReplaceTokens(Reader reader) {
         super(reader)
+        internalReader = reader
     }
     /**
      * On-demand creation of the actual ReplaceToken instance
@@ -27,7 +30,7 @@ class DeferredReplaceTokens extends FilterReader {
      */
     FilterReader reader() {
         if (actualReader == null) {
-            actualReader = new ReplaceTokens(this.in)
+            actualReader = new ReplaceTokens(internalReader)
             Hashtable tokens = tokenGenerator()
             // setTokens is really private, but all gradle example code
             // use it like it's public so I will as well
