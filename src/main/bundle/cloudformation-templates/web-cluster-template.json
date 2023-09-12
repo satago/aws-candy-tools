@@ -65,6 +65,20 @@
       "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
+    "TcpIngressFromSelfOnPortRangeFrom": {
+      "Description": "(Optional) The start of port range for the TCP protocol to allow ingress from all EC2 instances of this cluster",
+      "Type": "String",
+      "AllowedPattern": "(|[0-9]+)",
+      "ConstraintDescription": "Empty to disable TcpIngressFromSelf, otherwise numeric port number",
+      "Default": ""
+    },
+    "TcpIngressFromSelfOnPortRangeTo": {
+      "Description": "(Optional) The end of port range for the TCP protocol to allow ingress from all EC2 instances of this cluster",
+      "Type": "String",
+      "AllowedPattern": "(|[0-9]+)",
+      "ConstraintDescription": "Empty to disable TcpIngressFromSelf, otherwise numeric port number",
+      "Default": ""
+    },
     "InstanceSecurityGroups": {
       "Description": "Additional SecurityGroups for EC2 instances",
       "Type": "CommaDelimitedList",
@@ -431,6 +445,20 @@
     },
     "Ingress8443PrefixListIdEmpty": {
       "Fn::Equals": [{ "Ref":  "Ingress8443PrefixListId" }, ""]
+    },
+    "TcpIngressFromSelfEnabled": {
+      "Fn::And": [
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Ref": "TcpIngressFromSelfOnPortRangeFrom" }, ""]
+          }]
+        },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Ref": "TcpIngressFromSelfOnPortRangeTo" }, ""]
+          }]
+        }
+      ]
     },
     "RedirectToHTTPS": {
       "Fn::Equals": [{ "Ref":  "RedirectToHTTPS" }, "true"]
@@ -1644,6 +1672,18 @@
             "SourceSecurityGroupId": { "Ref": "SSHSecurityGroupId" }
           }]
         }]
+      }
+    },
+    "MyInstanceSecurityGroupTcpIngressFromSelf": {
+      "Condition": "TcpIngressFromSelfEnabled",
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "DependsOn": "MyInstanceSecurityGroup",
+      "Properties": {
+        "GroupId": { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] },
+        "IpProtocol": "tcp",
+        "FromPort": { "Ref": "TcpIngressFromSelfOnPortRangeFrom" },
+        "ToPort": { "Ref": "TcpIngressFromSelfOnPortRangeTo" },
+        "SourceSecurityGroupId": { "Fn::GetAtt": ["MyInstanceSecurityGroup", "GroupId"] }
       }
     },
     "MyDeploymentGroup": {
