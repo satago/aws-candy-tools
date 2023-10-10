@@ -145,6 +145,27 @@
       "AllowedPattern": "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
+    "DBInstanceIngressSourcePrefixListId": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
+    "DBInstanceIngressSourcePrefixListId2": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
+    "DBInstanceIngressSourcePrefixListId3": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
     "DBInstanceVPCSecurityGroupId2": {
       "Description": "Additional VPC security group to attach to the DB instance",
       "Type": "String",
@@ -514,7 +535,15 @@
     "MultiAZ": {
       "Fn::Equals": [{ "Ref": "MultiAZ" }, "true"]
     },
-
+    "DBInstanceIngressSourcePrefixListIdEmpty": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourcePrefixListId" }, ""]
+    },
+    "DBInstanceIngressSourcePrefixListIdEmpty2": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourcePrefixListId2" }, ""]
+    },
+    "DBInstanceIngressSourcePrefixListIdEmpty3": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourcePrefixListId3" }, ""]
+    },
     "DBInstanceVPCSecurityGroupId2Empty": {
       "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId2" }, ""]
     },
@@ -779,6 +808,36 @@
               "FromPort": "5432",
               "ToPort": "5432",
               "SourceSecurityGroupId": { "Ref": "DBInstanceIngressSourceSecurityGroupId5" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourcePrefixListIdEmpty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourcePrefixListId": { "Ref": "DBInstanceIngressSourcePrefixListId" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourcePrefixListIdEmpty2",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourcePrefixListId": { "Ref": "DBInstanceIngressSourcePrefixListId2" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourcePrefixListIdEmpty3",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourcePrefixListId": { "Ref": "DBInstanceIngressSourcePrefixListId3" }
             }
           ]}
         ]
