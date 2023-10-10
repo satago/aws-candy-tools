@@ -1,3 +1,13 @@
+Version 0.9.22
+==============
+- `postgresql-template`
+  * Validation fixes
+
+Version 0.9.21
+==============
+- `postgresql-template`
+  * New optional parameters: `DBInstanceIngressSourcePrefixListId`, `DBInstanceIngressSourcePrefixListId2` and `DBInstanceIngressSourcePrefixListId3` - allows specifying additional Prefix List to access port 5432 of Postgres RDS instance
+
 Version 0.9.20
 ==============
 - `web-cluster-template`
