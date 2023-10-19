@@ -1,3 +1,8 @@
+Version 0.9.23
+==============
+- `postgresql-template`
+  * Added new option parameters: `DBInstanceIngressSourcePrefixListId4`, `DBInstanceIngressSourcePrefixListId5` - allows specifying additional Prefix List to access port 5432 of Postgres RDS instance
+
 Version 0.9.22
 ==============
 - `postgresql-template`
