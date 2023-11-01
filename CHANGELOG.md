@@ -1,3 +1,8 @@
+Version 0.9.23
+==============
+- `web-cluster-template`
+  * New optional parameter `ALBHttpsPort` to use custom HTTPS port on ALB, default is 443.
+
 Version 0.9.22
 ==============
 - `postgresql-template`
