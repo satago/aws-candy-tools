@@ -1,7 +1,12 @@
-Version 0.9.23
+Version 0.9.24
 ==============
 - `web-cluster-template`
-  * New optional parameter `ALBHttpsPort` to use custom HTTPS port on ALB, default is 443.
+* New optional parameter `ALBHttpsPort` to use custom HTTPS port on ALB, default is 443.
+
+Version 0.9.23
+==============
+- `postgresql-template`
+  * Added new option parameters: `DBInstanceIngressSourcePrefixListId4`, `DBInstanceIngressSourcePrefixListId5` - allows specifying additional Prefix List to access port 5432 of Postgres RDS instance
 
 Version 0.9.22
 ==============
