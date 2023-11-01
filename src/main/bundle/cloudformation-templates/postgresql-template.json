@@ -146,21 +146,35 @@
       "ConstraintDescription": "Security Group Id (sg-xxxxxxxx)"
     },
     "DBInstanceIngressSourcePrefixListId": {
-      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 5432 of EC2 instances",
       "Type": "String",
       "AllowedPattern": "(|pl-[a-z0-9]+)",
       "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
     "DBInstanceIngressSourcePrefixListId2": {
-      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 5432 of EC2 instances",
       "Type": "String",
       "AllowedPattern": "(|pl-[a-z0-9]+)",
       "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
     "DBInstanceIngressSourcePrefixListId3": {
-      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 5432 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
+    "DBInstanceIngressSourcePrefixListId4": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 5432 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
+    "DBInstanceIngressSourcePrefixListId5": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 5432 of EC2 instances",
       "Type": "String",
       "AllowedPattern": "(|pl-[a-z0-9]+)",
       "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
@@ -544,6 +558,12 @@
     "DBInstanceIngressSourcePrefixListIdEmpty3": {
       "Fn::Equals": [{ "Ref": "DBInstanceIngressSourcePrefixListId3" }, ""]
     },
+    "DBInstanceIngressSourcePrefixListIdEmpty4": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourcePrefixListId4" }, ""]
+    },
+    "DBInstanceIngressSourcePrefixListIdEmpty5": {
+      "Fn::Equals": [{ "Ref": "DBInstanceIngressSourcePrefixListId5" }, ""]
+    },
     "DBInstanceVPCSecurityGroupId2Empty": {
       "Fn::Equals": [{ "Ref": "DBInstanceVPCSecurityGroupId2" }, ""]
     },
@@ -838,6 +858,26 @@
               "FromPort": "5432",
               "ToPort": "5432",
               "SourcePrefixListId": { "Ref": "DBInstanceIngressSourcePrefixListId3" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourcePrefixListIdEmpty4",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourcePrefixListId": { "Ref": "DBInstanceIngressSourcePrefixListId4" }
+            }
+          ]},
+          { "Fn::If": [
+            "DBInstanceIngressSourcePrefixListIdEmpty5",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "5432",
+              "ToPort": "5432",
+              "SourcePrefixListId": { "Ref": "DBInstanceIngressSourcePrefixListId5" }
             }
           ]}
         ]
