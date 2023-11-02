@@ -1,3 +1,12 @@
+Version 0.9.25
+==============
+- `web-cluster-template`
+  * New optional parameters:
+    - `ALBListenerHTTPSPort` to use custom HTTPS port on ALB, default is 443
+    - `ALBListenerHTTPSPort2` to create additional HTTPS-listener on a custom port for the ALB, default 0 means no additional listeners. Additional HTTPS listener will forward the traffic to the same target group as the primary HTTPS listener.
+- `postgresql-template`
+  * Allow `gp3` in both `StorageType` and `DBReplicaStorageType` parameters.
+
 Version 0.9.23
 ==============
 - `postgresql-template`

@@ -45,7 +45,7 @@
       "Default": ""
     },
     "Ingress443SecurityGroupId": {
-      "Description": "(Optional) ID of ingress security group to allow accessing the (internal) ALB on port 443",
+      "Description": "(Optional) ID of ingress security group to allow accessing the (internal) ALB on the HTTPS port",
       "Type": "String",
       "AllowedPattern":  "(|sg-[a-z0-9]+)",
       "ConstraintDescription": "must be ID of security group (sg-xxxxxxxx) or empty if no additional access is needed",
@@ -177,6 +177,16 @@
       "Description": "Arn of WAF ACL which should be attached to ALB",
       "Type": "String",
       "Default": ""
+    },
+    "ALBListenerHTTPSPort": {
+      "Description": "The port on which the ALB is listening for HTTPS",
+      "Type": "Number",
+      "Default": "443"
+    },
+    "ALBListenerHTTPSPort2": {
+      "Description": "Additional port on which the ALB is listening for HTTPS (default 0, means no additional listeners)",
+      "Type": "Number",
+      "Default": "0"
     },
     "SSLCertificateId": {
       "Description": "ARN of the default SSL Certificate for the ALB HTTPS listener; for the additional ones use SSLCertificateId2, SSLCertificateId3, ...",
@@ -495,6 +505,16 @@
         }
       ]
     },
+    "CreateHTTPSListener2": {
+      "Fn::And": [
+        { "Condition": "CreateHTTPSListener" },
+        {
+          "Fn::Not": [{
+            "Fn::Equals": [{ "Ref": "ALBListenerHTTPSPort2" }, "0"]
+          }]
+        }
+      ]
+    },
     "CreateListenerCertificate2": {
       "Fn::And": [
         { "Condition": "CreateHTTPSListener" },
@@ -736,7 +756,7 @@
             "Type": "redirect",
             "RedirectConfig": {
               "Protocol": "HTTPS",
-              "Port": 443,
+              "Port": { "Ref": "ALBListenerHTTPSPort" },
               "Host": "#{host}",
               "Path": "/#{path}",
               "Query": "#{query}",
@@ -762,7 +782,24 @@
           "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
         }],
         "LoadBalancerArn": { "Ref": "MyALB" },
-        "Port": "443",
+        "Port": { "Ref": "ALBListenerHTTPSPort" },
+        "Protocol": "HTTPS",
+        "Certificates": [
+          { "CertificateArn": { "Ref": "SSLCertificateId" } }
+        ],
+        "SslPolicy": { "Ref": "ALBReferenceSecurityPolicy" }
+      }
+    },
+    "MyALBListenerHTTPS2" : {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "CreateHTTPSListener2",
+      "Properties": {
+        "DefaultActions": [{
+          "Type": "forward",
+          "TargetGroupArn": { "Ref": "MyALBTargetGroup" }
+        }],
+        "LoadBalancerArn": { "Ref": "MyALB" },
+        "Port": { "Ref": "ALBListenerHTTPSPort2" },
         "Protocol": "HTTPS",
         "Certificates": [
           { "CertificateArn": { "Ref": "SSLCertificateId" } }
@@ -857,8 +894,8 @@
           }
         }, {
           "IpProtocol": "tcp",
-          "FromPort": "443",
-          "ToPort": "443",
+          "FromPort": { "Ref": "ALBListenerHTTPSPort" },
+          "ToPort": { "Ref": "ALBListenerHTTPSPort" },
           "CidrIp": {
             "Fn::If": ["InternalALB", { "Ref": "InternalALBIngressCidrIp" }, "0.0.0.0/0"]
           }
@@ -868,11 +905,24 @@
           { "Ref": "AWS::NoValue" },
           {
             "IpProtocol": "tcp",
-            "FromPort": "443",
-            "ToPort": "443",
+            "FromPort": { "Ref": "ALBListenerHTTPSPort" },
+            "ToPort": { "Ref": "ALBListenerHTTPSPort" },
             "SourceSecurityGroupId": { "Ref": "Ingress443SecurityGroupId" }
           }
-        ]}]
+        ]}, {
+            "Fn::If": [
+              "CreateHTTPSListener2",
+              {
+                  "IpProtocol": "tcp",
+                  "FromPort": { "Ref": "ALBListenerHTTPSPort2" },
+                  "ToPort": { "Ref": "ALBListenerHTTPSPort2" },
+                  "CidrIp": {
+                    "Fn::If": ["InternalALB", { "Ref": "InternalALBIngressCidrIp" }, "0.0.0.0/0"]
+                  }
+              },
+              { "Ref": "AWS::NoValue" }
+            ]
+        }]
       }
     },
     "MyS3LoggingBucket": {
