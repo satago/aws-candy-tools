@@ -923,6 +923,7 @@
               { "Ref": "AWS::NoValue" }
             ]
         }]
+      }
     },
     "MyS3LoggingBucket": {
       "Type": "AWS::S3::Bucket",
