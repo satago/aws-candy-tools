@@ -1,3 +1,7 @@
+==============
+- `web-cluster-template`
+  * Run `yum clean all` command at the end of instance provisioning to retain disk space
+
 Version 0.9.25
 ==============
 - `web-cluster-template`

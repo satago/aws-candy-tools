@@ -1661,7 +1661,10 @@
               "else\n",
               "  echo Could not find any CodeDeploy deployments, signalling success to the ASG now\n",
               "  /opt/satago/cfn-success 'Instance setup completed successfully.'\n",
-              "fi\n"
+              "fi\n",
+
+              "# Retain disk space\n",
+              "/usr/bin/yum clean all"
             ]]
           }
         }
