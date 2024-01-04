@@ -27,6 +27,8 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             artifactId = 'aws-candy-tools'
+            from components.java
+
             pom {
                 name = 'AWS Candy Tools'
                 description = 'AWS Candy Tools'
@@ -49,10 +51,10 @@ publishing {
     }
     repositories {
         maven {
-            url = nexusRepositoryUrl
+            url = 'https://satago-501309906781.d.codeartifact.eu-west-1.amazonaws.com/maven/satago-java/'
             credentials {
-                username = nexusUsername
-                password = nexusPassword
+                username "aws"
+                password System.env.CODEARTIFACT_AUTH_TOKEN
             }
         }
     }
