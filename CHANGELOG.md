@@ -1,3 +1,8 @@
+Version 0.9.26
+==============
+- `web-cluster-template`
+  * New parameter `Ingress8443PrefixListId2` (optional) allows specifying additional Prefix List to access port 8443 of EC2 instances
+
 Version 0.9.25
 ==============
 - `web-cluster-template`
