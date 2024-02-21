@@ -65,6 +65,13 @@
       "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
       "Default": ""
     },
+    "Ingress8443PrefixListId2": {
+      "Description": "(Optional) ID of ingress prefix list to allow access to port 8443 of EC2 instances",
+      "Type": "String",
+      "AllowedPattern": "(|pl-[a-z0-9]+)",
+      "ConstraintDescription": "must be ID of prefix list (pl-xxxxxxxx) or empty for no access other than from ALB",
+      "Default": ""
+    },
     "TcpIngressFromSelfOnPortRangeFrom": {
       "Description": "(Optional) The start of port range for the TCP protocol to allow ingress from all EC2 instances of this cluster",
       "Type": "String",
@@ -455,6 +462,9 @@
     },
     "Ingress8443PrefixListIdEmpty": {
       "Fn::Equals": [{ "Ref":  "Ingress8443PrefixListId" }, ""]
+    },
+    "Ingress8443PrefixListId2Empty": {
+      "Fn::Equals": [{ "Ref":  "Ingress8443PrefixListId2" }, ""]
     },
     "TcpIngressFromSelfEnabled": {
       "Fn::And": [
@@ -1711,6 +1721,15 @@
               "FromPort": "8443",
               "ToPort": "8443",
               "SourcePrefixListId": { "Ref": "Ingress8443PrefixListId" }
+            }
+        ]}, { "Fn::If": [
+            "Ingress8443PrefixListId2Empty",
+            { "Ref": "AWS::NoValue" },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "8443",
+              "ToPort": "8443",
+              "SourcePrefixListId": { "Ref": "Ingress8443PrefixListId2" }
             }
         ]}, { "Fn::If": [
           "SSHSecurityGroupIdEmpty",
