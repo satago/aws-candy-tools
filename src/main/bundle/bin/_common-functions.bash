@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
 function aws_account_id {
-    # http://stackoverflow.com/a/33791322
-    aws ec2 describe-security-groups \
+    if [[ -z ${AWS_ACCOUNT_ID} ]]
+    then
+      # http://stackoverflow.com/a/33791322
+      aws ec2 describe-security-groups \
               --group-names 'Default' \
               --query 'SecurityGroups[0].OwnerId' \
               --output text
+    else
+      echo ${AWS_ACCOUNT_ID}
+    fi
 }
 
 function docker_login_ecr {

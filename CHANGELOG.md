@@ -1,3 +1,8 @@
+Version 0.9.27
+==============
+- `bin/_common-functions.bash`
+  * Allows to pre set `AWS_ACCOUNT_ID` variable which will be return by `aws_account_id` function
+
 Version 0.9.26
 ==============
 - `web-cluster-template`
