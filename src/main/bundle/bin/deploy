@@ -82,14 +82,14 @@ function bucket_name {
 }
 
 function physical_resource_id {
-    aws cloudformation list-stack-resources \
+    with_backoff aws cloudformation list-stack-resources \
         --stack-name "$1" \
         --query "StackResourceSummaries[?ResourceType==\`$2\`].PhysicalResourceId" \
         --output text
 }
 
 function read_output_value {
-    aws cloudformation describe-stacks \
+    with_backoff aws cloudformation describe-stacks \
         --stack-name "$1" \
         --query "Stacks[*].Outputs[?OutputKey==\`$2\`].OutputValue" \
         --output text
@@ -191,11 +191,15 @@ case "$CMD" in
                 IMAGE_TAG="${SERVICE}_IMAGE_TAG"
                 ECR_STACK_NAME="${SERVICE}_ECR_STACK_NAME"
 
+                set +e
                 TARGET_IMAGE=$(read_output_value "${!ECR_STACK_NAME}" ImageURI)
+                set -e
 
                 docker tag "${!IMAGE_ID}" "${TARGET_IMAGE}:${!IMAGE_TAG}"
 
-                docker_login_ecr
+                set +e
+                with_backoff docker_login_ecr
+                set -e
 
                 docker push "${TARGET_IMAGE}:${!IMAGE_TAG}"
 
@@ -273,15 +277,19 @@ case "$CMD" in
 
             set_aws_profile_from_stack
 
+            set +e
             APP_NAME=$(physical_resource_id "${STACK_NAME}" AWS::CodeDeploy::Application)
+            set -e
 
             CREATE_DEPLOYMENT=$(aws deploy push --application-name "${APP_NAME}" \
                 --s3-location "s3://$(bucket_name)/${STACK}.zip" \
                 --source "${REVISION_DIR}" \
                 | tail -n 1)
 
+            set +e
             DG_NAME=$(physical_resource_id "${STACK_NAME}" AWS::CodeDeploy::DeploymentGroup)
             DC_NAME=$(physical_resource_id "${STACK_NAME}" AWS::CodeDeploy::DeploymentConfig)
+            set -e
 
             if [[ -z ${DC_NAME}  ]]; then
                 DC_NAME="CodeDeployDefault.OneAtATime"
