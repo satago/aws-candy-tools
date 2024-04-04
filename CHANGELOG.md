@@ -1,3 +1,8 @@
+Version 0.9.27
+==============
+- `deploy docker-tag-and-push`
+  * Change logic of ECR repo URI discover from stack name to ecr describe via aws-cli
+    
 Version 0.9.26
 ==============
 - `web-cluster-template`
