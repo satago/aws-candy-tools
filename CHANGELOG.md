@@ -1,3 +1,10 @@
+Version 0.9.27
+==============
+- `bin/_common-functions.bash`
+- `bin/deploy`
+  * added `with_backoff` function for exponential retry for some commands
+
+
 Version 0.9.26
 ==============
 - `web-cluster-template`
