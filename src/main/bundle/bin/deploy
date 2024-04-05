@@ -191,7 +191,7 @@ case "$CMD" in
                 IMAGE_TAG="${SERVICE}_IMAGE_TAG"
                 ECR_STACK_NAME="${SERVICE}_ECR_STACK_NAME"
 
-                TARGET_IMAGE=$(aws ecr describe-repositories --repository-names "${SERVICE}" --query 'repositories[0].repositoryUri' --output text)
+                TARGET_IMAGE=$(read_output_value "${!ECR_STACK_NAME}" ImageURI)
 
                 docker tag "${!IMAGE_ID}" "${TARGET_IMAGE}:${!IMAGE_TAG}"
 
