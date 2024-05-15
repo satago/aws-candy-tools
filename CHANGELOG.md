@@ -1,3 +1,8 @@
+Version 0.9.28
+==============
+- `web-cluster-template`
+  * New parameter `AssociatePublicIpAddress` (optional) allows to control Public IP address association
+
 Version 0.9.27
 ==============
 - `bin/_common-functions.bash`

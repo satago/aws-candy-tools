@@ -24,6 +24,11 @@
       "Type": "String",
       "Default": 4
     },
+    "AssociatePublicIpAddress": {
+      "Description": "Should Public IP address be associated to EC2 instances",
+      "Type": "String",
+      "Default": ""
+    },
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to instances",
       "Type": "String",
@@ -383,6 +388,9 @@
   "Conditions": {
     "VpcIdIsDefault": {
       "Fn::Equals": [{ "Ref": "VpcIdIsDefault" }, "true"]
+    },
+    "AssociatePublicIpAddressEmpty": {
+      "Fn::Equals": [{ "Ref": "AssociatePublicIpAddress" }, ""]
     },
     "KeyNameEmpty": {
       "Fn::Equals": [{ "Ref": "KeyName" }, ""]
@@ -1578,6 +1586,11 @@
         }
       },
       "Properties": {
+        "AssociatePublicIpAddress": { "Fn::If": [
+          "AssociatePublicIpAddressEmpty",
+          { "Ref": "AWS::NoValue" },
+          { "Ref": "AssociatePublicIpAddress" }
+        ]},
         "ImageId": {
           "Fn::If": [
               "CustomImageIdEmpty",
