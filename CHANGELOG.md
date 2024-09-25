@@ -1,3 +1,9 @@
+Version 0.9.29
+==============
+- `python scripts`
+  * Updated for python 3.X
+
+
 Version 0.9.28
 ==============
 - `web-cluster-template`

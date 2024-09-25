@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from subprocess import Popen, PIPE
 
 def my_replace(executable, match):
@@ -5,4 +7,4 @@ def my_replace(executable, match):
     output, err = p.communicate()
     if p.returncode != 0:
         raise ValueError('Error replacing ["' + ('", "'.join(match)) + '"]\n' + err)
-    return output
+    return output.decode("utf-8")
