@@ -583,9 +583,9 @@
   },
   "Mappings": {
     "RegionMap": {
-      "eu-central-1": { "AMI": "ami-0453cb7b5f2b7fca2", "ELBAccountId": "054676820928" },
-      "eu-west-1": { "AMI": "ami-02b4e72b17337d6c1", "ELBAccountId": "156460612806" },
-      "eu-west-2": { "AMI": "ami-0d26eb3972b7f8c96", "ELBAccountId": "652711504416" }
+      "eu-central-1": { "AMI": "ami-00f07845aed8c0ee7", "ELBAccountId": "054676820928" },
+      "eu-west-1": { "AMI": "ami-0fed63ea358539e44", "ELBAccountId": "156460612806" },
+      "eu-west-2": { "AMI": "ami-0b45ae66668865cd6", "ELBAccountId": "652711504416" }
     }
   },
   "Resources": {
@@ -1029,10 +1029,9 @@
           "configSets" : {
             "default": [
               "configure-sshd",
-              "yum-versionlock",
+              "install-packages",
               "cfn-config",
               "cloudwatch-agent",
-              "install-pip",
               "aws-cli",
               "aws-configure",
               "before-docker",
@@ -1042,10 +1041,12 @@
               { "Fn::If": ["CreateGracefulShutdown", "asg-terminate-listener", { "Ref": "AWS::NoValue" }] }
             ]
           },
-          "yum-versionlock": {
+          "install-packages": {
             "packages": {
               "yum": {
-                "yum-plugin-versionlock": []
+                "python-unversioned-command": [],
+                "python3-dnf-plugin-versionlock": [],
+                "python3-pip": []
               }
             }
           },
@@ -1284,19 +1285,12 @@
               }
             }
           },
-          "install-pip": {
-            "commands": {
-              "pip": {
-                "command": "command -v pip || (curl -O https://bootstrap.pypa.io/pip/2.7/get-pip.py ; python get-pip.py)"
-              }
-            }
-          },
           "aws-cli": {
             "commands": {
               "aws-cli": {
                 "command": {
                   "Fn::Join": ["", [
-                    "pip install --upgrade awscli==", { "Ref": "AWSCLIVersion" }
+                    "yum remove -y awscli && pip install --upgrade awscli==", { "Ref": "AWSCLIVersion" }
                   ]]
                 }
               }
@@ -1354,7 +1348,7 @@
             "packages": {
               "yum": {
                 "wget": [],
-                "ruby": []
+                "ruby3.2": []
               }
             },
             "files": {
@@ -1606,7 +1600,7 @@
               "DeviceName":"/dev/xvda",
               "Ebs": {
                 "VolumeSize": { "Ref": "VolumeSize" },
-                "VolumeType":"gp2"
+                "VolumeType":"gp3"
               }
             }],
             []

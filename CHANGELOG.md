@@ -1,8 +1,12 @@
+Version 0.10.0
+==============
+- `web-cluster-template`
+  * Updated to support AL2023
+
 Version 0.9.29
 ==============
 - `python scripts`
   * Updated for python 3.X
-
 
 Version 0.9.28
 ==============
