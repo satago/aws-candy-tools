@@ -1,3 +1,8 @@
+Version 0.10.1
+==============
+- `web-cluster-template`
+  * Set IMDS to be optional
+
 Version 0.10.0
 ==============
 - `web-cluster-template`
