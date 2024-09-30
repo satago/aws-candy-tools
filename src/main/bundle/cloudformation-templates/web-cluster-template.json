@@ -1593,6 +1593,9 @@
           ]
         },
         "InstanceType": { "Ref": "InstanceType" },
+        "MetadataOptions": {
+          "HttpTokens": "optional"
+        },
         "BlockDeviceMappings" : {
           "Fn::If": [
             "VolumeSizeDefined",
