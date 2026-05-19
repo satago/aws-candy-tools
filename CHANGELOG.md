@@ -1,3 +1,8 @@
+Version 0.10.2
+==============
+- `elasticsearch-template`
+  * New parameter `InstanceVolumeType` (optional, default for `gp2` for backwards compatibility) to define instance volume type on cluster nodes
+
 Version 0.10.1
 ==============
 - `web-cluster-template`

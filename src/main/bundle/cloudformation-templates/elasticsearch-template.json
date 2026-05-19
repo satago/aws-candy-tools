@@ -14,6 +14,11 @@
       "Description": "Number of instances",
       "Type": "Number"
     },
+    "InstanceVolumeType": {
+      "Description": "Volume type on each instance node",
+      "Type": "String",
+      "Default": "gp2"
+    },
     "InstanceVolumeSizeGB": {
       "Description": "Volume size on each instance node",
       "Type": "Number",
@@ -56,7 +61,7 @@
         },
         "EBSOptions": {
           "EBSEnabled": true,
-          "VolumeType": "gp2",
+          "VolumeType": { "Ref": "InstanceVolumeType" },
           "VolumeSize": { "Ref": "InstanceVolumeSizeGB" }
         },
         "ElasticsearchClusterConfig": {
