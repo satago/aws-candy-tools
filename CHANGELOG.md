@@ -1,3 +1,8 @@
+Version 0.10.3
+==============
+- `bin/encrypt`
+  * fix for MacOS's base64 command which wraps the output at 76 characters. When that newline gets interpolated into the --cli-input-json string, the JSON becomes malformed → "Invalid JSON received."
+  
 Version 0.10.2
 ==============
 - `elasticsearch-template`
