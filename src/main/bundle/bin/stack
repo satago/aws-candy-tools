@@ -377,13 +377,6 @@ case "$CMD" in
             if [[ -z ${ALB_TARGET_GROUP_ARN} ]]; then
                 printf '%s %s does not have ALB (ELBv2) defined\n' "$(date +%H:%M:%S)" "${STACK}"
                 exit 1
-            else
-                IN_SERVICE_COUNT_CHECK_DESTINATION="ALB (ELBv2) target group"
-                function IN_SERVICE_COUNT_FUNCTION {
-                  aws elbv2 describe-target-health \
-                       --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
-                       --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id)"
-                }
             fi
 
             ASG_NAME=$(physical_resource_id_by_logical_id "${STACK_NAME}" MyASG)
@@ -392,35 +385,64 @@ case "$CMD" in
                 --query 'AutoScalingGroups[0].DesiredCapacity' \
                 --output text)
 
-            printf '%s Waiting for %s %s to have %s healthy instance(s) to match its ASG\n' \
-                "$(date +%H:%M:%S)" "${STACK}" "${IN_SERVICE_COUNT_CHECK_DESTINATION}" "${DESIRED_CAPACITY}"
+            printf '%s Waiting for %s ALB (ELBv2) target group to have %s healthy instance(s)\n' \
+                "$(date +%H:%M:%S)" "${STACK}" "${DESIRED_CAPACITY}"
 
             PREV_STATUS=
             while true
             do
                 set +e
-                IN_SERVICE_COUNT=$(IN_SERVICE_COUNT_FUNCTION)
+                HEALTHY_COUNT=$(aws elbv2 describe-target-health \
+                    --target-group-arn "${ALB_TARGET_GROUP_ARN}" \
+                    --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'].Target.Id)")
                 set -e
 
-                STATUS="${STACK} ${IN_SERVICE_COUNT_CHECK_DESTINATION} has ${IN_SERVICE_COUNT} healthy instance(s)"
+                STATUS="${STACK} ALB (ELBv2) target group has ${HEALTHY_COUNT} healthy instance(s)"
                 STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
 
-                # TODO test & update deploy if works
                 if [[ -t 1 ]] && [[ -z ${PREV_STATUS} || ${PREV_STATUS} == "${STATUS}" ]]; then
                     printf '\r%s' "${STATUS_LINE}"
                 else
                     printf '\n%s' "${STATUS_LINE}"
                 fi
 
-              if [[ ${IN_SERVICE_COUNT} == "${DESIRED_CAPACITY}" ]]; then
-                echo
-                exit 0
-              fi
+                if [[ ${HEALTHY_COUNT} == "${DESIRED_CAPACITY}" ]]; then
+                    echo
+                    break
+                fi
 
-              PREV_STATUS=${STATUS}
+                PREV_STATUS=${STATUS}
 
-              sleep 1
+                sleep 1
+            done
 
+            printf '%s Waiting for %s ASG instances to be InService\n' \
+                "$(date +%H:%M:%S)" "${STACK}"
+
+            PREV_STATUS=
+            while true
+            do
+                NOT_IN_SERVICE_COUNT=$(aws autoscaling describe-auto-scaling-groups \
+                    --auto-scaling-group-names "${ASG_NAME}" \
+                    --query 'AutoScalingGroups[0].Instances[?LifecycleState!=`InService`] | length(@)')
+
+                STATUS="${STACK} ASG has ${NOT_IN_SERVICE_COUNT} instance(s) not yet InService"
+                STATUS_LINE="$(date +%H:%M:%S) ${STATUS}"
+
+                if [[ -t 1 ]] && [[ -z ${PREV_STATUS} || ${PREV_STATUS} == "${STATUS}" ]]; then
+                    printf '\r%s' "${STATUS_LINE}"
+                else
+                    printf '\n%s' "${STATUS_LINE}"
+                fi
+
+                if [[ ${NOT_IN_SERVICE_COUNT} == "0" ]]; then
+                    echo
+                    exit 0
+                fi
+
+                PREV_STATUS=${STATUS}
+
+                sleep 1
             done
             ;;
 
