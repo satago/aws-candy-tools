@@ -1,3 +1,8 @@
+Version 0.10.4
+==============
+- `bin/stack`
+  * `wait-for-elb-instances` waits not only for all instances to be healthy but also in `InService` state
+
 Version 0.10.3
 ==============
 - `bin/encrypt`
