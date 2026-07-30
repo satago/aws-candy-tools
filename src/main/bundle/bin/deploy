@@ -258,7 +258,7 @@ case "$CMD" in
               # ensure all instances were successfully registered in the ELB, so we do not decrease the ASG size if not all instances are able to
               # handle the requests
               # shellcheck disable=SC2086
-              if ! timeout 60 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
+              if ! timeout 900 ${STACK_CMD} wait-for-elb-instances ${STACK}; then
                   echo -e "*\n* ERROR CodeDeploy deployment for ${STACK} succeeded, but not all instances successfully registered in ELB. Please verify. *\n*"
                   exit 1
               fi
