@@ -1,3 +1,9 @@
+Version 0.10.5
+==============
+- `bin/deploy`
+  * timeout for `wait-for-elb-instances` after pushing a new version will be 15 minutes (the same it is after autoscalling)   
+  
+
 Version 0.10.4
 ==============
 - `bin/stack`
