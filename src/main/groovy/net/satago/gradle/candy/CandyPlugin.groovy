@@ -431,7 +431,7 @@ class CandyPlugin implements Plugin<Project> {
                                 project.logger.warn "!!! ${revision.name}:" +
                                         " task '${builderTaskName}' not found in project '${evaluatedProject.name}'"
                                 //  Cleanup
-                                createRevisionsTask.dependsOn.remove createRevisionTask
+                                createRevisionsTask.setDependsOn(createRevisionsTask.dependsOn.findAll { it != createRevisionTask })
                             }
                         }
                     } else {

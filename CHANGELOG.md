@@ -1,3 +1,9 @@
+Version 0.10.6
+==============
+- `CandyPlugin`
+  * make it compatible with Gradle 9.4 by not mutating a task dependency list
+    (this change is backwards compatible with Gradle 7.4)
+
 Version 0.10.5
 ==============
 - `bin/deploy`
