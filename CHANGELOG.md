@@ -1,3 +1,8 @@
+Version 0.10.7
+==============
+- `CandyPlugin`
+  * for gradle versions >= 9.0 we call 'useFileSystemPermissions()' on 'tarRevisions' task to preserve executable attributes of script files
+
 Version 0.10.6
 ==============
 - `CandyPlugin`
