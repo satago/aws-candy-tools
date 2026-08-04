@@ -2,6 +2,7 @@ package net.satago.gradle.candy
 
 import net.satago.gradle.common.AppendFiles
 import net.satago.gradle.common.DeferredReplaceTokens
+import org.gradle.util.GradleVersion
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -197,6 +198,9 @@ class CandyPlugin implements Plugin<Project> {
                 tar.archiveVersion = project.version
                 tar.into project.name
                 tar.destinationDirectory = project.file("${project.buildDir}/tar")
+                if (GradleVersion.current() >= GradleVersion.version("9.0")) {
+                    tar.useFileSystemPermissions()
+                }
                 tar.from(extractedBundleDirPath) {
                     include 'bin/'
                     exclude "bin/${BIN_EXEC}"
